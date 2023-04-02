@@ -1,0 +1,507 @@
+/*
+
+   Sketch to work as a personal data transmitter device and associated tracker
+
+   It can in principle be built across several different microcontrollers as I was indecisive during development but it's intended for the following...
+
+   Beacon - ESP8266/8285 on custom PCB to keep the size down
+   Tracker - ESP32-C3 on custom PCB to keep the size down
+
+   The code is deliberately split into many several files to make it more manageable
+
+   The same sketch has the code for both devices, uncomment the '#define ACT_AS_TRACKER' below to build for the tracker, otherwise it is a beacon
+
+*/
+#define ACT_AS_TRACKER
+
+uint8_t majorVersion = 0;
+uint8_t minorVersion = 2;
+uint8_t patchVersion = 6;
+/*
+
+   Various nominally optional features that can be switched off during testing/development
+
+*/
+#ifndef ACT_AS_TRACKER
+  #define ACT_AS_BEACON
+#endif
+#define SUPPORT_LORA
+#define SUPPORT_GPS
+#define SUPPORT_WIFI
+#define SUPPORT_BATTERY_METER
+#define SUPPORT_OTA
+#define SERIAL_DEBUG
+#define SERIAL_LOG
+#define USE_LITTLEFS
+#define ENABLE_LOCAL_WEBSERVER
+#define ENABLE_REMOTE_RESTART
+#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
+#define ENABLE_OTA_UPDATE
+#define ENABLE_LOG_DELETION
+#if defined(ACT_AS_TRACKER)
+  #define SUPPORT_DISPLAY
+  #define SUPPORT_BEEPER
+  #define USE_SSD1331
+#endif
+#define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
+//#define SERVE_CONFIG_FILE
+/*
+
+   Block of includes that are always used
+
+*/
+#include <LittleFS.h> //LittleFS storage
+#include <FS.h> //Filesystem library
+#include <time.h> //Time/NTP library
+//#include <MD5Builder.h> //MD5 has library to hash authorisation lists
+#include <ArduinoJson.h>  //Used to serialise/deserialise configuration files and server responses
+#ifdef SUPPORT_WIFI
+  #if defined(ESP8266)
+    #include <ESP8266WiFi.h>
+    #include <ESP8266mDNS.h>
+    #include <WiFiUdp.h>
+  #elif defined(ESP32)
+    #include <WiFi.h>
+  #endif
+  #if defined(ENABLE_OTA_UPDATE)
+    #include <ArduinoOTA.h> //Over-the-air update library
+  #endif
+#endif
+#if defined(ARDUINO_ESP32C3_DEV)
+  #ifdef SUPPORT_DOSTAR
+    #include <Adafruit_NeoPixel.h>
+  #endif
+#endif
+/*
+
+   Block of includes for ESPAsyncWebServer, which is used to make a configuration interface and allow you to download log files
+
+*/
+#if defined(ENABLE_LOCAL_WEBSERVER)
+  #if defined(ESP32)
+    #include <AsyncTCP.h>
+  #elif defined(ESP8266)
+    #include <ESPAsyncTCP.h>
+  #endif
+  #include <ESPAsyncWebServer.h>
+  AsyncWebServer webServer(80);  //Web server instance
+  char normalize[] PROGMEM =
+#include "css/normalizecss.h"
+    ;
+  char skeleton[] PROGMEM =
+#include "css/skeletoncss.h"
+    ;
+  void addPageHeader(AsyncResponseStream *response, uint8_t refresh, const char* refreshTo);
+  void addPageFooter(AsyncResponseStream *response);
+#endif
+/*
+
+   Includes for SPI peripherals
+
+*/
+#if defined(SUPPORT_LORA) || defined(SUPPORT_DISPLAY)
+  #include <SPI.h>
+#endif
+/*
+
+   Includes for LoRa
+
+*/
+#if defined(SUPPORT_LORA)
+  #include <LoRa.h>
+  #include <MsgPack.h>  //MsgPack is used to transmit data
+  #define LORA_NON_BLOCKING //Uncomment to use callbacks, rather than polling for LoRa events
+#endif
+/*
+
+   Block of includes for the display
+
+*/
+#ifdef SUPPORT_DISPLAY
+  #if defined(USE_SSD1331)
+    #include "ssd1306.h"
+  #endif
+#endif
+/*
+
+   Block of includes to get extra information about the microcontroller status
+
+*/
+#if defined(ESP32)
+  #if ESP_IDF_VERSION_MAJOR > 3 // IDF 4+
+    #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+      #include "esp32/rom/rtc.h"
+    #elif CONFIG_IDF_TARGET_ESP32S2
+      #include "esp32s2/rom/rtc.h"
+    #elif CONFIG_IDF_TARGET_ESP32C3
+      #include "esp32c3/rom/rtc.h"
+    #else
+      #error Target CONFIG_IDF_TARGET is not supported
+    #endif
+  #else // ESP32 Before IDF 4.0
+    #include "rom/rtc.h"
+  #endif
+#endif
+/*
+
+   Block of includes for GPS support
+
+*/
+#ifdef SUPPORT_GPS
+  #include <TinyGPS++.h>
+#endif
+/*
+
+   Pin configurations
+
+*/
+#if defined(ARDUINO_ESP32C3_DEV)
+  // NUM_DIGITAL_PINS        22
+  // NUM_ANALOG_INPUTS       6
+  // SS    = 7
+  // MOSI  = 6
+  // MISO  = 5
+  // SCK   = 4
+  // SDA = 8
+  // SCL = 9
+  // TX = 21
+  // RX = 20
+  // A0 = 0
+  // A1 = 1;
+  // A2 = 2;
+  // A3 = 3;
+  // A4 = 4;
+  // A5 = 5;
+  #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
+    #if ARDUINO_USB_CDC_ON_BOOT == 1
+      #pragma message "USB CDC configured on boot for debug messages"
+      #define SERIAL_DEBUG_PORT Serial
+    #else
+      #pragma message "Configuring USB CDC for debug messages"
+      #define SERIAL_DEBUG_PORT USBSerial
+    #endif
+  #else
+  #endif
+  #ifdef SUPPORT_GPS
+    #ifdef SUPPORT_DISPLAY
+      #if ARDUINO_USB_CDC_ON_BOOT == 1
+        #define GPS_PORT Serial0
+      #else
+        #define GPS_PORT Serial
+      #endif
+      const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
+    #else
+      #define GPS_PORT Serial0
+      const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
+    #endif
+    const int8_t TXPin = -1;              //No TX pin
+  #endif
+  #ifdef SUPPORT_LORA
+    const int8_t loRaCSpin = 7;          // LoRa radio chip select
+    const int8_t loRaResetPin = 8;       // LoRa radio reset
+    const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+  #endif
+  #ifdef SUPPORT_DISPLAY
+    const uint8_t displayCSpin = 1;
+    const uint8_t displayResetPin = 3;
+    const uint8_t displayDCpin = 2;
+  #endif
+  #ifdef SUPPORT_BATTERY_METER
+    int8_t voltageMonitorPin = A0;
+    float topLadderResistor = 330.0;
+    float bottomLadderResistor = 89; //Actually 100k, but the ESP itself has some resistance that effectively lowers it
+    float ADCpeakVoltage = 2.6;
+  #endif
+  #ifdef SUPPORT_BEEPER
+    int8_t beeperPin = 21;
+  #endif
+  #ifdef ACT_AS_TRACKER
+    int8_t buttonPin = 9;
+    uint32_t buttonPushTime = 0;
+    uint32_t buttonDebounceTime = 50;
+    uint32_t buttonLongPressTime = 1500;
+    bool buttonHeld = false;
+    bool buttonLongPress = false;
+    #ifdef SUPPORT_DOSTAR
+      int8_t ledPin = 2;
+      Adafruit_NeoPixel dotStar = Adafruit_NeoPixel(1, ledPin, NEO_RGBW + NEO_KHZ800);
+    #endif
+  #endif
+#else
+  #ifdef SUPPORT_LORA
+    const int8_t loRaCSpin = 15;          // LoRa radio chip select
+    const int8_t loRaResetPin = 16;       // LoRa radio reset
+    const int8_t loRaIrqPin = 5;         // change for your board; must be a hardware interrupt pin
+  #endif
+#endif
+/*
+
+   Variables, depending on supported features
+
+*/
+#if defined(ACT_AS_BEACON)
+  const char* default_nodeName = "PDT beacon";
+#else
+  const char* default_nodeName = "PDT tracker";
+#endif
+char* nodeName = nullptr;
+char* configurationComment = nullptr;
+char default_configurationComment[] = "";
+//Username for the Web UI
+#if defined(ENABLE_LOCAL_WEBSERVER) && defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+  const char default_http_user[] = "pdt";
+  char* http_user = nullptr;
+#endif
+//Password for the Web UI and over-the-air update
+#if (defined(ENABLE_LOCAL_WEBSERVER) && defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)) || defined(ENABLE_OTA_UPDATE)
+  const char default_http_password[] = "pdtpassword";
+  char* http_password = nullptr;
+  bool basicAuthEnabled = false;
+#endif
+File openFileForReading(const char* filename); //This only exists to improve code readibility by removing the SPIFFS/LittleFS conditional compilation
+File openFileForWriting(const char* filename); //This only exists to improve code readibility by removing the SPIFFS/LittleFS conditional compilation
+File openFileForAppend(const char* filename); //This only exists to improve code readibility by removing the SPIFFS/LittleFS conditional compilation
+/*
+
+   Block of conditional includes for LittleFS
+
+*/
+bool filesystemMounted = false; // used to discern whether SPIFFS/LittleFS has correctly initialised
+#if defined(USE_SPIFFS)
+  char configurationFile[] = "configuration.json";  //Does not require a leading slash
+#elif defined(USE_LITTLEFS)
+  char configurationFile[] = "/configuration.json"; //Requires a leading slash
+#endif
+//String configurationMd5;  //An MD5 hash of the configuration, to check for changes
+uint32_t saveConfigurationSoon = 0; //Used to delay saving configuration immediately
+/*
+
+   NTP/time configuration
+
+*/
+const char* default_timeServer = "pool.ntp.org";  //The default time server
+char* timeServer = nullptr;
+const char* default_timeZone = "GMT0BST,M3.5.0/1,M10.5.0"; //The default DST setting for Europe/London, see https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
+char* timeZone = nullptr;
+//const char* timeZone = "UTC0"; //Use this for UTC
+char timestamp[] = "XX:XX:XX XX-XX-XXXX"; //A string overwritten with the current timestamp for logging. It uses this blank XX format until time is set by NTP after booting.
+uint64_t bootTime = 0; //Use the moment the system got a valid NTP time to calculate the boot time for approximate uptime calculations, millis() wraps pretty quickly so we shouldn't use that
+#if defined ENABLE_REMOTE_RESTART
+uint32_t restartTimer = 0;  //Used to schedule a restart
+#endif
+/*
+
+   WiFi credentials
+
+   Note the use of __has_include to conditionally include credentials from elsewhere IF it can be found.
+
+   You can edit the sketch directly to set your WiFi credentials below, or add a credentials.h in the sketch directory
+
+*/
+#if defined __has_include
+  #if __has_include("credentials.h")
+    #include "credentials.h"
+    #pragma message "Using external default WiFi credentials"
+  #else
+    #define WIFI_PSK "Your WiFi PSK"
+    #define WIFI_SSID "Your WiFi SSID"
+    #pragma message "Using default WiFi credentials from sketch"
+  #endif
+#endif
+#if defined(ESP8266) || defined(ESP32)
+  uint8_t _localMacAddress[6] = {0, 0, 0, 0, 0, 0}; //MAC address of this device, which is ALWAYS used to identify it even if WiFi is disabled
+  uint8_t _remoteMacAddress[6] = {0, 0, 0, 0, 0, 0};  //MAC address of the remote device
+#endif
+#if defined(SUPPORT_WIFI)
+  bool startWiFiOnBoot = true;
+  uint32_t wiFiInactivityTimer = 0;
+  uint32_t lastWifiActivity = 0;
+  const char* default_WiFi_SSID = WIFI_PSK;
+  const char* default_WiFi_PSK = WIFI_SSID;
+  char* SSID = nullptr;
+  char* PSK = nullptr;
+#endif
+const int8_t networkTimeout = 30;  //Timeout in seconds for network connection, both WiFi and Ethernet
+static bool networkConnected = false; //Is the network connected?
+static bool networkStateChanged = false;  //Has the state changed since initial connection
+/*
+   Over-the-update
+*/
+#if defined(ENABLE_OTA_UPDATE)
+  volatile bool otaInProgress = false;
+  uint8_t otaProgress = 0;
+  bool otaEnabled = true;
+  bool otaAuthenticationEnabled = false;
+  //void configureOTA();
+#endif
+/*
+
+   Local logging
+
+*/
+#if defined(USE_SPIFFS)
+  const char *logDirectory = "logs";
+  const char *logfilenameTemplate = "%s/log-%04u-%02u-%02u.txt";
+#elif defined(USE_LITTLEFS)
+  const char *logDirectory = "/logs";
+  const char *logfilenameTemplate = "%s/log-%04u-%02u-%02u.txt";
+#endif
+const uint8_t logFilenameLength = 25;
+char logFilename[logFilenameLength]; //Big enough for with or without leading /
+uint8_t logfileDay = 0; //Used to detect rollover
+uint8_t logfileMonth = 0; //Used to detect rollover
+uint16_t logfileYear = 0; //Used to detect rollover
+bool startOfLogLine = true; //If true then the logging add the time/date at the start of the line
+String loggingBuffer = ""; //A logging backlog buffer
+uint16_t loggingBufferSize = 2048; //The space to reserve for a logging backlog. This is not a hard limit, it is to reduce heap fragmentation.
+uint32_t logLastFlushed = 0;  //Time (millis) of the last log flush
+bool autoFlush = false;
+bool flushLogNow = false;
+uint32_t logFlushInterval = 57600; //Frequency in seconds of log flush, this is 16h
+uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
+
+#if defined(SUPPORT_LORA)
+  #define MAX_LORA_BUFFER_SIZE 255
+  bool loRaConnected = false;   // Has the radio initialised OK
+  #if defined(LORA_NON_BLOCKING)
+    #ifdef ESP32
+      portMUX_TYPE loRaRxSynch = portMUX_INITIALIZER_UNLOCKED;  //Mutex for multi-core ESP32s
+      portMUX_TYPE loRaTxSynch = portMUX_INITIALIZER_UNLOCKED;  //Mutex for multi-core ESP32s
+    #endif
+    volatile uint32_t txTimer = 0;
+    volatile bool loRaTxBusy = false;
+    volatile bool loRaRxBusy = false;
+    volatile uint8_t loRaBufferSize = 0;
+    volatile float lastRssi = 0.0;
+    volatile uint32_t loRaTxPackets = 0;
+    volatile uint32_t loRaRxPackets = 0;
+  #else
+    bool loRaTxBusy = false;
+    bool loRaRxBusy = false;
+    uint8_t loRaBufferSize = 0;
+    float lastRssi = 0.0;
+    uint32_t loRaTxPackets = 0;
+    uint32_t loRaRxPackets = 0;
+  #endif
+  uint8_t loRaBuffer[MAX_LORA_BUFFER_SIZE];
+  uint32_t lastBeaconSendTime = 0;    // last send time
+  uint16_t loRaPerimiter1 = 10;       //Range at which beacon 1 applies
+  uint32_t beaconInterval1 = 5000;    // interval between sends
+  uint16_t loRaPerimiter2 = 20;       //Range at which beacon 1 applies
+  uint32_t beaconInterval2 = 5000;    // interval between sends
+  uint16_t loRaPerimiter3 = 30;       //Range at which beacon 1 applies
+  uint32_t beaconInterval3 = 5000;    // interval between sends
+  float rssiAttenuation = -6.0;           //Rate at which double the distance degrades RSSI (should be -6)
+  float rssiAttenuationBaseline = -40;    //RSSI at 10m
+  float rssiAttenuationPerimeter = 10;
+  const uint8_t beaconLocationUpdateId = 0x00;  //LoRa packet contains location info
+  const uint8_t trackerLocationUpdateId = 0x01;  //LoRa packet contains location info
+  const uint8_t powerUpdateId = 0x10;     //LoRa packet contains battery info
+#endif
+/*
+
+   Display support variables
+
+*/
+#ifdef SUPPORT_DISPLAY
+  enum class displayState : std::int8_t {
+    blank,
+    welcome,
+    distance,
+    trackingMode,
+    signal,
+    battery,
+  #ifdef SUPPORT_BEEPER
+    beeper,
+  #endif
+    menu
+  };
+  displayState currentDisplayState = displayState::blank;
+  const uint8_t screenWidth = 96;
+  const uint8_t screenHeight = 64;
+  uint32_t lastDisplayUpdate = 0;
+  const uint32_t longDisplayTimeout = 30000;
+  const uint32_t shortDisplayTimeout = 5000;
+  uint32_t displayTimeout = 30000;
+#endif
+/*
+
+   GPS support variables
+
+*/
+#ifdef SUPPORT_GPS
+    TinyGPSPlus gps;
+    const uint32_t GPSBaud = 9600;
+    //double trackerLatitude = 51.508131; //London
+    //double trackerLongitude = -0.128002;
+    struct gpsLocationInfo {
+      uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+      double latitude = 0;
+      double longitude = 0;
+      double course = 0;
+      double speed = 0;
+      double hdop = 0;
+      double vdop = 0;
+      double distanceTo = 0;
+      double courseTo = 0;
+      uint32_t lastReceive = 0;
+      uint32_t timeout = 60000;
+      bool hasFix = false;
+      double lastRssi = 0;
+    };
+    const uint8_t maximumNumberOfTrackers = 5;
+    const uint8_t maximumNumberOfBeacons = 5;
+    uint8_t numberOfTrackers = 0;
+    uint8_t numberOfBeacons = 0;
+    gpsLocationInfo tracker[maximumNumberOfTrackers];
+    gpsLocationInfo beacon[maximumNumberOfTrackers];
+  #if defined(ACT_AS_TRACKER)
+    double maximumEffectiveRange = 99;
+    uint32_t distanceToCurrentBeacon = 99;
+    bool distanceToCurrentBeaconChanged = false;
+    uint8_t currentBeacon = 0;
+    enum class trackingMode : std::int8_t {
+      nearest,
+      furthest,
+      fixed
+    };
+    trackingMode currentTrackingMode = trackingMode::nearest;
+    #ifdef SUPPORT_LED
+      uint32_t ledOnTime = 20;
+      uint32_t ledOffTime = 1000;
+      uint32_t ledLastStateChange = 0;
+      bool ledState = false;
+    #endif
+  #elif defined(ACT_AS_BEACON)
+    uint8_t currentTracker = 0;
+  #endif
+  uint32_t lastGPSstatus = 0;
+  uint32_t chars;
+  uint16_t sentences, failed;
+  bool useGpsForTimeSync = true;
+#endif
+/*
+
+   Beeper
+
+*/
+#ifdef SUPPORT_BEEPER
+  const uint32_t beeperOnTime = 20;
+  uint32_t beeperOffTime = 1000;
+  uint32_t beeperLastStateChange = 0;
+  bool beeperState = false;
+  const uint16_t beeperTone = 1200;
+  const uint16_t beeperButtonTone = 660;
+  bool beeperEnabled = true;
+#endif
+/*
+
+   Battery meter, which may or may not be usable
+
+*/
+#ifdef SUPPORT_BATTERY_METER
+  uint32_t lastBatteryStatus = 0;
+  uint32_t batteryStatusInterval = 60000;
+  float batteryVoltage = 0.0;
+  uint8_t batteryPercentage = 100;
+#endif
