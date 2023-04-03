@@ -144,18 +144,7 @@ void setupWebServer()
     }
     response->print(F("</li>"));
     response->print(F("<li>Uptime: "));
-    if(timeIsValid())
-    {
-      time_t now;
-      time(&now);
-      struct tm * timeinfo;
-      timeinfo = localtime(&now);
-      response->print(printableUptime(upTime()));
-    }
-    else
-    {
-      response->print(printableUptime(millis()));
-    }
+    response->print(printableUptime(millis()/1000));
     response->print(F("</li>"));
     #if defined(ESP32)
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+

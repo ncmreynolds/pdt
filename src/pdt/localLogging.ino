@@ -40,7 +40,11 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
     }
     updateTimestamp();
     #ifdef SERIAL_LOG
-      while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+      #ifdef USE_RTOS
+        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
+      #else
+        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+      #endif
       SERIAL_DEBUG_PORT.print(timestamp);
       SERIAL_DEBUG_PORT.print(' ');
     #endif
@@ -48,7 +52,11 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
     logToFile(' ');
   }
   #ifdef SERIAL_LOG
-    while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length()){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+      #ifdef USE_RTOS
+        while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length()){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
+      #else
+        while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length()){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+      #endif
     SERIAL_DEBUG_PORT.print(message);
   #endif
   logToFile(message);
@@ -88,7 +96,11 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
     }
     updateTimestamp();
     #ifdef SERIAL_LOG
-      while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+      #ifdef USE_RTOS
+        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
+      #else
+        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+      #endif
       SERIAL_DEBUG_PORT.print(timestamp);
       SERIAL_DEBUG_PORT.print(' ');
     #endif
@@ -136,7 +148,11 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
     }
     updateTimestamp();
     #ifdef SERIAL_LOG
-      while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+      #ifdef USE_RTOS
+        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
+      #else
+        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+      #endif
       SERIAL_DEBUG_PORT.print(timestamp);
       SERIAL_DEBUG_PORT.print(' ');
     #endif
@@ -144,7 +160,11 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
     logToFile(' ');
   }
   #ifdef SERIAL_LOG
-    while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length() + 1){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+    #ifdef USE_RTOS
+      while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length() + 1){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
+    #else
+      while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length() + 1){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
+    #endif
     SERIAL_DEBUG_PORT.println(message);
   #endif
   logToFileLn(message);

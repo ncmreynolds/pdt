@@ -63,6 +63,9 @@ void setup() {
       #else 
         #error Target CONFIG_IDF_TARGET is not supported
       #endif
+      localLog(F("Processor clock: "));
+      localLog(getCpuFrequencyMhz());
+      localLogLn(F("Mhz"));
     #else // ESP32 Before IDF 4.0
       localLogLn(F("ESP32"));
     #endif

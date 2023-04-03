@@ -61,10 +61,7 @@
             #ifdef SUPPORT_BEEPER
               if(beeperEnabled == true)
               {
-                pinMode(beeperPin, OUTPUT);
-                tone(beeperPin, beeperButtonTone, beeperOnTime);
-                beeperLastStateChange = millis();
-                beeperState = true;
+                makeAbeep(beeperButtonTone);
               }
             #endif
             displayBeaconMode();
@@ -74,10 +71,7 @@
             #ifdef SUPPORT_BEEPER
               if(beeperEnabled == true)
               {
-                pinMode(beeperPin, OUTPUT);
-                tone(beeperPin, beeperButtonTone, beeperOnTime);
-                beeperLastStateChange = millis();
-                beeperState = true;
+                makeAbeep(beeperButtonTone);
               }
             #endif
             displaySignalStrengthFromBeacon();
@@ -87,10 +81,7 @@
             #ifdef SUPPORT_BEEPER
               if(beeperEnabled == true)
               {
-                pinMode(beeperPin, OUTPUT);
-                tone(beeperPin, beeperButtonTone, beeperOnTime);
-                beeperLastStateChange = millis();
-                beeperState = true;
+                makeAbeep(beeperButtonTone);
               }
             #endif
             displayBatteryPercentage();
@@ -100,10 +91,7 @@
             #ifdef SUPPORT_BEEPER
               if(beeperEnabled == true)
               {
-                pinMode(beeperPin, OUTPUT);
-                tone(beeperPin, beeperButtonTone, beeperOnTime);
-                beeperLastStateChange = millis();
-                beeperState = true;
+                makeAbeep(beeperButtonTone);
               }
               displayBeeperStatus();
             #else
@@ -115,10 +103,7 @@
             {
               if(beeperEnabled == true)
               {
-                pinMode(beeperPin, OUTPUT);
-                tone(beeperPin, beeperButtonTone, beeperOnTime);
-                beeperLastStateChange = millis();
-                beeperState = true;
+                makeAbeep(beeperButtonTone);
               }
               displayDistanceToBeacon();
             }

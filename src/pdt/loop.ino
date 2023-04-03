@@ -62,10 +62,32 @@ void loop()
     #ifndef USE_RTOS
       smartDelay(250);
     #endif
-    if(millis() > 60000 && timeIsValid() == false && gps.location.isValid() == true)
+    if(millis() - lastGpsTimeCheck > gpsTimeCheckInterval)  //Maintain system time using GPS
     {
-      localLogLn(F("Using GPS for time"));
-      setTimeFromGps();
+      lastGpsTimeCheck = millis();
+      if(gps.location.isValid() == true)
+      {
+        if(timeIsValid() == false)  //Get an initial time at startup
+        {
+          localLog(F("Attempting to use GPS for time: "));
+          setTimeFromGps();
+          if(timeIsValid() == true)
+          {
+            localLogLn(F("OK"));
+            gpsTimeCheckInterval = 3600000;  //Reduce the check interval to once an hour
+          }
+          else
+          {
+            localLogLn(F("failed"));
+          }
+        }
+        else
+        {
+          localLogLn(F("Updating time from GPS"));
+          setTimeFromGps();
+          gpsTimeCheckInterval = 3600000;  //Reduce the check interval to once an hour
+        }
+      }
     }
     /*
     while(GPS_PORT.available())
@@ -96,8 +118,17 @@ void loop()
       }
       else
       {
-        localLogLn(F("GPS got fix, using for time"));
+        localLog(F("GPS got fix, using for time: "));
         setTimeFromGps();
+        if(timeIsValid())
+        {
+          gpsTimeCheckInterval = 3600000; //Change to hourly updates, if succesful
+          localLogLn(F("OK"));
+        }
+        else
+        {
+          localLogLn(F("failed"));
+        }
       }
     }
     #if defined(ACT_AS_TRACKER)
@@ -114,11 +145,13 @@ void loop()
       localLogLn(F("GPS lost fix"));
     }
     #ifdef SERIAL_DEBUG
+      /*
       if(millis() - lastGPSstatus > 10000)
       {
         lastGPSstatus = millis();
         showGPSstatus();
       }
+      */
     #endif
     #ifdef SUPPORT_DISPLAY
       if(tracker[0].hasFix == true && beacon[currentBeacon].hasFix == true && currentDisplayState == displayState::distance && distanceToCurrentBeaconChanged == true && millis() - lastDisplayUpdate > 1000) //Show distance if it changes

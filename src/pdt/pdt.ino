@@ -214,6 +214,7 @@ uint8_t patchVersion = 6;
     float ADCpeakVoltage = 2.6;
   #endif
   #ifdef SUPPORT_BEEPER
+    uint8_t beeperChannel = 0;
     int8_t beeperPin = 21;
   #endif
   #ifdef ACT_AS_TRACKER
@@ -434,11 +435,13 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
   #ifdef USE_RTOS
     TaskHandle_t gpsTask = NULL;
     SemaphoreHandle_t gpsSemaphore = NULL;
-    const uint16_t gpsSemaphoreTimeout = 250;
-    const uint16_t gpsYieldTime = 500;
+    const uint16_t gpsSemaphoreTimeout = 50;
+    const uint16_t gpsYieldTime = 100;
   #endif
   TinyGPSPlus gps;
   const uint32_t GPSBaud = 9600;
+  uint32_t lastGpsTimeCheck = 0;
+  uint32_t gpsTimeCheckInterval = 30000;
   //double trackerLatitude = 51.508131; //London
   //double trackerLongitude = -0.128002;
   struct gpsLocationInfo {
