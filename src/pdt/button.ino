@@ -26,8 +26,16 @@
         }
         else if(currentTrackingMode == trackingMode::furthest)
         {
-          currentTrackingMode = trackingMode::fixed;
-          displayBeaconMode();
+          if(numberOfBeacons > 0)
+          {
+            currentTrackingMode = trackingMode::fixed;
+            displayBeaconMode();
+          }
+          else
+          {
+            currentTrackingMode = trackingMode::nearest;
+            displayBeaconMode();
+          }
         }
         else if(currentTrackingMode == trackingMode::fixed)
         {
