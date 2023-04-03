@@ -59,7 +59,9 @@ void loop()
     }
   #endif
   #ifdef SUPPORT_GPS
-    smartDelay(250);
+    #ifndef USE_RTOS
+      smartDelay(250);
+    #endif
     if(millis() > 60000 && timeIsValid() == false && gps.location.isValid() == true)
     {
       localLogLn(F("Using GPS for time"));

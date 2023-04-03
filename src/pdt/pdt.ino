@@ -44,6 +44,7 @@ uint8_t patchVersion = 6;
   #define USE_SSD1331
 #endif
 #define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
+#define USE_RTOS
 //#define SERVE_CONFIG_FILE
 /*
 
@@ -394,9 +395,9 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
   float rssiAttenuation = -6.0;           //Rate at which double the distance degrades RSSI (should be -6)
   float rssiAttenuationBaseline = -40;    //RSSI at 10m
   float rssiAttenuationPerimeter = 10;
-  const uint8_t beaconLocationUpdateId = 0x00;  //LoRa packet contains location info
-  const uint8_t trackerLocationUpdateId = 0x01;  //LoRa packet contains location info
-  const uint8_t powerUpdateId = 0x10;     //LoRa packet contains battery info
+  const uint8_t beaconLocationUpdateId = 0x00;    //LoRa packet contains location info from a beacon
+  const uint8_t trackerLocationUpdateId = 0x01;   //LoRa packet contains location info from a tracker
+  const uint8_t powerUpdateId = 0x10;             //LoRa packet contains battery info
 #endif
 /*
 
@@ -430,31 +431,37 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
 
 */
 #ifdef SUPPORT_GPS
-    TinyGPSPlus gps;
-    const uint32_t GPSBaud = 9600;
-    //double trackerLatitude = 51.508131; //London
-    //double trackerLongitude = -0.128002;
-    struct gpsLocationInfo {
-      uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-      double latitude = 0;
-      double longitude = 0;
-      double course = 0;
-      double speed = 0;
-      double hdop = 0;
-      double vdop = 0;
-      double distanceTo = 0;
-      double courseTo = 0;
-      uint32_t lastReceive = 0;
-      uint32_t timeout = 60000;
-      bool hasFix = false;
-      double lastRssi = 0;
-    };
-    const uint8_t maximumNumberOfTrackers = 5;
-    const uint8_t maximumNumberOfBeacons = 5;
-    uint8_t numberOfTrackers = 0;
-    uint8_t numberOfBeacons = 0;
-    gpsLocationInfo tracker[maximumNumberOfTrackers];
-    gpsLocationInfo beacon[maximumNumberOfTrackers];
+  #ifdef USE_RTOS
+    TaskHandle_t gpsTask = NULL;
+    SemaphoreHandle_t gpsSemaphore = NULL;
+    const uint16_t gpsSemaphoreTimeout = 250;
+    const uint16_t gpsYieldTime = 500;
+  #endif
+  TinyGPSPlus gps;
+  const uint32_t GPSBaud = 9600;
+  //double trackerLatitude = 51.508131; //London
+  //double trackerLongitude = -0.128002;
+  struct gpsLocationInfo {
+    uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    double latitude = 0;
+    double longitude = 0;
+    double course = 0;
+    double speed = 0;
+    double hdop = 0;
+    double vdop = 0;
+    double distanceTo = 0;
+    double courseTo = 0;
+    uint32_t lastReceive = 0;
+    uint32_t timeout = 60000;
+    bool hasFix = false;
+    double lastRssi = 0;
+  };
+  const uint8_t maximumNumberOfTrackers = 5;
+  const uint8_t maximumNumberOfBeacons = 5;
+  uint8_t numberOfTrackers = 0;
+  uint8_t numberOfBeacons = 0;
+  gpsLocationInfo tracker[maximumNumberOfTrackers];
+  gpsLocationInfo beacon[maximumNumberOfTrackers];
   #if defined(ACT_AS_TRACKER)
     double maximumEffectiveRange = 99;
     uint32_t distanceToCurrentBeacon = 99;

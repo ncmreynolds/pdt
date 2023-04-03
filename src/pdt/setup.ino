@@ -172,6 +172,19 @@ void setup() {
   #endif
   #ifdef SUPPORT_GPS
     setupGps();
+    #ifdef USE_RTOS
+      //Start processing GPS data as an RTOS task
+      xTaskCreate(
+        processGpsSentences,    // Function
+        "processGpsSentences",  // Name
+        1024,                   // Stack size
+        NULL,                   // Parameters
+        1,                      // Priority 1-24
+        &gpsTask                // Handle
+      );
+      gpsSemaphore = xSemaphoreCreateBinary();
+      xSemaphoreGive(gpsSemaphore);
+    #endif
   #endif
   #ifdef SUPPORT_BEEPER
     setupBeeper();
