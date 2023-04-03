@@ -275,7 +275,7 @@ bool loadDefaultConfiguration()
 
 void printConfiguration()
 {
-  localLogLn(F("Current configuration.."));
+  localLogLn(F("==Current configuration=="));
   localLog(F("nodeName: "));
   if(nodeName != nullptr)
   {
@@ -425,4 +425,5 @@ void printConfiguration()
   localLogLn(logFlushThreshold);
   localLog(F("logFlushInterval: "));
   localLogLn(logFlushInterval);
+  localLogLn(F("========================="));
 }

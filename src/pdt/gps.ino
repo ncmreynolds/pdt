@@ -8,8 +8,8 @@
   {
     GPS_PORT.setRxBufferSize(256);  //Set the largest possible buffer for GPS data so it can buffer then be ingested quickly. 9600 baud sucks
     GPS_PORT.begin(GPSBaud, SERIAL_8N1, RXPin, TXPin);  //RX only hardware serial port
-    //localLog(F("hardware serial: pin "));
-    //localLogLn(GPS_PORT);
+    localLog(F("GPS hardware serial RX: pin "));
+    localLogLn(RXPin);
   }
   #ifdef USE_RTOS
     void processGpsSentences(void * parameter)
@@ -119,11 +119,13 @@
       {
         if(numberOfBeacons == 0)
         {
+          xSemaphoreGive(gpsSemaphore);
           return false;
         }
         else if(numberOfBeacons == 1)
         {
           currentBeacon = 0;
+          xSemaphoreGive(gpsSemaphore);
           return true;
         }
         else
@@ -137,10 +139,12 @@
             }
           }
           currentBeacon = currentNearestBeacon;
+          xSemaphoreGive(gpsSemaphore);
           return true;
         }
         xSemaphoreGive(gpsSemaphore);
       }
+      return false;
     }
     bool selectFurthestBeacon()
     {
@@ -148,11 +152,13 @@
       {
         if(numberOfBeacons == 0)
         {
+          xSemaphoreGive(gpsSemaphore);
           return false;
         }
         else if(numberOfBeacons == 1)
         {
           currentBeacon = 0;
+          xSemaphoreGive(gpsSemaphore);
           return true;
         }
         else
@@ -166,10 +172,12 @@
             }
           }
           currentBeacon = currentFurthestBeacon;
+          xSemaphoreGive(gpsSemaphore);
           return true;
         }
         xSemaphoreGive(gpsSemaphore);
       }
+      return false;
     }
   #elif defined(ACT_AS_BEACON)
     void calculateDistanceToTracker(uint8_t trackerIndex)

@@ -28,7 +28,10 @@
           localLogLn(F("OK"));
           FSInfo fsInfo;
           SPIFFS.info(fsInfo);
-          localLog(F("Filesystem KB: ")); localLog(fsInfo.totalBytes/1024);localLog(F(" Used KB: ")); localLogLn(fsInfo.usedBytes/1024);
+          localLog(F("Filesystem KB: "));
+          localLog(fsInfo.totalBytes/1024);
+          localLog(F(" Used KB: "));
+          localLogLn(fsInfo.usedBytes/1024);
           listDir("");  //The SPIFFS syntax doesn't need a leading /
         }
       }
@@ -55,14 +58,10 @@
           if(showInfo == true)
           {
             localLogLn(F("OK"));
-            #if defined(ESP8266)
-              FSInfo fsInfo;
-              LittleFS.info(fsInfo);
-              localLog(F("Filesystem KB: ")); localLog(fsInfo.totalBytes/1024);localLog(F(" Used KB: "));localLogLn(fsInfo.usedBytes/1024);
-            #elif defined(ESP32)
-              localLog(F("Filesystem KB: ")); localLog(LittleFS.totalBytes()/1024);localLog(F(" Used KB: "));localLogLn(LittleFS.usedBytes()/1024);
-            #endif
-            //listDir("/"); //The LittleFS syntax needs a leading /
+            localLog(F("Filesystem KB: "));
+            localLog(LittleFS.totalBytes()/1024);
+            localLog(F(" Used KB: "));
+            localLogLn(LittleFS.usedBytes()/1024);
           }
         }
     #endif

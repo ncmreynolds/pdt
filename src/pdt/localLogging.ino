@@ -40,6 +40,7 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
     }
     updateTimestamp();
     #ifdef SERIAL_LOG
+      while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
       SERIAL_DEBUG_PORT.print(timestamp);
       SERIAL_DEBUG_PORT.print(' ');
     #endif
@@ -47,6 +48,7 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
     logToFile(' ');
   }
   #ifdef SERIAL_LOG
+    while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length()){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
     SERIAL_DEBUG_PORT.print(message);
   #endif
   logToFile(message);
@@ -86,6 +88,7 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
     }
     updateTimestamp();
     #ifdef SERIAL_LOG
+      while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
       SERIAL_DEBUG_PORT.print(timestamp);
       SERIAL_DEBUG_PORT.print(' ');
     #endif
@@ -93,6 +96,7 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
     logToFile(' ');
   }
   #ifdef SERIAL_LOG
+    while(SERIAL_DEBUG_PORT.availableForWrite() < 32){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
     SERIAL_DEBUG_PORT.print(message, base);
   #endif
   logToFile(message);
@@ -132,6 +136,7 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
     }
     updateTimestamp();
     #ifdef SERIAL_LOG
+      while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
       SERIAL_DEBUG_PORT.print(timestamp);
       SERIAL_DEBUG_PORT.print(' ');
     #endif
@@ -139,6 +144,7 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
     logToFile(' ');
   }
   #ifdef SERIAL_LOG
+    while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length() + 1){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
     SERIAL_DEBUG_PORT.println(message);
   #endif
   logToFileLn(message);
@@ -290,22 +296,22 @@ String es32ResetReason(uint8_t core)
 {
   switch (rtc_get_reset_reason(core))
   {
-    case 1 : return("Power on reset");break;          /**<1,  Vbat power on reset*/
-    case 3 : return("Software Reset");break;               /**<3,  Software reset digital core*/
-    case 4 : return("Legacy WDT_SYS_RESET");break;             /**<4,  Legacy watch dog reset digital core*/
-    case 5 : return("Deep Sleep RESET");break;        /**<5,  Deep Sleep reset digital core*/
-    case 6 : return("SDIO_RESET");break;             /**<6,  Reset by SLC module, reset digital core*/
-    case 7 : return("Timer Group 0 WDT_SYS_RESET");break;       /**<7,  Timer Group0 Watch dog reset digital core*/
-    case 8 : return("Timer Group 1 WDT_SYS_RESET");break;       /**<8,  Timer Group1 Watch dog reset digital core*/
-    case 9 : return("RTC WDT_SYS_RESET");break;       /**<9,  RTC Watch dog Reset digital core*/
-    case 10 : return("INTRUSION_RESET");break;       /**<10, Instrusion tested to reset CPU*/
-    case 11 : return("Time Group WDT_CPU_RESET");break;       /**<11, Time Group reset CPU*/
-    case 12 : return("Software CPU_RESET");break;          /**<12, Software reset CPU*/
-    case 13 : return("RTC Watchdog CPU_RESET");break;      /**<13, RTC Watch dog Reset CPU*/
-    case 14 : return("EXT_CPU_RESET");break;         /**<14, for APP CPU, reseted by PRO CPU*/
-    case 15 : return("RTCWDT_BROWN_OUT_RESET");break;/**<15, Reset when the vdd voltage is not stable*/
-    case 16 : return("RTCWDT_RTC_RESET");break;      /**<16, RTC Watch dog reset digital core and rtc module*/
-    default : return("Unknown");
+    case 1 : return(String("Power on reset"));break;          /**<1,  Vbat power on reset*/
+    case 3 : return(String("Software Reset"));break;               /**<3,  Software reset digital core*/
+    case 4 : return(String("Legacy WDT_SYS_RESET"));break;             /**<4,  Legacy watch dog reset digital core*/
+    case 5 : return(String("Deep Sleep RESET"));break;        /**<5,  Deep Sleep reset digital core*/
+    case 6 : return(String("SDIO_RESET"));break;             /**<6,  Reset by SLC module, reset digital core*/
+    case 7 : return(String("Timer Group 0 WDT_SYS_RESET"));break;       /**<7,  Timer Group0 Watch dog reset digital core*/
+    case 8 : return(String("Timer Group 1 WDT_SYS_RESET"));break;       /**<8,  Timer Group1 Watch dog reset digital core*/
+    case 9 : return(String("RTC WDT_SYS_RESET"));break;       /**<9,  RTC Watch dog Reset digital core*/
+    case 10 : return(String("INTRUSION_RESET"));break;       /**<10, Instrusion tested to reset CPU*/
+    case 11 : return(String("Time Group WDT_CPU_RESET"));break;       /**<11, Time Group reset CPU*/
+    case 12 : return(String("Software CPU_RESET"));break;          /**<12, Software reset CPU*/
+    case 13 : return(String("RTC Watchdog CPU_RESET"));break;      /**<13, RTC Watch dog Reset CPU*/
+    case 14 : return(String("EXT_CPU_RESET"));break;         /**<14, for APP CPU, reseted by PRO CPU*/
+    case 15 : return(String("RTCWDT_BROWN_OUT_RESET"));break;/**<15, Reset when the vdd voltage is not stable*/
+    case 16 : return(String("RTCWDT_RTC_RESET"));break;      /**<16, RTC Watch dog reset digital core and rtc module*/
+    default : return(String("Unknown"));
   }
 }
 #endif
