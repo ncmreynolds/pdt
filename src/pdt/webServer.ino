@@ -238,77 +238,85 @@ void setupWebServer()
       }
     #endif
     #ifdef SUPPORT_GPS
-    if(gps.location.isValid())
+    if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
     {
-      response->print(F("<li>Latitude: "));
-      response->print(gps.location.lat());
-      response->print(F("</li>"));
-      response->print(F("<li>Longitude: "));
-      response->print(gps.location.lng());
-      response->print(F("</li>"));
-      response->print(F("<li>Altitude: "));
-      response->print(gps.altitude.meters());
-      response->print(F("m</li>"));
-      if(gps.sentencesWithFix() > 0 || gps.failedChecksum() > 0)
+      if(gps.location.isValid())
       {
-        response->print(F("<li>GPS errors: "));
-        response->print(100.0*float(gps.failedChecksum())/float(gps.sentencesWithFix() + gps.failedChecksum()));
-        response->print(F("%</li>"));
-      }
-      response->print(F("<li>HDOP: "));
-      response->print(gps.hdop.hdop());
-      if(gps.hdop.hdop() < 1)
-      {
-        response->print(F("(excellent)</li>"));
-      }
-      else if(gps.hdop.hdop() < 2)
-      {
-        response->print(F("(good)</li>"));
-      }
-      else if(gps.hdop.hdop() < 3)
-      {
-        response->print(F("(normal)</li>"));
-      }
-      else if(gps.hdop.hdop() < 4)
-      {
-        response->print(F("(poor)</li>"));
+        response->print(F("<li>Latitude: "));
+        response->print(gps.location.lat());
+        response->print(F("</li>"));
+        response->print(F("<li>Longitude: "));
+        response->print(gps.location.lng());
+        response->print(F("</li>"));
+        response->print(F("<li>Altitude: "));
+        response->print(gps.altitude.meters());
+        response->print(F("m</li>"));
+        if(gps.sentencesWithFix() > 0 || gps.failedChecksum() > 0)
+        {
+          response->print(F("<li>GPS errors: "));
+          response->print(100.0*float(gps.failedChecksum())/float(gps.sentencesWithFix() + gps.failedChecksum()));
+          response->print(F("%</li>"));
+        }
+        response->print(F("<li>HDOP: "));
+        response->print(gps.hdop.hdop());
+        if(gps.hdop.hdop() < 1)
+        {
+          response->print(F("(excellent)</li>"));
+        }
+        else if(gps.hdop.hdop() < 2)
+        {
+          response->print(F("(good)</li>"));
+        }
+        else if(gps.hdop.hdop() < 3)
+        {
+          response->print(F("(normal)</li>"));
+        }
+        else if(gps.hdop.hdop() < 4)
+        {
+          response->print(F("(poor)</li>"));
+        }
+        else
+        {
+          response->print(F("(inaccurate)</li>"));
+        }
+        #if defined(ACT_AS_TRACKER)
+          response->print(F("<li>Distance to beacon: "));
+          if(beacon[0].hasFix)
+          {
+            response->print(beacon[0].distanceTo);
+            response->print(F("m</li>"));
+            response->print(F("<li>Course to beacon: "));
+            response->print(beacon[0].courseTo);
+          }
+          else
+          {
+            response->print(F("Unknown"));
+          }
+        #elif defined(ACT_AS_BEACON)
+          response->print(F("<li>Distance to tracker: "));
+          if(tracker[0].hasFix)
+          {
+            response->print(tracker[0].distanceTo);
+            response->print(F("m</li>"));
+            response->print(F("<li>Course to tracker: "));
+            response->print(tracker[0].courseTo);
+          }
+          else
+          {
+            response->print(F("Unknown"));
+          }
+        #endif
+        response->print(F("</li>"));
       }
       else
       {
-        response->print(F("(inaccurate)</li>"));
+        response->print(F("<li>GPS: No fix</li>"));
       }
-      #if defined(ACT_AS_TRACKER)
-        response->print(F("<li>Distance to beacon: "));
-        if(beacon[0].hasFix)
-        {
-          response->print(beacon[0].distanceTo);
-          response->print(F("m</li>"));
-          response->print(F("<li>Course to beacon: "));
-          response->print(beacon[0].courseTo);
-        }
-        else
-        {
-          response->print(F("Unknown"));
-        }
-      #elif defined(ACT_AS_BEACON)
-        response->print(F("<li>Distance to tracker: "));
-        if(tracker[0].hasFix)
-        {
-          response->print(tracker[0].distanceTo);
-          response->print(F("m</li>"));
-          response->print(F("<li>Course to tracker: "));
-          response->print(tracker[0].courseTo);
-        }
-        else
-        {
-          response->print(F("Unknown"));
-        }
-      #endif
-      response->print(F("</li>"));
+      xSemaphoreGive(gpsSemaphore);
     }
     else
     {
-      response->print(F("<li>GPS: No fix</li>"));
+      response->print(F("<li>GPS: busy</li>"));
     }
     #endif
     response->print(F("</ul>"));
