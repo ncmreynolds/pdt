@@ -31,7 +31,11 @@ void setup() {
     numberOfBeacons++;
   #endif
   #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
-    SERIAL_DEBUG_PORT.begin(115200);
+    SERIAL_DEBUG_PORT.begin();
+    debugPortStartingBufferSize = SERIAL_DEBUG_PORT.availableForWrite();
+    SERIAL_DEBUG_PORT.println(F("Online?"));  //Try to send something
+    delay(100); //Wait for it to send
+    debugPortAvailable = SERIAL_DEBUG_PORT.availableForWrite() == debugPortStartingBufferSize; //Check if USB port is connected by seeing if it has been able to send stuff
   #endif
   loggingBuffer.reserve(loggingBufferSize); //Reserve heap for the logging backlog
   #if defined(ACT_AS_TRACKER)

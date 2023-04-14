@@ -44,17 +44,51 @@ void loop()
         #endif
       }
     #endif
-    if(millis() - lastBeaconSendTime > beaconInterval1 && gps.location.isValid())
+    if(millis() - lastBeaconSendTime > beaconInterval1)
     {
       #if defined(ACT_AS_TRACKER)
-        calculateDistanceToBeacon(currentBeacon);
+        if(updateLocation())
+        {
+          if(numberOfBeacons > 0)
+          {
+            for(uint8_t i = 0; i < numberOfBeacons; i++)
+            {
+              calculateDistanceToBeacon(i);
+            }
+            if(currentTrackingMode == trackingMode::nearest)
+            {
+              selectNearestBeacon();
+              #ifdef SERIAL_DEBUG
+                SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
+                SERIAL_DEBUG_PORT.println(currentBeacon);
+              #endif
+            }
+            else if(currentTrackingMode == trackingMode::furthest)
+            {
+              selectFurthestBeacon();
+              #ifdef SERIAL_DEBUG
+                SERIAL_DEBUG_PORT.print(F("Tracking furthest beacon: "));
+                SERIAL_DEBUG_PORT.println(currentBeacon);
+              #endif
+            }
+            else if(currentTrackingMode == trackingMode::fixed)
+            {
+              #ifdef SERIAL_DEBUG
+                SERIAL_DEBUG_PORT.print(F("Tracking specific beacon: "));
+                SERIAL_DEBUG_PORT.println(currentBeacon);
+              #endif
+            }
+          }
       #elif defined(ACT_AS_BEACON)
-        calculateDistanceToTracker(currentTracker);
+        if(updateLocation())
+        {
+          calculateDistanceToTracker(currentTracker);
       #endif
-      if(loRaConnected)
-      {
-        shareLocation();
-      }
+          if(loRaConnected)
+          {
+            shareLocation();
+          }
+        }
       lastBeaconSendTime = millis();
     }
   #endif
@@ -89,12 +123,6 @@ void loop()
         }
       }
     }
-    /*
-    while(GPS_PORT.available())
-    {
-      gps.encode(GPS_PORT.read());
-    }
-    */
     #if defined(ACT_AS_TRACKER)
       if(tracker[0].hasFix == false && gps.location.isValid() == true)
     #elif defined(ACT_AS_BEACON)
@@ -145,13 +173,11 @@ void loop()
       localLogLn(F("GPS lost fix"));
     }
     #ifdef SERIAL_DEBUG
-      /*
       if(millis() - lastGPSstatus > 10000)
       {
         lastGPSstatus = millis();
         showGPSstatus();
       }
-      */
     #endif
     #ifdef SUPPORT_DISPLAY
       if(tracker[0].hasFix == true && beacon[currentBeacon].hasFix == true && currentDisplayState == displayState::distance && distanceToCurrentBeaconChanged == true && millis() - lastDisplayUpdate > 1000) //Show distance if it changes
@@ -167,12 +193,14 @@ void loop()
         }
         else if(currentDisplayState == displayState::trackingMode && currentTrackingMode == trackingMode::nearest)  //Find nearest then show user
         {
+          /*
           if(selectNearestBeacon())
           {
             currentTrackingMode = trackingMode::fixed;
             displayBeaconMode();
           }
           else
+          */
           {
             displayDistanceToBeacon();  //Drop back to the range display
           }
@@ -243,7 +271,10 @@ void loop()
     logLastFlushed = millis();
     flushLogNow = false;
     #ifdef SERIAL_LOG
-      SERIAL_DEBUG_PORT.println(F("PERIODIC LOG FLUSH"));
+      if(waitForBufferSpace(18))
+      {
+        SERIAL_DEBUG_PORT.println(F("PERIODIC LOG FLUSH"));
+      }
     #endif
     if(loggingBuffer.length() > 0)
     {
@@ -252,7 +283,10 @@ void loop()
     else
     {
       #ifdef SERIAL_LOG
-        SERIAL_DEBUG_PORT.println(F("LOG BUFFER SUSPICIOUSLY EMPTY"));
+        if(waitForBufferSpace(30))
+        {
+          SERIAL_DEBUG_PORT.println(F("LOG BUFFER SUSPICIOUSLY EMPTY"));
+        }
       #endif
     }
   }
@@ -272,6 +306,16 @@ void loop()
       #else
         ESP.reset();
       #endif
+    }
+  #endif
+  #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
+    if(debugPortAvailable == false && millis() - serialBufferCheckTime > 10000) //Check if the serial port is catching up/online
+    {
+      serialBufferCheckTime = millis();
+      if(debugPortStartingBufferSize > 0 && SERIAL_DEBUG_PORT.availableForWrite() == debugPortStartingBufferSize)
+      {
+        debugPortAvailable = true;
+      }
     }
   #endif
 }

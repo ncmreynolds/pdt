@@ -90,29 +90,47 @@
     ssd1306_clearScreen8();
     printTopLine("RANGE");
     printBottomLine("METERS");
-    if(beacon[0].hasFix == false || beacon[0].distanceTo > maximumEffectiveRange)
+    if(beacon[currentBeacon].hasFix == false || beacon[currentBeacon].distanceTo > maximumEffectiveRange)
     {
       if(maximumEffectiveRange > 999)
       {
-        SERIAL_DEBUG_PORT.println(F("Displaying range: ----"));
+        #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(24))
+        {
+          SERIAL_DEBUG_PORT.println(F("Displaying range: ----"));
+        }
+        #endif
         printRange("----");
       }
       else if(maximumEffectiveRange > 99)
       {
-        SERIAL_DEBUG_PORT.println(F("Displaying range: ---"));
+        #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(23))
+        {
+          SERIAL_DEBUG_PORT.println(F("Displaying range: ---"));
+        }
+        #endif
         printRange("---");
       }
       else
       {
-        SERIAL_DEBUG_PORT.println(F("Displaying range: --"));
+        #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(22))
+        {
+          SERIAL_DEBUG_PORT.println(F("Displaying range: --"));
+        }
+        #endif
         printRange("--");
       }
     }
     else
     {
       #ifdef SERIAL_DEBUG
-        SERIAL_DEBUG_PORT.print(F("Displaying range: "));
-        SERIAL_DEBUG_PORT.println(distanceToCurrentBeacon);
+        if(waitForBufferSpace(28))
+        {
+          SERIAL_DEBUG_PORT.print(F("Displaying range: "));
+          SERIAL_DEBUG_PORT.println(distanceToCurrentBeacon);
+        }
       #endif
       if(maximumEffectiveRange > 999)
       {
@@ -143,20 +161,29 @@
     printTopLine("BEACON");
     printBottomLine("HOLD TO CHANGE");
     #ifdef SERIAL_DEBUG
-      SERIAL_DEBUG_PORT.print(F("Displaying beacon choice: "));
+      if(waitForBufferSpace(28))
+      {
+        SERIAL_DEBUG_PORT.print(F("Displaying beacon choice: "));
+      }
     #endif
     if(currentTrackingMode == trackingMode::nearest)
     {
       printMiddleLine("NEAREST");
       #ifdef SERIAL_DEBUG
-        SERIAL_DEBUG_PORT.println(F("Nearest"));
+        if(waitForBufferSpace(9))
+        {
+          SERIAL_DEBUG_PORT.println(F("Nearest"));
+        }
       #endif
     }
     else if(currentTrackingMode == trackingMode::furthest)
     {
       printMiddleLine("FURTHEST");
       #ifdef SERIAL_DEBUG
-        SERIAL_DEBUG_PORT.println(F("Furthest"));
+        if(waitForBufferSpace(10))
+        {
+          SERIAL_DEBUG_PORT.println(F("Furthest"));
+        }
       #endif
     }
     else if(currentTrackingMode == trackingMode::fixed)
@@ -166,7 +193,10 @@
       sprintf(beaconDetail, "%02u %02X%02X%02X%02X%02X%02X", currentBeacon, beacon[currentBeacon].id[0], beacon[currentBeacon].id[1], beacon[currentBeacon].id[2], beacon[currentBeacon].id[3], beacon[currentBeacon].id[4], beacon[currentBeacon].id[5]);
       printMiddleLine(beaconDetail);
       #ifdef SERIAL_DEBUG
-        SERIAL_DEBUG_PORT.println(beaconDetail);
+        if(waitForBufferSpace(80))
+        {
+          SERIAL_DEBUG_PORT.println(beaconDetail);
+        }
       #endif
     }
     lastDisplayUpdate = millis();
@@ -178,19 +208,35 @@
     ssd1306_clearScreen8();
     printTopLine("BATTERY");
     printBottomLine("CAPACITY");
-    #ifdef SERIAL_DEBUG
-      SERIAL_DEBUG_PORT.print(F("Displaying battery capacity: "));
-      SERIAL_DEBUG_PORT.println(batteryPercentage);
-    #endif
-    if(batteryPercentage > 99)
+    if(batteryVoltage > chargingVoltage)
     {
-      printMiddleLine("FULL");
+      #ifdef SERIAL_DEBUG
+        if(waitForBufferSpace(32))
+        {
+          SERIAL_DEBUG_PORT.println(F("Displaying battery: charging"));
+        }
+      #endif
+      printMiddleLine("CHARGING");
     }
     else
     {
-      char displayText[4];
-      sprintf(displayText,"%02u%%",batteryPercentage);
-      printMiddleLine(displayText);
+      #ifdef SERIAL_DEBUG
+        if(waitForBufferSpace(36))
+        {
+          SERIAL_DEBUG_PORT.print(F("Displaying battery capacity: "));
+          SERIAL_DEBUG_PORT.println(batteryPercentage);
+        }
+      #endif
+      if(batteryPercentage > 99)
+      {
+        printMiddleLine("FULL");
+      }
+      else
+      {
+        char displayText[4];
+        sprintf(displayText,"%02u%%",batteryPercentage);
+        printMiddleLine(displayText);
+      }
     }
     lastDisplayUpdate = millis();
     displayTimeout = shortDisplayTimeout; //Short timeout on this display
@@ -201,29 +247,47 @@
     ssd1306_clearScreen8();
     printTopLine("SIGNAL");
     printBottomLine("STRENGTH");
-    if(beacon[0].hasFix == false || beacon[0].distanceTo > maximumEffectiveRange)
+    if(beacon[currentBeacon].hasFix == false || beacon[currentBeacon].distanceTo > maximumEffectiveRange)
     {
       if(maximumEffectiveRange > 999)
       {
-        SERIAL_DEBUG_PORT.println(F("Displaying signal strength: ----"));
+        #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(35))
+        {
+          SERIAL_DEBUG_PORT.println(F("Displaying signal strength: ----"));
+        }
+        #endif
         printMiddleLine("----");
       }
       else if(maximumEffectiveRange > 99)
       {
-        SERIAL_DEBUG_PORT.println(F("Displaying signal strength: ---"));
+        #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(35))
+        {
+          SERIAL_DEBUG_PORT.println(F("Displaying signal strength: ---"));
+        }
+        #endif
         printMiddleLine("---");
       }
       else
       {
-        SERIAL_DEBUG_PORT.println(F("Displaying signal strength: --"));
+        #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(35))
+        {
+          SERIAL_DEBUG_PORT.println(F("Displaying signal strength: --"));
+        }
+        #endif
         printMiddleLine("--");
       }
     }
     else
     {
       #ifdef SERIAL_DEBUG
-        SERIAL_DEBUG_PORT.print(F("Displaying signal strength: "));
-        SERIAL_DEBUG_PORT.println(lastRssi);
+        if(waitForBufferSpace(35))
+        {
+          SERIAL_DEBUG_PORT.print(F("Displaying signal strength: "));
+          SERIAL_DEBUG_PORT.println(lastRssi);
+        }
       #endif
       char displayText[11];
       sprintf(displayText,"%03.1fdbM",lastRssi);
@@ -240,8 +304,11 @@
       printTopLine("BEEPER");
       printBottomLine("HOLD TO CHANGE");
       #ifdef SERIAL_DEBUG
-        SERIAL_DEBUG_PORT.print(F("Displaying beeper state: "));
-        SERIAL_DEBUG_PORT.println(beeperEnabled);
+        if(waitForBufferSpace(30))
+        {
+          SERIAL_DEBUG_PORT.print(F("Displaying beeper state: "));
+          SERIAL_DEBUG_PORT.println(beeperEnabled);
+        }
       #endif
       if(beeperEnabled == true)
       {
@@ -259,7 +326,10 @@
   void blankDisplay()
   {
     #ifdef SERIAL_DEBUG
-      SERIAL_DEBUG_PORT.println(F("Clearing display"));
+      if(waitForBufferSpace(18))
+      {
+        SERIAL_DEBUG_PORT.println(F("Clearing display"));
+      }
     #endif
     ssd1306_clearScreen8();
     lastDisplayUpdate = millis();

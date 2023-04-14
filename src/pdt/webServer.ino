@@ -120,6 +120,19 @@ void setupWebServer()
         response->print(F("failed</li>"));
       }
     #endif
+    response->print(F("<li>USB serial logging: "));
+    #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
+      if(debugPortAvailable)
+      {
+        response->print(F("enabled - connected</li>"));
+      }
+      else
+      {
+        response->print(F("enabled - disconnected</li>"));
+      }
+    #else
+      response->print(F("disabled</li>"));
+    #endif
     response->print(F("<li>Over-the-air software update (Arduino IDE): "));
     #if defined(ENABLE_OTA_UPDATE)
       response->print(F("enabled</li>"));
@@ -211,7 +224,7 @@ void setupWebServer()
     response->print(F("</li>"));
     #endif
     #ifdef SUPPORT_BATTERY_METER
-      if(batteryVoltage > 4.2)
+      if(batteryVoltage > chargingVoltage)
       {
         response->print(F("<li>Battery voltage: USB power ("));
         response->print(batteryVoltage);
@@ -227,16 +240,28 @@ void setupWebServer()
       }
     #endif
     #ifdef SUPPORT_GPS
-    if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
-    {
-      if(gps.location.isValid())
+      #if defined(ACT_AS_TRACKER)
+        if(tracker[0].hasFix)
+      #else
+        if(beacon[0].hasFix)
+      #endif
       {
+        
         response->print(F("<li>Latitude: "));
-        response->print(gps.location.lat());
+        #if defined(ACT_AS_TRACKER)
+          response->print(tracker[0].latitude);
+        #else
+          response->print(beacon[0].latitude);
+        #endif
         response->print(F("</li>"));
         response->print(F("<li>Longitude: "));
-        response->print(gps.location.lng());
+        #if defined(ACT_AS_TRACKER)
+          response->print(tracker[0].longitude);
+        #else
+          response->print(beacon[0].longitude);
+        #endif
         response->print(F("</li>"));
+        /*
         response->print(F("<li>Altitude: "));
         response->print(gps.altitude.meters());
         response->print(F("m</li>"));
@@ -246,21 +271,39 @@ void setupWebServer()
           response->print(100.0*float(gps.failedChecksum())/float(gps.sentencesWithFix() + gps.failedChecksum()));
           response->print(F("%</li>"));
         }
+        */
         response->print(F("<li>HDOP: "));
-        response->print(gps.hdop.hdop());
-        if(gps.hdop.hdop() < 1)
+        #if defined(ACT_AS_TRACKER)
+          response->print(tracker[0].hdop);
+          if(tracker[0].hdop < 1)
+        #else
+          response->print(beacon[0].hdop);
+          if(beacon[0].hdop < 1)
+        #endif
         {
           response->print(F("(excellent)</li>"));
         }
-        else if(gps.hdop.hdop() < 2)
+        #if defined(ACT_AS_TRACKER)
+          else if(tracker[0].hdop < 2)
+        #else
+          else if(beacon[0].hdop < 2)
+        #endif
         {
           response->print(F("(good)</li>"));
         }
-        else if(gps.hdop.hdop() < 3)
+        #if defined(ACT_AS_TRACKER)
+          else if(tracker[0].hdop < 3)
+        #else
+          else if(beacon[0].hdop < 3)
+        #endif
         {
           response->print(F("(normal)</li>"));
         }
-        else if(gps.hdop.hdop() < 4)
+        #if defined(ACT_AS_TRACKER)
+          else if(tracker[0].hdop < 4)
+        #else
+          else if(beacon[0].hdop < 4)
+        #endif
         {
           response->print(F("(poor)</li>"));
         }
@@ -270,16 +313,23 @@ void setupWebServer()
         }
         #if defined(ACT_AS_TRACKER)
           response->print(F("<li>Distance to beacon: "));
-          if(beacon[0].hasFix)
+          if(numberOfBeacons > 0)
           {
-            response->print(beacon[0].distanceTo);
-            response->print(F("m</li>"));
-            response->print(F("<li>Course to beacon: "));
-            response->print(beacon[0].courseTo);
+            if(beacon[currentBeacon].hasFix)
+            {
+              response->print(beacon[currentBeacon].distanceTo);
+              response->print(F("m</li>"));
+              response->print(F("<li>Course to beacon: "));
+              response->print(beacon[currentBeacon].courseTo);
+            }
+            else
+            {
+              response->print(F("Unknown"));
+            }
           }
           else
           {
-            response->print(F("Unknown"));
+            response->print(F("no beacons"));
           }
         #elif defined(ACT_AS_BEACON)
           response->print(F("<li>Distance to tracker: "));
@@ -301,12 +351,6 @@ void setupWebServer()
       {
         response->print(F("<li>GPS: No fix</li>"));
       }
-      xSemaphoreGive(gpsSemaphore);
-    }
-    else
-    {
-      response->print(F("<li>GPS: busy</li>"));
-    }
     #endif
     response->print(F("</ul>"));
     response->print(F("<a href =\"/listLogs\"><input class=\"button-primary\" type=\"button\" value=\"Logs\"></a> "));

@@ -37,7 +37,10 @@ bool logRolloverOccured()
     if(logfileYear != timeinfo->tm_year+1900 || logfileMonth != timeinfo->tm_mon + 1 || logfileDay != timeinfo->tm_mday)
     {
       #ifdef SERIAL_LOG
-        SERIAL_DEBUG_PORT.println(F("LOG ROLLOVER"));
+        if(waitForBufferSpace(14))
+        {
+          SERIAL_DEBUG_PORT.println(F("LOG ROLLOVER"));
+        }
       #endif
       return true;
     }
@@ -57,8 +60,11 @@ void setLogFilename()
     logfileYear = timeinfo->tm_year+1900;
     sprintf(logFilename,logfilenameTemplate,logDirectory,logfileYear,logfileMonth,logfileDay); //Make the current filename
     #ifdef SERIAL_LOG
-      SERIAL_DEBUG_PORT.print(F("USING LOG FILE: "));
-      SERIAL_DEBUG_PORT.println(logFilename);
+      if(waitForBufferSpace(40))
+      {
+        SERIAL_DEBUG_PORT.print(F("USING LOG FILE: "));
+        SERIAL_DEBUG_PORT.println(logFilename);
+      }
     #endif
   }
 }

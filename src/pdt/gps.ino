@@ -60,55 +60,42 @@
     }
   }
   #if defined(ACT_AS_TRACKER)
-    void calculateDistanceToBeacon(uint8_t beaconIndex)
+    bool updateLocation()
     {
       if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
       {
+        tracker[0].hasFix = true;
         tracker[0].latitude = gps.location.lat();
         tracker[0].longitude = gps.location.lng();
         tracker[0].course = gps.course.deg();
         tracker[0].speed = gps.speed.kmph();
         tracker[0].hdop = gps.hdop.hdop();
+        xSemaphoreGive(gpsSemaphore);
+        return true;
+      }
+      return false;
+    }
+    void calculateDistanceToBeacon(uint8_t beaconIndex)
+    {
+      if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
+      {
         beacon[beaconIndex].distanceTo = TinyGPSPlus::distanceBetween(tracker[0].latitude, tracker[0].longitude, beacon[beaconIndex].latitude, beacon[beaconIndex].longitude);
-        if(uint32_t(beacon[beaconIndex].distanceTo) != distanceToCurrentBeacon)
-        {
-          distanceToCurrentBeacon = uint32_t(beacon[beaconIndex].distanceTo);
-          if(distanceToCurrentBeacon > 0)
-          {
-            #ifdef SUPPORT_LED
-              ledOffTime = distanceToCurrentBeacon * 100;
-            #endif
-            #ifdef SUPPORT_BEEPER
-              beeperOffTime = beeperOnTime + 50 + pow(distanceToCurrentBeacon,2);
-            #endif
-          }
-          else
-          {
-            #ifdef SUPPORT_LED
-              ledOffTime = 100;
-            #endif
-            #ifdef SUPPORT_BEEPER
-              beeperOffTime = beeperOnTime + 50;
-            #endif
-          }
-          distanceToCurrentBeaconChanged = true;
-        }
-        beacon[0].courseTo = TinyGPSPlus::courseTo(tracker[0].latitude, tracker[0].longitude, beacon[0].latitude, beacon[0].longitude);
+        beacon[beaconIndex].courseTo = TinyGPSPlus::courseTo(tracker[0].latitude, tracker[0].longitude, beacon[beaconIndex].latitude, beacon[beaconIndex].longitude);
         if(distanceToCurrentBeacon < loRaPerimiter1)
         {
-          beacon[0].timeout = beaconInterval1 * 2.5;
+          beacon[beaconIndex].timeout = beaconInterval1 * 2.5;
         }
         else if(distanceToCurrentBeacon < loRaPerimiter2)
         {
-          beacon[0].timeout = beaconInterval2 * 2.5;
+          beacon[beaconIndex].timeout = beaconInterval2 * 2.5;
         }
         else if(distanceToCurrentBeacon < loRaPerimiter3)
         {
-          beacon[0].timeout = beaconInterval3 * 2.5;
+          beacon[beaconIndex].timeout = beaconInterval3 * 2.5;
         }
         else
         {
-          beacon[0].timeout = 60000;
+          beacon[beaconIndex].timeout = 60000;
         }
         xSemaphoreGive(gpsSemaphore);
       }
@@ -126,6 +113,12 @@
         {
           currentBeacon = 0;
           xSemaphoreGive(gpsSemaphore);
+          if(uint32_t(beacon[currentBeacon].distanceTo) != distanceToCurrentBeacon)
+          {
+            distanceToCurrentBeacon = uint32_t(beacon[currentBeacon].distanceTo);
+            distanceToCurrentBeaconChanged = true;
+            setBeeperUrgency();
+          }
           return true;
         }
         else
@@ -139,6 +132,12 @@
             }
           }
           currentBeacon = currentNearestBeacon;
+          if(uint32_t(beacon[currentBeacon].distanceTo) != distanceToCurrentBeacon)
+          {
+            distanceToCurrentBeacon = uint32_t(beacon[currentBeacon].distanceTo);
+            distanceToCurrentBeaconChanged = true;
+            setBeeperUrgency();
+          }
           xSemaphoreGive(gpsSemaphore);
           return true;
         }
@@ -159,6 +158,12 @@
         {
           currentBeacon = 0;
           xSemaphoreGive(gpsSemaphore);
+          if(uint32_t(beacon[currentBeacon].distanceTo) != distanceToCurrentBeacon)
+          {
+            distanceToCurrentBeacon = uint32_t(beacon[currentBeacon].distanceTo);
+            distanceToCurrentBeaconChanged = true;
+            setBeeperUrgency();
+          }
           return true;
         }
         else
@@ -172,6 +177,12 @@
             }
           }
           currentBeacon = currentFurthestBeacon;
+          if(uint32_t(beacon[currentBeacon].distanceTo) != distanceToCurrentBeacon)
+          {
+            distanceToCurrentBeacon = uint32_t(beacon[currentBeacon].distanceTo);
+            distanceToCurrentBeaconChanged = true;
+            setBeeperUrgency();
+          }
           xSemaphoreGive(gpsSemaphore);
           return true;
         }
@@ -180,7 +191,7 @@
       return false;
     }
   #elif defined(ACT_AS_BEACON)
-    void calculateDistanceToTracker(uint8_t trackerIndex)
+    bool updateLocation()
     {
       if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
       {
@@ -189,6 +200,15 @@
         beacon[0].course = gps.course.deg();
         beacon[0].speed = gps.speed.kmph();
         beacon[0].hdop = gps.hdop.hdop();
+        xSemaphoreGive(gpsSemaphore);
+        return true;
+      }
+      return false;
+    }
+    void calculateDistanceToTracker(uint8_t trackerIndex)
+    {
+      if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
+      {
         tracker[trackerIndex].distanceTo = TinyGPSPlus::distanceBetween(beacon[0].latitude, beacon[0].longitude, tracker[0].latitude, tracker[0].longitude);
         tracker[trackerIndex].courseTo = TinyGPSPlus::courseTo(beacon[0].latitude, beacon[0].longitude, tracker[0].latitude, tracker[0].longitude);
         xSemaphoreGive(gpsSemaphore);
@@ -222,11 +242,15 @@
           SERIAL_DEBUG_PORT.print(gps.course.deg());
           SERIAL_DEBUG_PORT.print(F(" Speed: "));
           SERIAL_DEBUG_PORT.print(gps.speed.kmph());
-          SERIAL_DEBUG_PORT.print(F(" Sat: "));
+        }
+        SERIAL_DEBUG_PORT.print(F(" Sat: "));
+        if(gps.location.isValid())
+        {
           SERIAL_DEBUG_PORT.println(gps.satellites.value());
         }
         else
         {
+          SERIAL_DEBUG_PORT.print(gps.satellites.value());
           SERIAL_DEBUG_PORT.println(F(" - no fix"));
         }
       }

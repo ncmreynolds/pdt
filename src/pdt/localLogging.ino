@@ -5,6 +5,7 @@
  * The functions are templated so you can print most types to the log with no fuss. Adding a printf equivalent is on my to-do list
  * 
  */
+
 template<typename typeToLog>
 void localLog(typeToLog message)  //Add a partial line to the local log, starting with a timestampt
 {
@@ -28,7 +29,10 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
       if(autoFlush == true)
       {
         #ifdef SERIAL_LOG
-          SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+          if(waitForBufferSpace(27))
+          {
+            SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+          }
         #endif
         logLastFlushed = millis();
         flushLog();
@@ -40,24 +44,20 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
     }
     updateTimestamp();
     #ifdef SERIAL_LOG
-      #ifdef USE_RTOS
-        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
-      #else
-        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
-      #endif
-      SERIAL_DEBUG_PORT.print(timestamp);
-      SERIAL_DEBUG_PORT.print(' ');
+      if(waitForBufferSpace(20))
+      {
+        SERIAL_DEBUG_PORT.print(timestamp);
+        SERIAL_DEBUG_PORT.print(' ');
+      }
     #endif
     logToFile(timestamp);
     logToFile(' ');
   }
   #ifdef SERIAL_LOG
-      #ifdef USE_RTOS
-        while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length()){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
-      #else
-        while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length()){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
-      #endif
-    SERIAL_DEBUG_PORT.print(message);
+    if(waitForBufferSpace(String(message).length()))
+    {
+      SERIAL_DEBUG_PORT.print(message);
+    }
   #endif
   logToFile(message);
 }
@@ -84,7 +84,10 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
       if(autoFlush == true)
       {
         #ifdef SERIAL_LOG
-          SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+          if(waitForBufferSpace(29))
+          {
+            SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+          }
         #endif
         logLastFlushed = millis();
         flushLog();
@@ -96,20 +99,20 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
     }
     updateTimestamp();
     #ifdef SERIAL_LOG
-      #ifdef USE_RTOS
-        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
-      #else
-        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
-      #endif
-      SERIAL_DEBUG_PORT.print(timestamp);
-      SERIAL_DEBUG_PORT.print(' ');
+      if(waitForBufferSpace(21))
+      {
+        SERIAL_DEBUG_PORT.print(timestamp);
+        SERIAL_DEBUG_PORT.print(' ');
+      }
     #endif
     logToFile(timestamp);
     logToFile(' ');
   }
   #ifdef SERIAL_LOG
-    while(SERIAL_DEBUG_PORT.availableForWrite() < 32){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
-    SERIAL_DEBUG_PORT.print(message, base);
+    if(waitForBufferSpace(32))
+    {
+      SERIAL_DEBUG_PORT.print(message, base);
+    }
   #endif
   logToFile(message);
 }
@@ -136,7 +139,10 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
       if(autoFlush == true)
       {
         #ifdef SERIAL_LOG
-          SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+          if(waitForBufferSpace(25))
+          {
+            SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+          }
         #endif
         logLastFlushed = millis();
         flushLog();
@@ -148,24 +154,20 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
     }
     updateTimestamp();
     #ifdef SERIAL_LOG
-      #ifdef USE_RTOS
-        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
-      #else
-        while(SERIAL_DEBUG_PORT.availableForWrite() < 21){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
-      #endif
-      SERIAL_DEBUG_PORT.print(timestamp);
-      SERIAL_DEBUG_PORT.print(' ');
+      if(waitForBufferSpace(21))
+      {
+        SERIAL_DEBUG_PORT.print(timestamp);
+        SERIAL_DEBUG_PORT.print(' ');
+      }
     #endif
     logToFile(timestamp);
     logToFile(' ');
   }
   #ifdef SERIAL_LOG
-    #ifdef USE_RTOS
-      while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length() + 1){vTaskDelay(10 / portTICK_PERIOD_MS);}  //The TX buffer DOES get full so wait for it to empty out
-    #else
-      while(SERIAL_DEBUG_PORT.availableForWrite() < String(message).length() + 1){delay(10);}  //The TX buffer DOES get full so wait for it to empty out
-    #endif
-    SERIAL_DEBUG_PORT.println(message);
+    if(waitForBufferSpace(String(message).length() + 1))
+    {
+      SERIAL_DEBUG_PORT.println(message);
+    }
   #endif
   logToFileLn(message);
   startOfLogLine = true;
@@ -181,13 +183,37 @@ void logToFileLn(typeToLog message)
     loggingBuffer+=message;
     loggingBuffer+="\r\n";
 }
+
+bool waitForBufferSpace(uint16_t spaceNeeded)   //The TX buffer DOES get full so wait for it to empty out
+{
+  if(debugPortAvailable == true)
+  {
+    serialBufferCheckTime = millis();
+    while(SERIAL_DEBUG_PORT.availableForWrite() < spaceNeeded && millis() - serialBufferCheckTime < (spaceNeeded * 2))
+    {
+      delay(1);
+    }
+    if(millis() - serialBufferCheckTime >= spaceNeeded * 2)
+    {
+      debugPortAvailable = false; //Stop using the serial output for a bit to let it clear, or come online
+      return false;
+    }
+    debugPortAvailable = true;  //Succesfully sent, keep using the serial output
+    return true;
+  }
+  return false;
+}
+
 void flushLog() //Flush the log to filesystem if it seems safe to do so
 {
   if(timeIsValid() == true && logfileYear!= 0 && filesystemMounted == true) //Valid time & a log file is selected & filesystem is mounted
   {
     #ifdef SERIAL_LOG
-      SERIAL_DEBUG_PORT.print(F("FLUSHING LOG TO FILE: "));
-      SERIAL_DEBUG_PORT.println(logFilename);
+      if(waitForBufferSpace(50))
+      {
+        SERIAL_DEBUG_PORT.print(F("FLUSHING LOG TO FILE: "));
+        SERIAL_DEBUG_PORT.println(logFilename);
+      }
     #endif
     File logFile = openFileForAppend(logFilename); //Open file for appending
     if(logFile) //Log file is open
@@ -195,9 +221,12 @@ void flushLog() //Flush the log to filesystem if it seems safe to do so
       logFile.print(loggingBuffer);
       logFile.close();
       #ifdef SERIAL_LOG
-        SERIAL_DEBUG_PORT.print(F("FLUSHED, FILE SYSTEM USED: "));
-        SERIAL_DEBUG_PORT.print(percentageOfFilesystemUsed());
-        SERIAL_DEBUG_PORT.println('%');
+        if(waitForBufferSpace(30))
+        {
+          SERIAL_DEBUG_PORT.print(F("FLUSHED, FILE SYSTEM USED: "));
+          SERIAL_DEBUG_PORT.print(percentageOfFilesystemUsed());
+          SERIAL_DEBUG_PORT.println('%');
+        }
       #endif
       loggingBuffer = "";
       if(percentageOfFilesystemUsed() > 89) //Delete the older logs
@@ -208,8 +237,11 @@ void flushLog() //Flush the log to filesystem if it seems safe to do so
     else
     {
       #ifdef SERIAL_LOG
-        SERIAL_DEBUG_PORT.print(F("UNABLE TO FLUSH LOG TO FILE: "));
-        SERIAL_DEBUG_PORT.print(logFilename);
+        if(waitForBufferSpace(50))
+        {
+          SERIAL_DEBUG_PORT.print(F("UNABLE TO FLUSH LOG TO FILE: "));
+          SERIAL_DEBUG_PORT.print(logFilename);
+        }
       #endif
     }
   }
@@ -218,13 +250,19 @@ void flushLog() //Flush the log to filesystem if it seems safe to do so
     if(filesystemMounted == false)
     {
       #ifdef SERIAL_LOG
-        SERIAL_DEBUG_PORT.println(F("UNABLE TO FLUSH LOG: FILESYSTEM NOT MOUNTED"));
+        if(waitForBufferSpace(70))
+        {
+          SERIAL_DEBUG_PORT.println(F("UNABLE TO FLUSH LOG: FILESYSTEM NOT MOUNTED"));
+        }
       #endif
     }
     else
     {
       #ifdef SERIAL_LOG
-        SERIAL_DEBUG_PORT.println(F("UNABLE TO FLUSH LOG: NOT YET OPENED/TIME NOT SET"));
+        if(waitForBufferSpace(80))
+        {
+          SERIAL_DEBUG_PORT.println(F("UNABLE TO FLUSH LOG: NOT YET OPENED/TIME NOT SET"));
+        }
       #endif
     }
     if(loggingBuffer.length() > logFlushThreshold)

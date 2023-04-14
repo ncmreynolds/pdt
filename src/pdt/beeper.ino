@@ -14,37 +14,54 @@
       beeperState = true;
     }
   }
+  void stopBeep()
+  {
+    ledcWriteTone(beeperChannel, 0);
+    beeperState = false;
+  }
+  void setBeeperUrgency()
+  {
+    if(distanceToCurrentBeacon > 0)
+    {
+      #ifdef SUPPORT_LED
+        ledOffTime = distanceToCurrentBeacon * 100;
+      #endif
+      #ifdef SUPPORT_BEEPER
+        beeperOffTime = beeperOnTime + 50 + pow(distanceToCurrentBeacon,2);
+      #endif
+    }
+    else
+    {
+      #ifdef SUPPORT_LED
+        ledOffTime = 100;
+      #endif
+      #ifdef SUPPORT_BEEPER
+        beeperOffTime = beeperOnTime + 50;
+      #endif
+    }
+  }
   void manageBeeper()
   {
     if(beeperState == true)
     {
       if(millis() - beeperLastStateChange > beeperOnTime)
       {
-        ledcWriteTone(beeperChannel, 0);
-        beeperState = false;
+        stopBeep();
       }
     }
-    else if(beacon[0].hasFix == false && beeperState == true)
+    else if(beacon[currentBeacon].hasFix == false && beeperState == true)
     {
-      noTone(beeperPin);
-      pinMode(beeperPin, INPUT);
-      beeperState = false;
+      stopBeep();
     }
-    else if(beacon[0].hasFix == true)
+    else if(beacon[currentBeacon].hasFix == true)
     {
       if(beeperState == true && millis() - beeperLastStateChange > beeperOnTime)
       {
-        noTone(beeperPin);
-        pinMode(beeperPin, INPUT);
-        beeperLastStateChange = millis();
-        beeperState = false;
+        stopBeep();
       }
       else if(beeperState == false && millis() - beeperLastStateChange > beeperOffTime)
       {
-        pinMode(beeperPin, OUTPUT);
-        tone(beeperPin, beeperTone, beeperOnTime);
-        beeperLastStateChange = millis();
-        beeperState = true;
+        makeAbeep(beeperTone);
       }
     }
   }

@@ -51,6 +51,8 @@ uint8_t patchVersion = 6;
    Block of includes that are always used
 
 */
+#include <USBCDC.h>
+#include <USB.h>
 #include <LittleFS.h> //LittleFS storage
 #include <FS.h> //Filesystem library
 #include <time.h> //Time/NTP library
@@ -174,6 +176,9 @@ uint8_t patchVersion = 6;
   // A4 = 4;
   // A5 = 5;
   #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
+    bool debugPortAvailable = true;
+    uint16_t debugPortStartingBufferSize = 0;
+    uint32_t serialBufferCheckTime = 0;
     #if ARDUINO_USB_CDC_ON_BOOT == 1
       #pragma message "USB CDC configured on boot for debug messages"
       #define SERIAL_DEBUG_PORT Serial
@@ -211,7 +216,8 @@ uint8_t patchVersion = 6;
     int8_t voltageMonitorPin = A0;
     float topLadderResistor = 330.0;
     float bottomLadderResistor = 89; //Actually 100k, but the ESP itself has some resistance that effectively lowers it
-    float ADCpeakVoltage = 2.6;
+    float ADCpeakVoltage = 2.5;
+    float chargingVoltage = 4.19;
   #endif
   #ifdef SUPPORT_BEEPER
     uint8_t beeperChannel = 0;
@@ -467,7 +473,7 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
   gpsLocationInfo beacon[maximumNumberOfTrackers];
   #if defined(ACT_AS_TRACKER)
     double maximumEffectiveRange = 99;
-    uint32_t distanceToCurrentBeacon = 99;
+    uint32_t distanceToCurrentBeacon = 9999;
     bool distanceToCurrentBeaconChanged = false;
     uint8_t currentBeacon = 0;
     enum class trackingMode : std::int8_t {
@@ -500,8 +506,8 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
   uint32_t beeperOffTime = 1000;
   uint32_t beeperLastStateChange = 0;
   bool beeperState = false;
-  const uint16_t beeperTone = 1200;
-  const uint16_t beeperButtonTone = 660;
+  const uint16_t beeperTone = 1400;
+  const uint16_t beeperButtonTone = 900;
   bool beeperEnabled = true;
 #endif
 /*
