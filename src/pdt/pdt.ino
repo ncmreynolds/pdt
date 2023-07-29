@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 6;
+uint8_t patchVersion = 8;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -29,19 +29,30 @@ uint8_t patchVersion = 6;
 #define SUPPORT_GPS
 #define SUPPORT_WIFI
 #define SUPPORT_BATTERY_METER
+#define SUPPORT_BUTTON
 #define SUPPORT_OTA
 #define SERIAL_DEBUG
 #define SERIAL_LOG
 #define USE_LITTLEFS
-#define ENABLE_LOCAL_WEBSERVER
-#define ENABLE_REMOTE_RESTART
-#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
-#define ENABLE_OTA_UPDATE
-#define ENABLE_LOG_DELETION
+//#define ENABLE_LOCAL_WEBSERVER
+//#define ENABLE_REMOTE_RESTART
+//#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
+//#define ENABLE_OTA_UPDATE
+//#define ENABLE_LOG_DELETION
 #if defined(ACT_AS_TRACKER)
   #define SUPPORT_DISPLAY
   #define SUPPORT_BEEPER
   #define USE_SSD1331
+  #pragma message "Acting as tracker"
+#else
+  #define ACT_AS_SENSOR
+  #if defined(ACT_AS_SENSOR)
+    #define SUPPORT_BEEPER
+    #define SUPPORT_LED
+    #include <Preferences.h>
+    Preferences sensorPersitentData;
+  #endif
+  #pragma message "Acting as beacon"
 #endif
 #define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
 #define USE_RTOS
@@ -70,11 +81,42 @@ uint8_t patchVersion = 6;
     #include <ArduinoOTA.h> //Over-the-air update library
   #endif
 #endif
-#if defined(ARDUINO_ESP32C3_DEV)
-  #ifdef SUPPORT_DOSTAR
-    #include <Adafruit_NeoPixel.h>
-  #endif
+#if defined(ACT_AS_SENSOR)
+  #include <lasertag.h>
+  lasertag sensor;
+  #define IR_RECEIVER_PIN 1
+  uint8_t numberOfStartingHits = 15;
+  uint8_t numberOfStartingStunHits = 15;
+  uint8_t currentNumberOfHits = 0;
+  uint8_t currentNumberOfStunHits = 0;
+  uint8_t armourValue = 0;
+  uint8_t bleedOutCounter = 0;
+  uint8_t bleedOutTime = 5;
+  enum class sensorState : uint8_t {
+    starting = 0,
+    playStartupAnimation = 1,
+    active = 2,
+    playCurrentHits = 3,
+    nearMiss = 4,
+    invalidSignal = 5,
+    takenHit = 6,
+    dead = 7,
+    bleedOut = 8,
+    stunned = 9
+  };
+  sensorState currentSensorState = sensorState::starting;
+  sensorState previousSensorState = sensorState::starting;
+  uint32_t lastSensorStateChange = 0;
+  uint32_t timeOfLastHit = 0;
+  uint32_t sensorTones[4] = {3777, 800, 1200, 1000};
+  uint32_t sensorToneOnTimes[4] = {200, 250, 500, 199};
+  uint32_t sensorToneOffTimes[4] = {0, 250, 500, 1};
+  const char* currentNumberOfHitsKey = "currentHits";
+  const char* currentNumberOfStunHitsKey = "currentStunHits";
+  //const char* currentSensorStateKey = "currentSensorState";
+  const char* bleedOutCounterKey = "bleedOutCounter";
 #endif
+
 /*
 
    Block of includes for ESPAsyncWebServer, which is used to make a configuration interface and allow you to download log files
@@ -113,6 +155,9 @@ uint8_t patchVersion = 6;
 #if defined(SUPPORT_LORA)
   #include <LoRa.h>
   #include <MsgPack.h>  //MsgPack is used to transmit data
+  #include "CRC16.h" //A CRC16 is used to check the packet is LIKELY to be sent in a known format
+  #include "CRC.h"
+  #define LORA_CRC_POLYNOME 0xac9a  //Taken from https://users.ece.cmu.edu/~koopman/crc/
   #define LORA_NON_BLOCKING //Uncomment to use callbacks, rather than polling for LoRa events
 #endif
 /*
@@ -223,17 +268,17 @@ uint8_t patchVersion = 6;
     uint8_t beeperChannel = 0;
     int8_t beeperPin = 21;
   #endif
-  #ifdef ACT_AS_TRACKER
+  #ifdef SUPPORT_LED
+    int8_t ledPin = 2;
+    void ledOn(uint32_t ontime, uint32_t offtime);
+  #endif
+  #ifdef SUPPORT_BUTTON
     int8_t buttonPin = 9;
     uint32_t buttonPushTime = 0;
     uint32_t buttonDebounceTime = 50;
     uint32_t buttonLongPressTime = 1500;
     bool buttonHeld = false;
     bool buttonLongPress = false;
-    #ifdef SUPPORT_DOSTAR
-      int8_t ledPin = 2;
-      Adafruit_NeoPixel dotStar = Adafruit_NeoPixel(1, ledPin, NEO_RGBW + NEO_KHZ800);
-    #endif
   #endif
 #else
   #ifdef SUPPORT_LORA
@@ -279,6 +324,7 @@ bool filesystemMounted = false; // used to discern whether SPIFFS/LittleFS has c
   char configurationFile[] = "configuration.json";  //Does not require a leading slash
 #elif defined(USE_LITTLEFS)
   char configurationFile[] = "/configuration.json"; //Requires a leading slash
+  //void mountFilesystem(bool showInfo = true);  //Attempt to mount the filesystem, showinfo false shows no info
 #endif
 //String configurationMd5;  //An MD5 hash of the configuration, to check for changes
 uint32_t saveConfigurationSoon = 0; //Used to delay saving configuration immediately
@@ -317,7 +363,7 @@ uint32_t restartTimer = 0;  //Used to schedule a restart
   #endif
 #endif
 #if defined(ESP8266) || defined(ESP32)
-  uint8_t _localMacAddress[6] = {0, 0, 0, 0, 0, 0}; //MAC address of this device, which is ALWAYS used to identify it even if WiFi is disabled
+  //uint8_t _localMacAddress[6] = {0, 0, 0, 0, 0, 0}; //MAC address of this device, which is ALWAYS used to identify it even if WiFi is disabled
   uint8_t _remoteMacAddress[6] = {0, 0, 0, 0, 0, 0};  //MAC address of the remote device
 #endif
 #if defined(SUPPORT_WIFI)
@@ -367,6 +413,11 @@ bool autoFlush = false;
 bool flushLogNow = false;
 uint32_t logFlushInterval = 57600; //Frequency in seconds of log flush, this is 16h
 uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
+SemaphoreHandle_t loggingSemaphore = NULL;
+TaskHandle_t loggingManagementTask = NULL;
+const uint16_t loggingYieldTime = 1000;
+const uint16_t loggingSemaphoreTimeout = 5;
+
 
 #if defined(SUPPORT_LORA)
   #define MAX_LORA_BUFFER_SIZE 255
@@ -379,19 +430,22 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
     volatile uint32_t txTimer = 0;
     volatile bool loRaTxBusy = false;
     volatile bool loRaRxBusy = false;
-    volatile uint8_t loRaBufferSize = 0;
+    volatile uint8_t loRaSendBufferSize = 0;
+    volatile uint8_t loRaReceiveBufferSize = 0;
     volatile float lastRssi = 0.0;
     volatile uint32_t loRaTxPackets = 0;
     volatile uint32_t loRaRxPackets = 0;
   #else
-    bool loRaTxBusy = false;
-    bool loRaRxBusy = false;
-    uint8_t loRaBufferSize = 0;
-    float lastRssi = 0.0;
-    uint32_t loRaTxPackets = 0;
-    uint32_t loRaRxPackets = 0;
+    volatile bool loRaTxBusy = false;
+    volatile bool loRaRxBusy = false;
+    volatile uint8_t loRaSendBufferSize = 0;
+    volatile uint8_t loRaReceiveBufferSize = 0;
+    volatile float lastRssi = 0.0;
+    volatile uint32_t loRaTxPackets = 0;
+    volatile uint32_t loRaRxPackets = 0;
   #endif
-  uint8_t loRaBuffer[MAX_LORA_BUFFER_SIZE];
+  uint8_t loRaSendBuffer[MAX_LORA_BUFFER_SIZE];
+  uint8_t loRaReceiveBuffer[MAX_LORA_BUFFER_SIZE];
   uint32_t lastBeaconSendTime = 0;    // last send time
   uint16_t loRaPerimiter1 = 10;       //Range at which beacon 1 applies
   uint32_t beaconInterval1 = 5000;    // interval between sends
@@ -404,7 +458,7 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
   float rssiAttenuationPerimeter = 10;
   const uint8_t beaconLocationUpdateId = 0x00;    //LoRa packet contains location info from a beacon
   const uint8_t trackerLocationUpdateId = 0x01;   //LoRa packet contains location info from a tracker
-  const uint8_t powerUpdateId = 0x10;             //LoRa packet contains battery info
+  const uint8_t deviceStatusUpdateId = 0x10;             //LoRa packet contains battery info
 #endif
 /*
 
@@ -416,6 +470,7 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
     blank,
     welcome,
     distance,
+    accuracy,
     trackingMode,
     signal,
     battery,
@@ -439,43 +494,43 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
 */
 #ifdef SUPPORT_GPS
   #ifdef USE_RTOS
-    TaskHandle_t gpsTask = NULL;
+    TaskHandle_t gpsManagementTask = NULL;
     SemaphoreHandle_t gpsSemaphore = NULL;
-    const uint16_t gpsSemaphoreTimeout = 50;
+    const uint16_t gpsSemaphoreTimeout = 5;
     const uint16_t gpsYieldTime = 100;
   #endif
+  #define MINIMUM_VIABLE_HDOP 10
   TinyGPSPlus gps;
   const uint32_t GPSBaud = 9600;
   uint32_t lastGpsTimeCheck = 0;
   uint32_t gpsTimeCheckInterval = 30000;
   //double trackerLatitude = 51.508131; //London
   //double trackerLongitude = -0.128002;
-  struct gpsLocationInfo {
+  struct deviceLocationInfo {
     uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    char* name = nullptr;
     double latitude = 0;
     double longitude = 0;
     double course = 0;
     double speed = 0;
     double hdop = 0;
-    double vdop = 0;
     double distanceTo = 0;
     double courseTo = 0;
+    float supplyVoltage = 0;
     uint32_t lastReceive = 0;
     uint32_t timeout = 60000;
     bool hasFix = false;
     double lastRssi = 0;
+    uint8_t typeOfDevice = 0; //0 = sensor, 1 = tracker
   };
-  const uint8_t maximumNumberOfTrackers = 5;
-  const uint8_t maximumNumberOfBeacons = 5;
-  uint8_t numberOfTrackers = 0;
-  uint8_t numberOfBeacons = 0;
-  gpsLocationInfo tracker[maximumNumberOfTrackers];
-  gpsLocationInfo beacon[maximumNumberOfTrackers];
+  const uint8_t maximumNumberOfDevices = 16;
+  uint8_t numberOfDevices = 0;
+  deviceLocationInfo device[maximumNumberOfDevices];
   #if defined(ACT_AS_TRACKER)
     double maximumEffectiveRange = 99;
     uint32_t distanceToCurrentBeacon = 9999;
     bool distanceToCurrentBeaconChanged = false;
-    uint8_t currentBeacon = 0;
+    uint8_t currentBeacon = maximumNumberOfDevices;
     enum class trackingMode : std::int8_t {
       nearest,
       furthest,
@@ -489,7 +544,7 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
       bool ledState = false;
     #endif
   #elif defined(ACT_AS_BEACON)
-    uint8_t currentTracker = 0;
+    uint8_t currentTracker = maximumNumberOfDevices;
   #endif
   uint32_t lastGPSstatus = 0;
   uint32_t chars;
@@ -502,13 +557,30 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
 
 */
 #ifdef SUPPORT_BEEPER
-  const uint32_t beeperOnTime = 20;
-  uint32_t beeperOffTime = 1000;
+  SemaphoreHandle_t beeperSemaphore = NULL;
+  TaskHandle_t beeperManagementTask = NULL;
+  const uint16_t beeperYieldTime = 10;
+  const uint16_t beeperSemaphoreTimeout = 5;
+  uint32_t beeperOnTime = 20;
+  uint32_t beeperOffTime = 0;
   uint32_t beeperLastStateChange = 0;
   bool beeperState = false;
-  const uint16_t beeperTone = 1400;
+  uint16_t beeperTone = 1400;
   const uint16_t beeperButtonTone = 900;
   bool beeperEnabled = true;
+#endif
+#ifdef SUPPORT_LED
+  SemaphoreHandle_t ledSemaphore = NULL;
+  TaskHandle_t ledManagementTask = NULL;
+  const uint16_t ledYieldTime = 10;
+  const uint16_t ledSemaphoreTimeout = 5;
+  uint32_t ledOnTime = 20;
+  uint32_t ledOffTime = 0;
+  uint32_t ledLastStateChange = 0;
+  bool ledState = false;
+  uint16_t ledTone = 1400;
+  const uint16_t ledButtonTone = 900;
+  bool ledEnabled = true;
 #endif
 /*
 
@@ -516,8 +588,8 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
 
 */
 #ifdef SUPPORT_BATTERY_METER
-  uint32_t lastBatteryStatus = 0;
-  uint32_t batteryStatusInterval = 60000;
+  uint32_t lastDeviceStatus = 0;
+  uint32_t deviceStatusInterval = 15000;//60000;
   float batteryVoltage = 0.0;
   uint8_t batteryPercentage = 100;
 #endif

@@ -5,10 +5,83 @@
  * The functions are templated so you can print most types to the log with no fuss. Adding a printf equivalent is on my to-do list
  * 
  */
+#if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
+void setupLogging()
+{
+  #ifdef USE_RTOS
+    loggingSemaphore = xSemaphoreCreateBinary();
+  #endif
+  #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
+    SERIAL_DEBUG_PORT.begin();
+    debugPortStartingBufferSize = SERIAL_DEBUG_PORT.availableForWrite();
+    SERIAL_DEBUG_PORT.println(F("Online?"));  //Try to send something
+    delay(100); //Wait for it to send
+    debugPortAvailable = SERIAL_DEBUG_PORT.availableForWrite() == debugPortStartingBufferSize; //Check if USB port is connected by seeing if it has been able to send stuff
+    if(debugPortAvailable)
+    {
+        delay(5000);  //Allow time for the serial console to be opened by a person
+    }
+  #endif
+  loggingBuffer.reserve(loggingBufferSize); //Reserve heap for the logging backlog
+  #ifdef USE_RTOS
+    xSemaphoreGive(loggingSemaphore);
+    xTaskCreate(manageLogging, "manageLogging", 10000, NULL, configMAX_PRIORITIES - 1, &loggingManagementTask);
+  #endif
+}
+#endif
+
+#ifdef USE_RTOS
+void manageLogging(void * parameter)
+#else
+void manageLogging()
+#endif
+{
+  #ifdef USE_RTOS
+  while(true)
+  {
+    if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout))
+    {
+  #endif
+  if(flushLogNow == true || ((millis() - logLastFlushed) >= (logFlushInterval * 1000)))
+  {
+    logLastFlushed = millis();
+    flushLogNow = false;
+    #ifdef SERIAL_LOG
+      if(waitForBufferSpace(18))
+      {
+        SERIAL_DEBUG_PORT.println(F("PERIODIC LOG FLUSH"));
+      }
+    #endif
+    if(loggingBuffer.length() > 0)
+    {
+      flushLog();
+    }
+    else
+    {
+      #ifdef SERIAL_LOG
+        if(waitForBufferSpace(30))
+        {
+          SERIAL_DEBUG_PORT.println(F("LOG BUFFER SUSPICIOUSLY EMPTY"));
+        }
+      #endif
+    }
+  }
+  #ifdef USE_RTOS
+      xSemaphoreGive(loggingSemaphore);
+    }
+    vTaskDelay(loggingYieldTime / portTICK_PERIOD_MS); //Hand back for 10ms
+  }
+  vTaskDelete(NULL);  //Kill this task
+  #endif
+}
 
 template<typename typeToLog>
 void localLog(typeToLog message)  //Add a partial line to the local log, starting with a timestampt
 {
+  #ifdef USE_RTOS
+  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout))
+  {
+  #endif
   if(logfileYear == 0)  //If a log file is not chose, try and choose one
   {
     setLogFilename();
@@ -60,10 +133,18 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
     }
   #endif
   logToFile(message);
+  #ifdef USE_RTOS
+  xSemaphoreGive(loggingSemaphore);
+  }
+  #endif
 }
 template<typename typeToLog>
 void localLog(typeToLog message, uint8_t base)  //Add a partial line to the local log, starting with a timestampt
 {
+  #ifdef USE_RTOS
+  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout))
+  {
+  #endif
   if(logfileYear == 0)  //If a log file is not chose, try and choose one
   {
     setLogFilename();
@@ -115,10 +196,18 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
     }
   #endif
   logToFile(message);
+  #ifdef USE_RTOS
+  xSemaphoreGive(loggingSemaphore);
+  }
+  #endif
 }
 template<typename typeToLog>
 void localLogLn(typeToLog message) //Add to the local log, starting with a timestampt
 {
+  #ifdef USE_RTOS
+  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout))
+  {
+  #endif
   if(logfileYear == 0)  //If a log file is not chose, try and choose one
   {
     setLogFilename();
@@ -171,6 +260,10 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
   #endif
   logToFileLn(message);
   startOfLogLine = true;
+  #ifdef USE_RTOS
+  xSemaphoreGive(loggingSemaphore);
+  }
+  #endif
 }
 template<typename typeToLog>
 void logToFile(typeToLog message)
@@ -348,6 +441,71 @@ void deleteOldestLogs() //Iterate through the logs and delete the oldest file
   char logFileToDelete[logFilenameLength]; //Big enough for with or without leading /
   sprintf(logFileToDelete,logfilenameTemplate,logDirectory,oldestYear,oldestMonth,oldestDay); //Make the current filename
   deleteFile(logFileToDelete);  //Remove the oldest log  
+}
+void showStartupInfo()
+{
+  #if defined(ACT_AS_TRACKER)
+    localLogLn(F("============================ Booting tracker ============================"));
+  #elif defined(ACT_AS_BEACON)
+    localLogLn(F("============================ Booting beacon ============================="));
+  #endif
+  localLog(F("Firmware: ")); localLog(majorVersion); localLog('.'); localLog(minorVersion); localLog('.'); localLogLn(patchVersion);
+  localLog(F("Built: ")); localLog(__TIME__); localLog(' '); localLogLn(__DATE__);
+  #ifdef ESP_IDF_VERSION_MAJOR
+    localLog(F("IDF version: "));      
+    #ifdef ESP_IDF_VERSION_MINOR
+      localLog(ESP_IDF_VERSION_MAJOR);
+      localLog('.');
+      localLogLn(ESP_IDF_VERSION_MINOR);
+    #else
+      localLogLn(ESP_IDF_VERSION_MAJOR);
+    #endif
+  #endif
+  localLog(F("Core: "));
+  #if defined(ESP32)
+    #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
+      #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+        localLogLn(F("ESP32"));
+      #elif CONFIG_IDF_TARGET_ESP32S2
+        localLogLn(F("ESP32S2"));
+      #elif CONFIG_IDF_TARGET_ESP32C3
+        localLogLn(F("ESP32C3"));
+      #else 
+        #error Target CONFIG_IDF_TARGET is not supported
+      #endif
+      localLog(F("Processor clock: "));
+      localLog(getCpuFrequencyMhz());
+      localLogLn(F("Mhz"));
+    #else // ESP32 Before IDF 4.0
+      localLogLn(F("ESP32"));
+    #endif
+  #else
+    localLogLn(F("Uknown"));
+  #endif
+  localLog(F("Board: ")); localLogLn(ARDUINO_BOARD);
+  #if defined(ESP32)
+    #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
+      #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+        localLog(F("Restart reason core 0: "));
+        localLogLn(es32ResetReason(0));
+        localLog(F("Restart reason core 1: "));
+        localLogLn(es32ResetReason(1));
+      #elif CONFIG_IDF_TARGET_ESP32S2
+        localLog(F("Restart reason: "));
+        localLogLn(es32ResetReason(0));
+      #elif CONFIG_IDF_TARGET_ESP32C3
+        localLog(F("Restart reason: "));
+        localLogLn(es32ResetReason(0));
+      #else 
+        #error Target CONFIG_IDF_TARGET is not supported
+      #endif
+    #else // ESP32 Before IDF 4.0
+      localLog(F("Restart reason core 0: "));
+      localLogLn(es32ResetReason(0));
+      localLog(F("Restart reason core 1: "));
+      localLogLn(es32ResetReason(1));
+    #endif
+  #endif
 }
 #if defined(ESP32)
 String es32ResetReason(uint8_t core)

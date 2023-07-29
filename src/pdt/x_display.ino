@@ -90,7 +90,7 @@
     ssd1306_clearScreen8();
     printTopLine("RANGE");
     printBottomLine("METERS");
-    if(beacon[currentBeacon].hasFix == false || beacon[currentBeacon].distanceTo > maximumEffectiveRange)
+    if(device[currentBeacon].hasFix == false || device[currentBeacon].distanceTo > maximumEffectiveRange || currentBeacon == maximumNumberOfDevices)
     {
       if(maximumEffectiveRange > 999)
       {
@@ -128,8 +128,10 @@
       #ifdef SERIAL_DEBUG
         if(waitForBufferSpace(28))
         {
-          SERIAL_DEBUG_PORT.print(F("Displaying range: "));
-          SERIAL_DEBUG_PORT.println(distanceToCurrentBeacon);
+          SERIAL_DEBUG_PORT.print(F("Displaying range:"));
+          SERIAL_DEBUG_PORT.print (distanceToCurrentBeacon);
+          SERIAL_DEBUG_PORT.print(F(" cardinal:"));
+          SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentBeacon].course));
         }
       #endif
       if(maximumEffectiveRange > 999)
@@ -155,7 +157,45 @@
     displayTimeout = longDisplayTimeout; //Long timeout on this display
     currentDisplayState = displayState::distance;
   }
-  void displayBeaconMode()
+  void displayAccuracy()
+  {
+    ssd1306_clearScreen8();
+    printTopLine("ACCURACY");
+    #ifdef SERIAL_DEBUG
+      if(waitForBufferSpace(20))
+      {
+        SERIAL_DEBUG_PORT.print(F("Displaying accuracy: "));
+      }
+    #endif
+    if(currentBeacon == maximumNumberOfDevices || device[0].hdop > device[currentBeacon].hdop) //Show the worst HDOP
+    {
+      String temp = String(hdopDescription(device[0].hdop));
+      temp.toUpperCase();
+      printMiddleLine(temp.c_str());
+      #ifdef SERIAL_DEBUG
+        if(waitForBufferSpace(temp.length() + 2))
+        {
+          SERIAL_DEBUG_PORT.println(temp);
+        }
+      #endif
+    }
+    else
+    {
+      String temp = String(hdopDescription(device[currentBeacon].hdop));
+      temp.toUpperCase();
+      printMiddleLine(temp.c_str());
+      #ifdef SERIAL_DEBUG
+        if(waitForBufferSpace(temp.length() + 2))
+        {
+          SERIAL_DEBUG_PORT.println(temp);
+        }
+      #endif
+    }
+    lastDisplayUpdate = millis();
+    displayTimeout = shortDisplayTimeout; //Short timeout on this display
+    currentDisplayState = displayState::accuracy;
+  }
+  void displayTrackingMode()
   {
     ssd1306_clearScreen8();
     printTopLine("BEACON");
@@ -188,16 +228,29 @@
     }
     else if(currentTrackingMode == trackingMode::fixed)
     {
-      ssd1306_setFixedFont(digital_font5x7_AB);
-      char beaconDetail[17];
-      sprintf(beaconDetail, "%02u %02X%02X%02X%02X%02X%02X", currentBeacon, beacon[currentBeacon].id[0], beacon[currentBeacon].id[1], beacon[currentBeacon].id[2], beacon[currentBeacon].id[3], beacon[currentBeacon].id[4], beacon[currentBeacon].id[5]);
-      printMiddleLine(beaconDetail);
-      #ifdef SERIAL_DEBUG
-        if(waitForBufferSpace(80))
-        {
-          SERIAL_DEBUG_PORT.println(beaconDetail);
-        }
-      #endif
+      //ssd1306_setFixedFont(digital_font5x7_AB);
+      if(device[currentBeacon].name != nullptr)
+      {
+        printMiddleLine(device[currentBeacon].name);
+        #ifdef SERIAL_DEBUG
+          if(waitForBufferSpace(80))
+          {
+            SERIAL_DEBUG_PORT.println(device[currentBeacon].name);
+          }
+        #endif
+      }
+      else
+      {
+        char beaconDetail[17];
+        sprintf_P(beaconDetail, PSTR("%02u %02X%02X%02X%02X%02X%02X"), currentBeacon, device[currentBeacon].id[0], device[currentBeacon].id[1], device[currentBeacon].id[2], device[currentBeacon].id[3], device[currentBeacon].id[4], device[currentBeacon].id[5]);
+        printMiddleLine(beaconDetail);
+        #ifdef SERIAL_DEBUG
+          if(waitForBufferSpace(80))
+          {
+            SERIAL_DEBUG_PORT.println(beaconDetail);
+          }
+        #endif
+      }
     }
     lastDisplayUpdate = millis();
     displayTimeout = shortDisplayTimeout; //Short timeout on this display
@@ -247,7 +300,7 @@
     ssd1306_clearScreen8();
     printTopLine("SIGNAL");
     printBottomLine("STRENGTH");
-    if(beacon[currentBeacon].hasFix == false || beacon[currentBeacon].distanceTo > maximumEffectiveRange)
+    if(device[currentBeacon].hasFix == false || device[currentBeacon].distanceTo > maximumEffectiveRange)
     {
       if(maximumEffectiveRange > 999)
       {

@@ -3,6 +3,18 @@
  * This file contains functions related to time/NTP
  * 
  */
+
+void configureTimeServer()
+{
+  localLog(F("Configuring time server: "));
+  localLogLn(timeServer);
+  localLog(F("Configuring time zone: "));
+  localLogLn(timeZone);
+  configTime(0, 0, timeServer);
+  setenv("TZ",timeZone,1);
+  tzset();
+}
+
 bool timeIsValid()
 {
   time_t now;

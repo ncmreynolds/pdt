@@ -18,12 +18,14 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["startWiFiOnBoot"] = startWiFiOnBoot;
     configuration["wiFiInactivityTimer"]  = wiFiInactivityTimer;
   #endif
-  #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-    configuration["http_user"] = http_user;
-    configuration["basicAuthEnabled"] = basicAuthEnabled;
-  #endif
-  #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
-    configuration["http_password"] = http_password;
+  #ifdef ENABLE_LOCAL_WEBSERVER
+    #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+      configuration["http_user"] = http_user;
+      configuration["basicAuthEnabled"] = basicAuthEnabled;
+    #endif
+    #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
+      configuration["http_password"] = http_password;
+    #endif
   #endif
   configuration["timeServer"] = timeServer;
   configuration["timeZone"] = timeZone;
@@ -190,30 +192,32 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       startWiFiOnBoot = configuration["startWiFiOnBoot"] | true;
       wiFiInactivityTimer = configuration["wiFiInactivityTimer"] | 0;
     #endif
-    #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-      if(configuration["http_user"])
-      {
-        http_user = new char[strlen(configuration["http_user"]) + 1];
-        strlcpy(http_user,configuration["http_user"],strlen(configuration["http_user"]) + 1);
-      }
-      else
-      {
-        http_user = new char[strlen(default_http_user) + 1];
-        strlcpy(http_user,default_http_user,strlen(default_http_user) + 1);
-      }
-      basicAuthEnabled = configuration["basicAuthEnabled"] | false;
-    #endif
-    #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
-      if(configuration["http_password"])
-      {
-        http_password = new char[strlen(configuration["http_password"]) + 1];
-        strlcpy(http_password,configuration["http_password"],strlen(configuration["http_password"]) + 1);
-      }
-      else
-      {
-        http_password = new char[strlen(default_http_password) + 1];
-        strlcpy(http_password,default_http_password,strlen(default_http_password) + 1);
-      }
+    #ifdef ENABLE_LOCAL_WEBSERVER
+      #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+        if(configuration["http_user"])
+        {
+          http_user = new char[strlen(configuration["http_user"]) + 1];
+          strlcpy(http_user,configuration["http_user"],strlen(configuration["http_user"]) + 1);
+        }
+        else
+        {
+          http_user = new char[strlen(default_http_user) + 1];
+          strlcpy(http_user,default_http_user,strlen(default_http_user) + 1);
+        }
+        basicAuthEnabled = configuration["basicAuthEnabled"] | false;
+      #endif
+      #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
+        if(configuration["http_password"])
+        {
+          http_password = new char[strlen(configuration["http_password"]) + 1];
+          strlcpy(http_password,configuration["http_password"],strlen(configuration["http_password"]) + 1);
+        }
+        else
+        {
+          http_password = new char[strlen(default_http_password) + 1];
+          strlcpy(http_password,default_http_password,strlen(default_http_password) + 1);
+        }
+      #endif
     #endif
     if(configuration["timeServer"])
     {
@@ -250,13 +254,15 @@ bool loadDefaultConfiguration()
   localLogLn(F("Loading default configuration"));
   nodeName = new char[strlen(default_nodeName) + 1];  //Assign space on heap
   strlcpy(nodeName,default_nodeName,strlen(default_nodeName) + 1);  //Copy in default
-  #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-    http_user = new char[strlen(default_http_user) + 1];
-    strlcpy(http_user,default_http_user,strlen(default_http_user) + 1);
-  #endif
-  #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
-    http_password = new char[strlen(default_http_password) + 1];
-    strlcpy(http_password,default_http_password,strlen(default_http_password) + 1);
+  #ifdef ENABLE_LOCAL_WEBSERVER
+    #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+      http_user = new char[strlen(default_http_user) + 1];
+      strlcpy(http_user,default_http_user,strlen(default_http_user) + 1);
+    #endif
+    #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
+      http_password = new char[strlen(default_http_password) + 1];
+      strlcpy(http_password,default_http_password,strlen(default_http_password) + 1);
+    #endif
   #endif
   #if defined(SUPPORT_WIFI)
     SSID = new char[strlen(default_WiFi_SSID) + 1];
@@ -343,36 +349,38 @@ void printConfiguration()
       localLogLn(F("<none>"));
     }
   #endif
-  #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-    localLog(F("basicAuthEnabled: "));
-    if(basicAuthEnabled)
-    {
-      localLogLn(F("enabled"));
-    }
-    else
-    {
-      localLogLn(F("disabled"));
-    }
-    localLog(F("http_user: "));
-    if(http_user != nullptr)
-    {
-      localLogLn(http_user);
-    }
-    else
-    {
-      localLogLn(F("<none>"));
-    }
-  #endif
-  #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
-    localLog(F("http_password: "));
-    if(http_password != nullptr)
-    {
-      localLogLn(F("<set>"));
-    }
-    else
-    {
-      localLogLn(F("<not set>"));
-    }
+  #ifdef ENABLE_LOCAL_WEBSERVER
+    #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+      localLog(F("basicAuthEnabled: "));
+      if(basicAuthEnabled)
+      {
+        localLogLn(F("enabled"));
+      }
+      else
+      {
+        localLogLn(F("disabled"));
+      }
+      localLog(F("http_user: "));
+      if(http_user != nullptr)
+      {
+        localLogLn(http_user);
+      }
+      else
+      {
+        localLogLn(F("<none>"));
+      }
+    #endif
+    #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
+      localLog(F("http_password: "));
+      if(http_password != nullptr)
+      {
+        localLogLn(F("<set>"));
+      }
+      else
+      {
+        localLogLn(F("<not set>"));
+      }
+    #endif
   #endif
   #if defined(ENABLE_OTA_UPDATE)
     localLog(F("otaEnabled: "));

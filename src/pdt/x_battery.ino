@@ -1,12 +1,20 @@
 #ifdef SUPPORT_BATTERY_METER
+  void setupBattery()
+  {
+    localLog(F("Configuring battery monitor: "));
+    analogSetAttenuation(ADC_11db); //Set ADC to read up to 2600mV
+    checkBatteryVoltage();  //Set initial voltage reading
+    batteryPercentage = estimateBatteryPercentage(batteryVoltage); //Set initial capacity estimate
+    localLogLn(F("OK"));
+  }
   void manageBattery()
   {
-    if(millis() - lastBatteryStatus > batteryStatusInterval)
+    if(millis() - lastDeviceStatus > deviceStatusInterval)
     {
-      lastBatteryStatus = millis();
+      lastDeviceStatus = millis();
       checkBatteryVoltage();
       batteryPercentage = estimateBatteryPercentage(batteryVoltage);
-      shareBatteryVoltage();
+      shareDeviceInfo();
     }
   }
   void checkBatteryVoltage()

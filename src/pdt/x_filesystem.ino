@@ -73,6 +73,18 @@
       }
     }
   }
+  void setupFilesystem()
+  {  
+    mountFilesystem(true);
+    if(loadConfiguration(configurationFile) == true)
+    {
+      printConfiguration();
+    }
+    else
+    {
+      loadDefaultConfiguration();
+    }
+  }
   void listAllFiles() //Just lists ALL files on the filesytem to the log
   {
     #if defined(USE_SPIFFS)
