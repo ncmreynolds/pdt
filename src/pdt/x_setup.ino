@@ -6,14 +6,6 @@
 void setup() {
   WiFi.macAddress(device[0].id); //Copy in local MAC address as 'device 0'
   #ifdef SUPPORT_GPS
-    /*
-    device[0].id[0] = _localMacAddress[0];  //Copy in local MAC address as 'beacon 0'
-    device[0].id[1] = _localMacAddress[1];
-    device[0].id[2] = _localMacAddress[2];
-    device[0].id[3] = _localMacAddress[3];
-    device[0].id[4] = _localMacAddress[4];
-    device[0].id[5] = _localMacAddress[5];
-    */
     numberOfDevices++;
     #ifdef ACT_AS_TRACKER
       device[0].typeOfDevice = 1;

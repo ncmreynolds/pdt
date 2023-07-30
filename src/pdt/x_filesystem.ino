@@ -76,14 +76,11 @@
   void setupFilesystem()
   {  
     mountFilesystem(true);
-    if(loadConfiguration(configurationFile) == true)
-    {
-      printConfiguration();
-    }
-    else
+    if(loadConfiguration(configurationFile) == false)
     {
       loadDefaultConfiguration();
     }
+    printConfiguration();
   }
   void listAllFiles() //Just lists ALL files on the filesytem to the log
   {

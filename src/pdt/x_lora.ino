@@ -296,6 +296,7 @@
       packer.pack(device[0].id[4]);
       packer.pack(device[0].id[5]);
       packer.pack(deviceStatusUpdateId);
+      packer.pack(millis());
       packer.pack(batteryVoltage);
       packer.pack(device[0].name);
       if(packer.size() < MAX_LORA_BUFFER_SIZE)
@@ -465,7 +466,7 @@
                         #if defined(SERIAL_DEBUG)
                           if(waitForBufferSpace(80))
                           {
-                            SERIAL_DEBUG_PORT.printf("RX %02x:%02x:%02x:%02x:%02x:%02x beacon %u info  Lat:%03.4f Lon:%03.4f Course(deg):%03.1f Speed(m/s):%01.1f HDOP:%.1f Distance(m):%.1f RSSI:%.1f\r\n",
+                            SERIAL_DEBUG_PORT.printf("RX %02x:%02x:%02x:%02x:%02x:%02x beacon %u location Lat:%03.4f Lon:%03.4f Course(deg):%03.1f Speed(m/s):%01.1f HDOP:%.1f Distance(m):%.1f RSSI:%.1f\r\n",
                               _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
                               deviceIndex, device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi);
                           }
@@ -486,35 +487,50 @@
                     }
                     else if(messagetype == deviceStatusUpdateId)
                     {
-                      float remoteBatteryVoltage;
-                      if(unpacker.isFloat32() || unpacker.isFloat64())
+                      uint32_t remoteUptime;
+                      if(unpacker.isUInt16() || unpacker.isUInt32()) //Uptime
                       {
-                        unpacker.unpack(device[deviceIndex].supplyVoltage);
-                        if(unpacker.isStr())
+                        unpacker.unpack(device[deviceIndex].uptime);
+                        if(unpacker.isFloat32() || unpacker.isFloat64())  //Supply voltage
                         {
-                          if(device[deviceIndex].name == nullptr)
+                          unpacker.unpack(device[deviceIndex].supplyVoltage);
+                          if(unpacker.isStr())  //Name
                           {
-                            String temp = String(unpacker.unpackString());
-                            device[deviceIndex].name = new char[temp.length() + 1];
-                            temp.toCharArray(device[deviceIndex].name, temp.length() + 1);
-                          }
-                          #ifdef SERIAL_DEBUG
-                            if(waitForBufferSpace(60))
+                            if(device[deviceIndex].name == nullptr)
                             {
-                              SERIAL_DEBUG_PORT.printf("RX %02x:%02x:%02x:%02x:%02x:%02x device info name:'%s' battery voltage:%.1fv RSSI:%.1f\r\n",
-                                _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
-                                device[deviceIndex].name,
-                                device[deviceIndex].supplyVoltage,
-                                lastRssi);
+                              String temp = String(unpacker.unpackString());
+                              device[deviceIndex].name = new char[temp.length() + 1];
+                              temp.toCharArray(device[deviceIndex].name, temp.length() + 1);
                             }
-                          #endif
+                            #ifdef SERIAL_DEBUG
+                              if(waitForBufferSpace(60))
+                              {
+                                SERIAL_DEBUG_PORT.printf("RX %02x:%02x:%02x:%02x:%02x:%02x device info name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f\r\n",
+                                  _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
+                                  device[deviceIndex].name,
+                                  printableUptime(device[deviceIndex].uptime/1000).c_str(),
+                                  device[deviceIndex].supplyVoltage,
+                                  lastRssi);
+                              }
+                            #endif
+                          }
+                          else
+                          {
+                            #ifdef SERIAL_DEBUG
+                              if(waitForBufferSpace(40))
+                              {
+                                SERIAL_DEBUG_PORT.print(F("Unexpected type for name: "));
+                                SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
+                              }
+                            #endif
+                          }
                         }
                         else
                         {
                           #ifdef SERIAL_DEBUG
                             if(waitForBufferSpace(40))
                             {
-                              SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
+                              SERIAL_DEBUG_PORT.print(F("Unexpected type for supply voltage: "));
                               SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
                             }
                           #endif
@@ -525,7 +541,7 @@
                         #ifdef SERIAL_DEBUG
                           if(waitForBufferSpace(40))
                           {
-                            SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
+                            SERIAL_DEBUG_PORT.print(F("Unexpected type for uptime: "));
                             SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
                           }
                         #endif

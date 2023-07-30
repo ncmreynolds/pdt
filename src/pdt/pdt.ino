@@ -516,6 +516,7 @@ const uint16_t loggingSemaphoreTimeout = 5;
     double hdop = 0;
     double distanceTo = 0;
     double courseTo = 0;
+    uint32_t uptime = 0;
     float supplyVoltage = 0;
     uint32_t lastReceive = 0;
     uint32_t timeout = 60000;

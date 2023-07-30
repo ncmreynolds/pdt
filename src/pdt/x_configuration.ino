@@ -155,8 +155,8 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     }
     else
     {
-      nodeName = new char[strlen(default_nodeName) + 1];
-      strlcpy(nodeName,default_nodeName,strlen(default_nodeName) + 1);
+      nodeName = new char[strlen(default_nodeName) + 5];
+      sprintf_P(nodeName, PSTR("%s%02X%02X"), default_nodeName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
     }
     if(configuration["configurationComment"])
     {
@@ -252,8 +252,10 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
 bool loadDefaultConfiguration()
 {
   localLogLn(F("Loading default configuration"));
-  nodeName = new char[strlen(default_nodeName) + 1];  //Assign space on heap
-  strlcpy(nodeName,default_nodeName,strlen(default_nodeName) + 1);  //Copy in default
+  //nodeName = new char[strlen(default_nodeName) + 1];  //Assign space on heap
+  //strlcpy(nodeName,default_nodeName,strlen(default_nodeName) + 1);  //Copy in default
+  nodeName = new char[strlen(default_nodeName) + 5];
+  sprintf_P(nodeName, PSTR("%s%02X%02X"), default_nodeName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
   #ifdef ENABLE_LOCAL_WEBSERVER
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
       http_user = new char[strlen(default_http_user) + 1];
