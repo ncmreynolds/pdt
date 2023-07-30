@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 8;
+uint8_t patchVersion = 9;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -522,7 +522,11 @@ const uint16_t loggingSemaphoreTimeout = 5;
     uint32_t timeout = 60000;
     bool hasFix = false;
     double lastRssi = 0;
-    uint8_t typeOfDevice = 0; //0 = sensor, 1 = tracker
+    uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor
+    uint8_t numberOfStartingHits = 0;
+    uint8_t numberOfStartingStunHits = 0;
+    uint8_t currentNumberOfHits = 0;
+    uint8_t currentNumberOfStunHits = 0;
   };
   const uint8_t maximumNumberOfDevices = 16;
   uint8_t numberOfDevices = 0;

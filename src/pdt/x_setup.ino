@@ -12,6 +12,9 @@ void setup() {
       pinMode(buttonPin, INPUT_PULLUP);
     #endif
   #endif
+  #ifdef ACT_AS_SENSOR
+    device[0].typeOfDevice | 2; //Mark it as a sensor
+  #endif
   #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
     setupLogging();
     showStartupInfo();
