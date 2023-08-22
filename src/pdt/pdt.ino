@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 9;
+uint8_t patchVersion = 10;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -25,14 +25,16 @@ uint8_t patchVersion = 9;
 #ifndef ACT_AS_TRACKER
   #define ACT_AS_BEACON
 #endif
+#define SERIAL_DEBUG
+#define SERIAL_LOG
 #define SUPPORT_LORA
+#define DEBUG_LORA
 #define SUPPORT_GPS
+//#define DEBUG_GPS
 #define SUPPORT_WIFI
 #define SUPPORT_BATTERY_METER
 #define SUPPORT_BUTTON
 #define SUPPORT_OTA
-#define SERIAL_DEBUG
-#define SERIAL_LOG
 #define USE_LITTLEFS
 //#define ENABLE_LOCAL_WEBSERVER
 //#define ENABLE_REMOTE_RESTART
@@ -446,19 +448,20 @@ const uint16_t loggingSemaphoreTimeout = 5;
   #endif
   uint8_t loRaSendBuffer[MAX_LORA_BUFFER_SIZE];
   uint8_t loRaReceiveBuffer[MAX_LORA_BUFFER_SIZE];
-  uint32_t lastBeaconSendTime = 0;    // last send time
+  uint32_t lastLocationSendTime = 0;    // last send time
+  uint32_t currentLocationSendInterval = 30000;    // current interval between sends, which will vary
   uint16_t loRaPerimiter1 = 10;       //Range at which beacon 1 applies
-  uint32_t beaconInterval1 = 5000;    // interval between sends
+  uint32_t locationSendInterval1 = 5000;    // interval between sends
   uint16_t loRaPerimiter2 = 20;       //Range at which beacon 1 applies
-  uint32_t beaconInterval2 = 5000;    // interval between sends
+  uint32_t locationSendInterval2 = 5000;    // interval between sends
   uint16_t loRaPerimiter3 = 30;       //Range at which beacon 1 applies
-  uint32_t beaconInterval3 = 5000;    // interval between sends
+  uint32_t locationSendInterval3 = 5000;    // interval between sends
   float rssiAttenuation = -6.0;           //Rate at which double the distance degrades RSSI (should be -6)
   float rssiAttenuationBaseline = -40;    //RSSI at 10m
   float rssiAttenuationPerimeter = 10;
-  const uint8_t beaconLocationUpdateId = 0x00;    //LoRa packet contains location info from a beacon
-  const uint8_t trackerLocationUpdateId = 0x01;   //LoRa packet contains location info from a tracker
-  const uint8_t deviceStatusUpdateId = 0x10;             //LoRa packet contains battery info
+  const uint8_t locationUpdateId = 0x00;    //LoRa packet contains location info from a beacon
+  //const uint8_t trackerLocationUpdateId = 0x01;   //LoRa packet contains location info from a tracker
+  const uint8_t deviceStatusUpdateId = 0x10;             //LoRa packet contains device info, shared infrequently
 #endif
 /*
 
@@ -470,6 +473,7 @@ const uint16_t loggingSemaphoreTimeout = 5;
     blank,
     welcome,
     distance,
+    course,
     accuracy,
     trackingMode,
     signal,
@@ -477,6 +481,7 @@ const uint16_t loggingSemaphoreTimeout = 5;
   #ifdef SUPPORT_BEEPER
     beeper,
   #endif
+    version,
     menu
   };
   displayState currentDisplayState = displayState::blank;
@@ -594,7 +599,7 @@ const uint16_t loggingSemaphoreTimeout = 5;
 */
 #ifdef SUPPORT_BATTERY_METER
   uint32_t lastDeviceStatus = 0;
-  uint32_t deviceStatusInterval = 15000;//60000;
+  uint32_t deviceStatusInterval = 60000;
   float batteryVoltage = 0.0;
   uint8_t batteryPercentage = 100;
 #endif

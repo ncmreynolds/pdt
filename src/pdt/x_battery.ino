@@ -13,7 +13,6 @@
     {
       lastDeviceStatus = millis();
       checkBatteryVoltage();
-      batteryPercentage = estimateBatteryPercentage(batteryVoltage);
       shareDeviceInfo();
     }
   }
@@ -25,9 +24,13 @@
     #else
       batteryVoltage = analogRead(voltageMonitorPin)*3.3/512.0;
     #endif
+    batteryPercentage = estimateBatteryPercentage(batteryVoltage);
     localLog(F("Battery voltage: "));
     localLog(batteryVoltage);
-    localLogLn('v');
+    localLog('v');
+    localLog(F(" capacity: "));
+    localLog(batteryPercentage);
+    localLogLn('%');
   }
   /*
    * 
@@ -45,9 +48,6 @@
     {
       percentage = 0;
     }
-    localLog(F("Battery capacity: "));
-    localLog(percentage);
-    localLogLn('%');
     return percentage;
   }
 #endif

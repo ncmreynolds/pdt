@@ -54,33 +54,31 @@
             portEXIT_CRITICAL(&loRaRxSynch);
           #endif
         #endif
-        #ifdef SERIAL_DEBUG
-          if(loRaRxBusy == true)  //Already dealing with a LoRa packet
+        if(loRaRxBusy == true)  //Already dealing with a LoRa packet
+        {
+          #if defined(SERIAL_DEBUG)
+          if(waitForBufferSpace(40))
           {
-            #if defined(SERIAL_DEBUG)
-            if(waitForBufferSpace(40))
-            {
-              SERIAL_DEBUG_PORT.println(F("Packet received but busy, discarding"));
-            }
-            #endif
+            SERIAL_DEBUG_PORT.println(F("Packet received but busy, discarding"));
           }
-          if(loRaReceiveBufferSize > 0)  //Already dealing with a LoRa packet
+          #endif
+        }
+        if(loRaReceiveBufferSize > 0)  //Already dealing with a LoRa packet
+        {
+          #if defined(SERIAL_DEBUG)
+          if(waitForBufferSpace(50))
           {
-            #if defined(SERIAL_DEBUG)
-            if(waitForBufferSpace(50))
-            {
-              SERIAL_DEBUG_PORT.println(F("Packet received but buffer full, discarding"));
-            }
-            #endif
+            SERIAL_DEBUG_PORT.println(F("Packet received but buffer full, discarding"));
           }
-        #endif
+          #endif
+        }
         return;
       }
       loRaRxBusy = true;
       loRaRxPackets++;
       if(packetSize == 0)
       {
-        #ifdef SERIAL_DEBUG
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
           if(waitForBufferSpace(30))
           {
             SERIAL_DEBUG_PORT.println(F("Empty packet received"));
@@ -190,7 +188,7 @@
       }
     #endif
     #ifdef SUPPORT_GPS
-    if(millis() - lastBeaconSendTime > beaconInterval1)
+    if(millis() - lastLocationSendTime > currentLocationSendInterval)
     {
       if(updateLocation())
       {
@@ -202,7 +200,7 @@
             {
               if(selectNearestBeacon())
               {
-                #ifdef SERIAL_DEBUG
+                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                   SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
                   SERIAL_DEBUG_PORT.println(currentBeacon);
                 #endif
@@ -212,7 +210,7 @@
             {
               if(selectFurthestBeacon())
               {
-                #ifdef SERIAL_DEBUG
+                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                   SERIAL_DEBUG_PORT.print(F("Tracking furthest beacon: "));
                   SERIAL_DEBUG_PORT.println(currentBeacon);
                 #endif
@@ -221,7 +219,7 @@
             }
             else if(currentTrackingMode == trackingMode::fixed)
             {
-              #ifdef SERIAL_DEBUG
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                 SERIAL_DEBUG_PORT.print(F("Tracking specific beacon: "));
                 SERIAL_DEBUG_PORT.println(currentBeacon);
               #endif
@@ -237,7 +235,7 @@
             shareLocation();
           }
         } //matches if(updateLocation())
-        lastBeaconSendTime = millis();
+        lastLocationSendTime = millis();
     }
     #endif
   }
@@ -245,6 +243,12 @@
   {
     if(loRaTxBusy)
     {
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+        if(waitForBufferSpace(80))
+        {
+          SERIAL_DEBUG_PORT.println(F("Cannot share location, LoRa busy"));
+        }
+      #endif
       return;
     }
     loRaTxBusy = true;
@@ -255,7 +259,7 @@
     packer.pack(device[0].id[3]);
     packer.pack(device[0].id[4]);
     packer.pack(device[0].id[5]);
-    packer.pack(beaconLocationUpdateId);
+    packer.pack(locationUpdateId);
     packer.pack(device[0].latitude);
     packer.pack(device[0].longitude);
     packer.pack(device[0].course);
@@ -267,14 +271,10 @@
       loRaSendBufferSize = packer.size();
       if(transmitLoRaBuffer())
       {
-        #ifdef SERIAL_DEBUG
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
           if(waitForBufferSpace(80))
           {
-            #if defined(ACT_AS_TRACKER)
-              SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x tracker location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5], device[0].latitude, device[0].longitude, device[0].course, device[0].speed, device[0].hdop);
-            #elif defined(ACT_AS_BEACON)
-              SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x beacon location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5], device[0].latitude, device[0].longitude, device[0].course, device[0].speed, device[0].hdop);
-            #endif
+            SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5], device[0].latitude, device[0].longitude, device[0].course, device[0].speed, device[0].hdop);
           }
         #endif
       }
@@ -312,10 +312,28 @@
         loRaSendBufferSize = packer.size();
         if(transmitLoRaBuffer())
         {  
-          #ifdef SERIAL_DEBUG
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
             if(waitForBufferSpace(80))
             {
-              SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x battery info %.1fv\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5], batteryVoltage);
+              #ifdef ACT_AS_SENSOR
+              SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+                device[0].typeOfDevice,
+                device[0].name,
+                printableUptime(millis()/1000).c_str(),
+                batteryVoltage,
+                currentNumberOfHits,
+                numberOfStartingHits,
+                currentNumberOfStunHits,
+                numberOfStartingStunHits
+                );
+              #else
+                SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, name: '%s', uptime:%s, supply:%.1fv\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+                device[0].typeOfDevice,
+                device[0].name,
+                printableUptime(millis()/1000).c_str(),
+                batteryVoltage
+                );
+              #endif
             }
           #endif
         }
@@ -370,7 +388,7 @@
     }
     else
     {
-      #ifdef SERIAL_DEBUG
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
         if(waitForBufferSpace(31))
         {
           SERIAL_DEBUG_PORT.println(F("LoRa packet too large to send"));
@@ -387,7 +405,7 @@
     uint16_t packetChecksum = (loRaReceiveBuffer[loRaReceiveBufferSize - 2] << 8) + loRaReceiveBuffer[loRaReceiveBufferSize - 1];
     if(expectedChecksum != packetChecksum)
     {
-      #ifdef SERIAL_DEBUG
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
         if(waitForBufferSpace(52))
         {
           SERIAL_DEBUG_PORT.printf_P(PSTR("LoRa packet checksum invalid, expected %04X got %04X\r\n"), expectedChecksum, packetChecksum);
@@ -401,7 +419,7 @@
   void processLoRaPacket()
   {
     /*
-    #ifdef SERIAL_DEBUG
+    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
       if(waitForBufferSpace(30))
       {
         SERIAL_DEBUG_PORT.println(F("Processing received packet..."));
@@ -437,7 +455,7 @@
                   {
                     device[deviceIndex].lastRssi = lastRssi;
                     device[deviceIndex].lastReceive = millis();
-                    if(messagetype == beaconLocationUpdateId || messagetype == trackerLocationUpdateId)
+                    if(messagetype == locationUpdateId)
                     {
                       unpacker.unpack(device[deviceIndex].latitude);
                       unpacker.unpack(device[deviceIndex].longitude);
@@ -448,7 +466,7 @@
                       {
                         if(device[deviceIndex].hasFix == false)
                         {
-                          #if defined(SERIAL_DEBUG)
+                          #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                             if(waitForBufferSpace(40))
                             {
                               SERIAL_DEBUG_PORT.printf("Device %u got GPS fix\r\n", deviceIndex);
@@ -459,7 +477,7 @@
                       }
                       else if(device[deviceIndex].hasFix == true)
                       {
-                        #ifdef SERIAL_DEBUG
+                        #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                           if(waitForBufferSpace(40))
                           {
                             SERIAL_DEBUG_PORT.printf("Device %u lost GPS fix\r\n", deviceIndex);
@@ -467,30 +485,14 @@
                         #endif
                         device[deviceIndex].hasFix = false;
                       }
-                      if(messagetype == beaconLocationUpdateId)
-                      {
-                        //device[deviceIndex].typeOfDevice = 0;
-                        #if defined(SERIAL_DEBUG)
-                          if(waitForBufferSpace(80))
-                          {
-                            SERIAL_DEBUG_PORT.printf("RX %02x:%02x:%02x:%02x:%02x:%02x beacon %u location Lat:%03.4f Lon:%03.4f Course(deg):%03.1f Speed(m/s):%01.1f HDOP:%.1f Distance(m):%.1f RSSI:%.1f\r\n",
-                              _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
-                              deviceIndex, device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi);
-                          }
-                        #endif
-                      }
-                      else if(messagetype == trackerLocationUpdateId)
-                      {
-                        //device[deviceIndex].typeOfDevice = 1;
-                        #if defined(SERIAL_DEBUG)
-                          if(waitForBufferSpace(80))
-                          {
-                            SERIAL_DEBUG_PORT.printf("RX %02x:%02x:%02x:%02x:%02x:%02x tracker location Lat:%03.4f Lon:%03.4f Course(deg):%03.1f Speed(m/s):%01.1f HDOP:%.1f Distance(m):%.1f RSSI:%.1f\r\n",
-                              _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
-                              device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi);
-                          }
-                        #endif
-                      }
+                      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                        if(waitForBufferSpace(80))
+                        {
+                            SERIAL_DEBUG_PORT.printf("RX %02x:%02x:%02x:%02x:%02x:%02x device %u location Lat:%03.4f Lon:%03.4f Course(deg):%03.1f Speed(m/s):%01.1f HDOP:%.1f Distance(m):%.1f RSSI:%.1f\r\n",
+                            _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
+                            deviceIndex, device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi);
+                        }
+                      #endif
                     }
                     else if(messagetype == deviceStatusUpdateId)
                     {
@@ -511,11 +513,20 @@
                                 device[deviceIndex].name = new char[temp.length() + 1];
                                 temp.toCharArray(device[deviceIndex].name, temp.length() + 1);
                               }
-                              #ifdef SERIAL_DEBUG
+                              if(device[deviceIndex].typeOfDevice & 2)  //It's acting as a sensor
+                              {
+                                unpacker.unpack(device[deviceIndex].numberOfStartingHits);
+                                unpacker.unpack(device[deviceIndex].numberOfStartingStunHits);
+                                unpacker.unpack(device[deviceIndex].currentNumberOfHits);
+                                unpacker.unpack(device[deviceIndex].currentNumberOfStunHits);
+                              }
+                              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                 if(waitForBufferSpace(60))
                                 {
-                                  SERIAL_DEBUG_PORT.printf_P(PSTR("RX %02x:%02x:%02x:%02x:%02x:%02x device info name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f\r\n"),
+                                  SERIAL_DEBUG_PORT.printf_P(PSTR("RX %02x:%02x:%02x:%02x:%02x:%02x device %u info type:%02x name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f"),
                                     _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
+                                    deviceIndex,
+                                    device[deviceIndex].typeOfDevice,
                                     device[deviceIndex].name,
                                     printableUptime(device[deviceIndex].uptime/1000).c_str(),
                                     device[deviceIndex].supplyVoltage,
@@ -524,14 +535,10 @@
                               #endif
                               if(device[deviceIndex].typeOfDevice & 2)  //It's acting as a sensor
                               {
-                                unpacker.unpack(device[deviceIndex].numberOfStartingHits);
-                                unpacker.unpack(device[deviceIndex].numberOfStartingStunHits);
-                                unpacker.unpack(device[deviceIndex].currentNumberOfHits);
-                                unpacker.unpack(device[deviceIndex].currentNumberOfStunHits);
-                                #ifdef SERIAL_DEBUG
+                                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                   if(waitForBufferSpace(60))
                                   {
-                                    SERIAL_DEBUG_PORT.printf_P("Hits %u/%u Stun %u/%u\r\n",
+                                    SERIAL_DEBUG_PORT.printf_P(" hits %u/%u Stun %u/%u\r\n",
                                       device[deviceIndex].currentNumberOfHits,
                                       device[deviceIndex].numberOfStartingHits,
                                       device[deviceIndex].currentNumberOfStunHits,
@@ -540,10 +547,19 @@
                                   }
                                 #endif
                               }
+                              else
+                              {
+                                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                  if(waitForBufferSpace(2))
+                                  {
+                                    SERIAL_DEBUG_PORT.println();
+                                  }
+                                #endif
+                              }
                             }
                             else
                             {
-                              #ifdef SERIAL_DEBUG
+                              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                 if(waitForBufferSpace(40))
                                 {
                                   SERIAL_DEBUG_PORT.print(F("Unexpected type for name: "));
@@ -554,7 +570,7 @@
                           }
                           else
                           {
-                            #ifdef SERIAL_DEBUG
+                            #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                               if(waitForBufferSpace(40))
                               {
                                 SERIAL_DEBUG_PORT.print(F("Unexpected type for supply voltage: "));
@@ -565,7 +581,7 @@
                         }
                         else
                         {
-                          #ifdef SERIAL_DEBUG
+                          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                             if(waitForBufferSpace(40))
                             {
                               SERIAL_DEBUG_PORT.print(F("Unexpected type for uptime: "));
@@ -576,7 +592,7 @@
                       }
                       else
                       {
-                        #ifdef SERIAL_DEBUG
+                        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                           if(waitForBufferSpace(40))
                           {
                             SERIAL_DEBUG_PORT.print(F("Unexpected deviceType type: "));
@@ -587,7 +603,7 @@
                     }
                     else
                     {
-                      #ifdef SERIAL_DEBUG
+                      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                         if(waitForBufferSpace(40))
                         {
                           SERIAL_DEBUG_PORT.print(F("Unexpected message type: "));
@@ -599,7 +615,7 @@
                 }
                 else
                 {
-                  #ifdef SERIAL_DEBUG
+                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                     if(waitForBufferSpace(40))
                     {
                       SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -610,7 +626,7 @@
               }
               else
               {
-                #ifdef SERIAL_DEBUG
+                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                   if(waitForBufferSpace(40))
                   {
                     SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -621,7 +637,7 @@
             }
             else
             {
-              #ifdef SERIAL_DEBUG
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                 if(waitForBufferSpace(40))
                 {
                   SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -632,7 +648,7 @@
           }
           else
           {
-            #ifdef SERIAL_DEBUG
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
               if(waitForBufferSpace(40))
               {
                 SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -643,7 +659,7 @@
         }
         else
         {
-          #ifdef SERIAL_DEBUG
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
             if(waitForBufferSpace(40))
             {
               SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -654,7 +670,7 @@
       }
       else
       {
-        #ifdef SERIAL_DEBUG
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
           if(waitForBufferSpace(40))
           {
             SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -665,7 +681,7 @@
     }
     else
     {
-      #ifdef SERIAL_DEBUG
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
         if(waitForBufferSpace(40))
         {
           SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -673,7 +689,7 @@
         }
       #endif
     }
-    #ifdef SERIAL_DEBUG
+    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
       //if(waitForBufferSpace(40))
       //{
         //SERIAL_DEBUG_PORT.println(F("Processing received packet done"));
@@ -684,25 +700,7 @@
   uint8_t identifyDevice(uint8_t *macAddress)
   {
     uint8_t deviceIndex = 1;
-    /*
-    if(numberOfDevices == 1)
-    {
-        device[deviceIndex].id[0] = _remoteMacAddress[0];
-        device[deviceIndex].id[1] = _remoteMacAddress[1];
-        device[deviceIndex].id[2] = _remoteMacAddress[2];
-        device[deviceIndex].id[3] = _remoteMacAddress[3];
-        device[deviceIndex].id[4] = _remoteMacAddress[4];
-        device[deviceIndex].id[5] = _remoteMacAddress[5];
-        numberOfDevices++;
-        #if defined(SERIAL_DEBUG)
-          if(waitForBufferSpace(50))
-          {
-            SERIAL_DEBUG_PORT.printf("First device found %02x:%02x:%02x:%02x:%02x:%02x\r\n", _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5]);
-          }
-        #endif
-        return deviceIndex;
-    }
-    else*/ if(numberOfDevices == maximumNumberOfDevices)
+    if(numberOfDevices == maximumNumberOfDevices)
     {
       #if defined(SERIAL_DEBUG)
         if(waitForBufferSpace(50))
@@ -737,6 +735,8 @@
     device[numberOfDevices].id[4] = _remoteMacAddress[4];
     device[numberOfDevices].id[5] = _remoteMacAddress[5];
     numberOfDevices++;
+    lastDeviceStatus = (millis() - deviceStatusInterval) + random(5000,10000); //A new device prompts a status share in 5-10s
+    lastLocationSendTime = (millis() -  currentLocationSendInterval) + random(10000,20000); //A new device prompts a location share in 10-20s
     return numberOfDevices-1;
   }
   #endif

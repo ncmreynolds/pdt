@@ -5,16 +5,13 @@
  */
 void setup() {
   WiFi.macAddress(device[0].id); //Copy in local MAC address as 'device 0'
-  #ifdef SUPPORT_GPS
-    numberOfDevices++;
-    #ifdef ACT_AS_TRACKER
-      device[0].typeOfDevice = 1;
-      pinMode(buttonPin, INPUT_PULLUP);
-    #endif
+  #ifdef ACT_AS_TRACKER
+    device[0].typeOfDevice = device[0].typeOfDevice | 1;  //Mark it as a tracker
   #endif
   #ifdef ACT_AS_SENSOR
-    device[0].typeOfDevice | 2; //Mark it as a sensor
+    device[0].typeOfDevice = device[0].typeOfDevice | 2; //Mark it as a sensor
   #endif
+  numberOfDevices++;
   #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
     setupLogging();
     showStartupInfo();
@@ -24,6 +21,9 @@ void setup() {
   //Set the name in the device record
   device[0].name = new char[strlen(nodeName) + 1];
   strcpy(device[0].name, nodeName);
+  #ifdef SUPPORT_BUTTON
+    setupButton();
+  #endif
   //Use preferences storage for temporary 'persistent' values when running as a sensor
   #if defined(ACT_AS_SENSOR)
     sensorPersitentData.begin("sensor", false); 

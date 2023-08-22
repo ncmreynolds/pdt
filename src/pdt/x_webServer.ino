@@ -563,12 +563,12 @@ void setupWebServer()
         response->print(F("<option value=\"25\""));response->print(loRaPerimiter1 == 25 ? " selected>":">");response->print(F("25m</option>"));
         response->print(F("<option value=\"30\""));response->print(loRaPerimiter1 == 30 ? " selected>":">");response->print(F("30m</option>"));
         response->print(F("</select></div>"));
-        response->print(F("<div class=\"six columns\"><label for=\"beaconInterval1\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"beaconInterval1\" name=\"beaconInterval1\">"));
-        response->print(F("<option value=\"1000\""));response->print(beaconInterval1 == 1000 ? " selected>":">");response->print(F("1s</option>"));
-        response->print(F("<option value=\"2000\""));response->print(beaconInterval1 == 2000 ? " selected>":">");response->print(F("2s</option>"));
-        response->print(F("<option value=\"5000\""));response->print(beaconInterval1 == 5000 ? " selected>":">");response->print(F("5s</option>"));
-        response->print(F("<option value=\"10000\""));response->print(beaconInterval1 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-        response->print(F("<option value=\"30000\""));response->print(beaconInterval1 == 30000 ? " selected>":">");response->print(F("30s</option>"));
+        response->print(F("<div class=\"six columns\"><label for=\"locationSendInterval1\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"locationSendInterval1\" name=\"locationSendInterval1\">"));
+        response->print(F("<option value=\"1000\""));response->print(locationSendInterval1 == 1000 ? " selected>":">");response->print(F("1s</option>"));
+        response->print(F("<option value=\"2000\""));response->print(locationSendInterval1 == 2000 ? " selected>":">");response->print(F("2s</option>"));
+        response->print(F("<option value=\"5000\""));response->print(locationSendInterval1 == 5000 ? " selected>":">");response->print(F("5s</option>"));
+        response->print(F("<option value=\"10000\""));response->print(locationSendInterval1 == 10000 ? " selected>":">");response->print(F("10s</option>"));
+        response->print(F("<option value=\"30000\""));response->print(locationSendInterval1 == 30000 ? " selected>":">");response->print(F("30s</option>"));
         response->print(F("</select></div></div>"));
         //LoRa beacon interval 2
         response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter2\">LoRa perimiter</label><select class=\"u-full-width\" id=\"loRaPerimiter2\" name=\"loRaPerimiter2\">"));
@@ -578,12 +578,12 @@ void setupWebServer()
         response->print(F("<option value=\"25\""));response->print(loRaPerimiter2 == 25 ? " selected>":">");response->print(F("25m</option>"));
         response->print(F("<option value=\"30\""));response->print(loRaPerimiter2 == 30 ? " selected>":">");response->print(F("30m</option>"));
         response->print(F("</select></div>"));
-        response->print(F("<div class=\"six columns\"><label for=\"beaconInterval2\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"beaconInterval2\" name=\"beaconInterval2\">"));
-        response->print(F("<option value=\"1000\""));response->print(beaconInterval2 == 1000 ? " selected>":">");response->print(F("1s</option>"));
-        response->print(F("<option value=\"2000\""));response->print(beaconInterval2 == 2000 ? " selected>":">");response->print(F("2s</option>"));
-        response->print(F("<option value=\"5000\""));response->print(beaconInterval2 == 5000 ? " selected>":">");response->print(F("5s</option>"));
-        response->print(F("<option value=\"10000\""));response->print(beaconInterval2 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-        response->print(F("<option value=\"30000\""));response->print(beaconInterval2 == 30000 ? " selected>":">");response->print(F("30s</option>"));
+        response->print(F("<div class=\"six columns\"><label for=\"locationSendInterval2\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"locationSendInterval2\" name=\"locationSendInterval2\">"));
+        response->print(F("<option value=\"1000\""));response->print(locationSendInterval2 == 1000 ? " selected>":">");response->print(F("1s</option>"));
+        response->print(F("<option value=\"2000\""));response->print(locationSendInterval2 == 2000 ? " selected>":">");response->print(F("2s</option>"));
+        response->print(F("<option value=\"5000\""));response->print(locationSendInterval2 == 5000 ? " selected>":">");response->print(F("5s</option>"));
+        response->print(F("<option value=\"10000\""));response->print(locationSendInterval2 == 10000 ? " selected>":">");response->print(F("10s</option>"));
+        response->print(F("<option value=\"30000\""));response->print(locationSendInterval2 == 30000 ? " selected>":">");response->print(F("30s</option>"));
         response->print(F("</select></div></div>"));
         //LoRa beacon interval 3
         response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter3\">LoRa perimiter</label><select class=\"u-full-width\" id=\"loRaPerimiter3\" name=\"loRaPerimiter3\">"));
@@ -593,12 +593,12 @@ void setupWebServer()
         response->print(F("<option value=\"25\""));response->print(loRaPerimiter3 == 25 ? " selected>":">");response->print(F("25m</option>"));
         response->print(F("<option value=\"30\""));response->print(loRaPerimiter3 == 30 ? " selected>":">");response->print(F("30m</option>"));
         response->print(F("</select></div>"));
-        response->print(F("<div class=\"six columns\"><label for=\"beaconInterval3\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"beaconInterval3\" name=\"beaconInterval3\">"));
-        response->print(F("<option value=\"1000\""));response->print(beaconInterval3 == 1000 ? " selected>":">");response->print(F("1s</option>"));
-        response->print(F("<option value=\"2000\""));response->print(beaconInterval3 == 2000 ? " selected>":">");response->print(F("2s</option>"));
-        response->print(F("<option value=\"5000\""));response->print(beaconInterval3 == 5000 ? " selected>":">");response->print(F("5s</option>"));
-        response->print(F("<option value=\"10000\""));response->print(beaconInterval3 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-        response->print(F("<option value=\"30000\""));response->print(beaconInterval3 == 30000 ? " selected>":">");response->print(F("30s</option>"));
+        response->print(F("<div class=\"six columns\"><label for=\"locationSendInterval3\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"locationSendInterval3\" name=\"locationSendInterval3\">"));
+        response->print(F("<option value=\"1000\""));response->print(locationSendInterval3 == 1000 ? " selected>":">");response->print(F("1s</option>"));
+        response->print(F("<option value=\"2000\""));response->print(locationSendInterval3 == 2000 ? " selected>":">");response->print(F("2s</option>"));
+        response->print(F("<option value=\"5000\""));response->print(locationSendInterval3 == 5000 ? " selected>":">");response->print(F("5s</option>"));
+        response->print(F("<option value=\"10000\""));response->print(locationSendInterval3 == 10000 ? " selected>":">");response->print(F("10s</option>"));
+        response->print(F("<option value=\"30000\""));response->print(locationSendInterval3 == 30000 ? " selected>":">");response->print(F("30s</option>"));
         response->print(F("</select></div></div>"));
         //RSSI range estimation
         response->printf_P(PSTR("<div class=\"row\"><div class=\"four columns\"><label for=\"rssiAttenuation\">RSSI attenuation (distance halfing rate)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuation\" name=\"rssiAttenuation\"></div>"), rssiAttenuation);
@@ -883,11 +883,11 @@ void setupWebServer()
           localLog(F("loRaPerimiter1: "));
           localLogLn(loRaPerimiter1);
         }
-        if(request->hasParam("beaconInterval1", true))
+        if(request->hasParam("locationSendInterval1", true))
         {
-          beaconInterval1 = request->getParam("beaconInterval1", true)->value().toInt();
-          localLog(F("beaconInterval1: "));
-          localLogLn(beaconInterval1);
+          locationSendInterval1 = request->getParam("locationSendInterval1", true)->value().toInt();
+          localLog(F("locationSendInterval1: "));
+          localLogLn(locationSendInterval1);
         }
         if(request->hasParam("loRaPerimiter2", true))
         {
@@ -895,11 +895,11 @@ void setupWebServer()
           localLog(F("loRaPerimiter2: "));
           localLogLn(loRaPerimiter2);
         }
-        if(request->hasParam("beaconInterval2", true))
+        if(request->hasParam("locationSendInterval2", true))
         {
-          beaconInterval2 = request->getParam("beaconInterval2", true)->value().toInt();
-          localLog(F("beaconInterval2: "));
-          localLogLn(beaconInterval2);
+          locationSendInterval2 = request->getParam("locationSendInterval2", true)->value().toInt();
+          localLog(F("locationSendInterval2: "));
+          localLogLn(locationSendInterval2);
         }
         if(request->hasParam("loRaPerimiter3", true))
         {
@@ -907,11 +907,11 @@ void setupWebServer()
           localLog(F("loRaPerimiter3: "));
           localLogLn(loRaPerimiter3);
         }
-        if(request->hasParam("beaconInterval3", true))
+        if(request->hasParam("locationSendInterval3", true))
         {
-          beaconInterval3 = request->getParam("beaconInterval3", true)->value().toInt();
-          localLog(F("beaconInterval3: "));
-          localLogLn(beaconInterval3);
+          locationSendInterval3 = request->getParam("locationSendInterval3", true)->value().toInt();
+          localLog(F("locationSendInterval3: "));
+          localLogLn(locationSendInterval3);
         }
         if(request->hasParam("rssiAttenuation", true))
         {

@@ -1,4 +1,8 @@
 #ifdef SUPPORT_BUTTON
+  void setupButton()
+  {
+    pinMode(buttonPin, INPUT_PULLUP);
+  }
   #ifdef ACT_AS_TRACKER
     void checkButton()
     {
@@ -73,6 +77,16 @@
                   makeAbeep(beeperButtonTone);
                 }
               #endif
+              displayCourse();
+            }
+            else if(currentDisplayState == displayState::course)
+            {
+              #ifdef SUPPORT_BEEPER
+                if(beeperEnabled == true)
+                {
+                  makeAbeep(beeperButtonTone);
+                }
+              #endif
               displayAccuracy();
             }
             else if(currentDisplayState == displayState::accuracy)
@@ -124,9 +138,17 @@
                 {
                   makeAbeep(beeperButtonTone);
                 }
-                displayDistanceToBeacon();
+                displayVersion();
               }
             #endif
+            else if(currentDisplayState == displayState::version)
+            {
+              if(beeperEnabled == true)
+              {
+                makeAbeep(beeperButtonTone);
+              }
+              displayDistanceToBeacon();
+            }
           #endif
         }
         else

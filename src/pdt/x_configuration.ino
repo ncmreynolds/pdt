@@ -39,11 +39,11 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
   #endif
   #if defined(SUPPORT_LORA)
-    configuration["beaconInterval1"] = beaconInterval1;
+    configuration["locationSendInterval1"] = locationSendInterval1;
     configuration["loRaPerimiter1"] = loRaPerimiter1;
-    configuration["beaconInterval2"] = beaconInterval2;
+    configuration["locationSendInterval2"] = locationSendInterval2;
     configuration["loRaPerimiter2"] = loRaPerimiter2;
-    configuration["beaconInterval3"] = beaconInterval3;
+    configuration["locationSendInterval3"] = locationSendInterval3;
     configuration["loRaPerimiter3"] = loRaPerimiter3;
     configuration["rssiAttenuationPerimeter"] = rssiAttenuationPerimeter;
     configuration["rssiAttenuation"] = rssiAttenuation;
@@ -135,11 +135,11 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
     #endif
     #if defined(SUPPORT_LORA)
-      beaconInterval1 = configuration["beaconInterval1"] | 5000;
+      locationSendInterval1 = configuration["locationSendInterval1"] | 5000;
       loRaPerimiter1 = configuration["loRaPerimiter1"] | 20;
-      beaconInterval2 = configuration["beaconInterval2"] | 5000;
+      locationSendInterval2 = configuration["locationSendInterval2"] | 5000;
       loRaPerimiter2 = configuration["loRaPerimiter2"] | 20;
-      beaconInterval3 = configuration["beaconInterval3"] | 5000;
+      locationSendInterval3 = configuration["locationSendInterval3"] | 5000;
       loRaPerimiter3 = configuration["loRaPerimiter3"] | 20;
       rssiAttenuationPerimeter = configuration["rssiAttenuationPerimeter"];
       rssiAttenuation = configuration["rssiAttenuation"];
@@ -408,16 +408,16 @@ void printConfiguration()
   #if defined(SUPPORT_LORA)
     localLog(F("loRaPerimiter1: "));
     localLogLn(loRaPerimiter1);
-    localLog(F("beaconInterval1: "));
-    localLogLn(beaconInterval1);
+    localLog(F("locationSendInterval1: "));
+    localLogLn(locationSendInterval1);
     localLog(F("loRaPerimiter2: "));
     localLogLn(loRaPerimiter2);
-    localLog(F("beaconInterval2: "));
-    localLogLn(beaconInterval2);
+    localLog(F("locationSendInterval2: "));
+    localLogLn(locationSendInterval2);
     localLog(F("loRaPerimiter3: "));
     localLogLn(loRaPerimiter3);
-    localLog(F("beaconInterval3: "));
-    localLogLn(beaconInterval3);
+    localLog(F("locationSendInterval3: "));
+    localLogLn(locationSendInterval3);
     localLog(F("rssiAttenuation: "));
     localLogLn(rssiAttenuation);
     localLog(F("rssiAttenuationBaseline: "));

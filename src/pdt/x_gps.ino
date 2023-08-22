@@ -22,7 +22,7 @@
   {
     if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
     {
-      #ifdef SERIAL_DEBUG
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
         if(millis() - lastGPSstatus > 10000)
         {
           lastGPSstatus = millis();
@@ -235,12 +235,12 @@
           {
             device[beaconIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
             device[beaconIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
-            #ifdef SERIAL_DEBUG
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
               SERIAL_DEBUG_PORT.printf_P(PSTR("Beacon %u - distance(m):%01.1f course(deg):%03.1f"), beaconIndex, device[beaconIndex].distanceTo, device[beaconIndex].courseTo);
             #endif
             if(beaconIndex == currentBeacon)
             {
-              #ifdef SERIAL_DEBUG
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                 SERIAL_DEBUG_PORT.println(F(" - tracking"));
               #endif
               if(distanceToCurrentBeacon != (uint32_t)device[beaconIndex].distanceTo)
@@ -249,15 +249,15 @@
                 distanceToCurrentBeaconChanged = true;
                 if(distanceToCurrentBeacon < loRaPerimiter1)
                 {
-                  device[beaconIndex].timeout = beaconInterval1 * 2.5;
+                  device[beaconIndex].timeout = locationSendInterval1 * 2.5;
                 }
                 else if(distanceToCurrentBeacon < loRaPerimiter2)
                 {
-                  device[beaconIndex].timeout = beaconInterval2 * 2.5;
+                  device[beaconIndex].timeout = locationSendInterval2 * 2.5;
                 }
                 else if(distanceToCurrentBeacon < loRaPerimiter3)
                 {
-                  device[beaconIndex].timeout = beaconInterval3 * 2.5;
+                  device[beaconIndex].timeout = locationSendInterval3 * 2.5;
                 }
                 else
                 {
@@ -267,7 +267,7 @@
             }
             else
             {
-              #ifdef SERIAL_DEBUG
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                 SERIAL_DEBUG_PORT.println();
               #endif
             }
@@ -408,11 +408,11 @@
       {
         for(uint8_t trackerIndex = 1; trackerIndex < numberOfDevices; trackerIndex++)
         {
-          if(device[trackerIndex].typeOfDevice == 1)
+          if(device[trackerIndex].typeOfDevice == 1 && device[trackerIndex].hasFix == true)
           {
             device[trackerIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
             device[trackerIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
-            #ifdef SERIAL_DEBUG
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
               SERIAL_DEBUG_PORT.printf_P(PSTR("Tracker %u: distance %f course %f\r\n"), trackerIndex, device[trackerIndex].distanceTo, device[trackerIndex].courseTo);
             #endif
           }
@@ -421,7 +421,7 @@
       }
     }
   #endif
-  #ifdef SERIAL_DEBUG
+  #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
     void showGPSstatus()
     {
       //if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))

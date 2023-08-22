@@ -157,40 +157,61 @@
     displayTimeout = longDisplayTimeout; //Long timeout on this display
     currentDisplayState = displayState::distance;
   }
+  void displayCourse()
+  {
+    
+    ssd1306_clearScreen8();
+    printTopLine("DIRECTION");
+    if(distanceToCurrentBeacon > 10) //Below 10m direction gets a bit meaningless
+    {
+      printMiddleLine(TinyGPSPlus::cardinal(device[currentBeacon].course));
+    }
+    else
+    {
+      printMiddleLine("CLOSE");
+    }
+    printBottomLine("CARDINAL");
+    #ifdef SERIAL_DEBUG
+      if(waitForBufferSpace(20))
+      {
+        SERIAL_DEBUG_PORT.print(F("Displaying course: "));
+        SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentBeacon].course));
+      }
+    #endif
+    lastDisplayUpdate = millis();
+    displayTimeout = shortDisplayTimeout; //Short timeout on this display
+    currentDisplayState = displayState::course;
+  }
   void displayAccuracy()
   {
     ssd1306_clearScreen8();
-    printTopLine("ACCURACY");
+    printTopLine("LOCATION");
+    printBottomLine("ACCURACY");
     #ifdef SERIAL_DEBUG
       if(waitForBufferSpace(20))
       {
         SERIAL_DEBUG_PORT.print(F("Displaying accuracy: "));
       }
     #endif
+    String temp;
     if(currentBeacon == maximumNumberOfDevices || device[0].hdop > device[currentBeacon].hdop) //Show the worst HDOP
     {
-      String temp = String(hdopDescription(device[0].hdop));
+      temp = String(hdopDescription(device[0].hdop));
       temp.toUpperCase();
       printMiddleLine(temp.c_str());
-      #ifdef SERIAL_DEBUG
-        if(waitForBufferSpace(temp.length() + 2))
-        {
-          SERIAL_DEBUG_PORT.println(temp);
-        }
-      #endif
     }
     else
     {
-      String temp = String(hdopDescription(device[currentBeacon].hdop));
+      temp = String(hdopDescription(device[currentBeacon].hdop));
       temp.toUpperCase();
       printMiddleLine(temp.c_str());
-      #ifdef SERIAL_DEBUG
-        if(waitForBufferSpace(temp.length() + 2))
-        {
-          SERIAL_DEBUG_PORT.println(temp);
-        }
-      #endif
     }
+    #ifdef SERIAL_DEBUG
+      if(waitForBufferSpace(temp.length() + 2))
+      {
+        SERIAL_DEBUG_PORT.println(temp);
+      }
+    #endif
     lastDisplayUpdate = millis();
     displayTimeout = shortDisplayTimeout; //Short timeout on this display
     currentDisplayState = displayState::accuracy;
@@ -294,6 +315,25 @@
     lastDisplayUpdate = millis();
     displayTimeout = shortDisplayTimeout; //Short timeout on this display
     currentDisplayState = displayState::battery;
+  }
+  void displayVersion()
+  {
+    ssd1306_clearScreen8();
+    printTopLine("SOFTWARE");
+    printBottomLine("VERSION");
+    char displayText[10];
+    sprintf_P(displayText,PSTR("v%02u.%02u.%02u"),majorVersion,minorVersion,patchVersion);
+    printMiddleLine(displayText);
+    #ifdef SERIAL_DEBUG
+      if(waitForBufferSpace(32))
+      {
+        SERIAL_DEBUG_PORT.print(F("Displaying version: "));
+        SERIAL_DEBUG_PORT.println(displayText);
+      }
+    #endif
+    lastDisplayUpdate = millis();
+    displayTimeout = shortDisplayTimeout; //Short timeout on this display
+    currentDisplayState = displayState::version;
   }
   void displaySignalStrengthFromBeacon()
   {
