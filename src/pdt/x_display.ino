@@ -137,19 +137,19 @@
       if(maximumEffectiveRange > 999)
       {
         char displayText[5];
-        sprintf(displayText,"%04u",distanceToCurrentBeacon);
+        sprintf_P(displayText,PSTR("%04u"),distanceToCurrentBeacon);
         printRange(displayText);
       }
       else if(maximumEffectiveRange > 99)
       {
         char displayText[4];
-        sprintf(displayText,"%03u",distanceToCurrentBeacon);
+        sprintf_P(displayText,PSTR("%03u"),distanceToCurrentBeacon);
         printRange(displayText);
       }
       else
       {
         char displayText[3];
-        sprintf(displayText,"%02u",distanceToCurrentBeacon);
+        sprintf_P(displayText,PSTR("%02u"),distanceToCurrentBeacon);
         printRange(displayText);
       }
     }
@@ -162,13 +162,20 @@
     
     ssd1306_clearScreen8();
     printTopLine("DIRECTION");
-    if(distanceToCurrentBeacon > 10) //Below 10m direction gets a bit meaningless
+    if(device[currentBeacon].hasFix == false || device[currentBeacon].distanceTo > maximumEffectiveRange || currentBeacon == maximumNumberOfDevices)
     {
-      printMiddleLine(TinyGPSPlus::cardinal(device[currentBeacon].course));
+      printMiddleLine("UNKNOWN");
     }
     else
     {
-      printMiddleLine("CLOSE");
+      if(distanceToCurrentBeacon > 10) //Below 10m direction gets a bit meaningless
+      {
+        printMiddleLine(TinyGPSPlus::cardinal(device[currentBeacon].course));
+      }
+      else
+      {
+        printMiddleLine("CLOSE");
+      }
     }
     printBottomLine("CARDINAL");
     #ifdef SERIAL_DEBUG
@@ -308,7 +315,7 @@
       else
       {
         char displayText[4];
-        sprintf(displayText,"%02u%%",batteryPercentage);
+        sprintf_P(displayText,PSTR("%02u%%"),batteryPercentage);
         printMiddleLine(displayText);
       }
     }
@@ -383,7 +390,7 @@
         }
       #endif
       char displayText[11];
-      sprintf(displayText,"%03.1fdbM",lastRssi);
+      sprintf_P(displayText,PSTR("%03.1fdbM"),lastRssi);
       printMiddleLine(displayText);
     }
     lastDisplayUpdate = millis();

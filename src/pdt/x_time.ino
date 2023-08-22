@@ -70,7 +70,7 @@ void setLogFilename()
     logfileDay = timeinfo->tm_mday;
     logfileMonth = timeinfo->tm_mon + 1;
     logfileYear = timeinfo->tm_year+1900;
-    sprintf(logFilename,logfilenameTemplate,logDirectory,logfileYear,logfileMonth,logfileDay); //Make the current filename
+    sprintf_P(logFilename,logfilenameTemplate,logDirectory,logfileYear,logfileMonth,logfileDay); //Make the current filename
     #ifdef SERIAL_LOG
       if(waitForBufferSpace(40))
       {

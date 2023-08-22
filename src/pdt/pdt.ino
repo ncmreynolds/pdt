@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 10;
+uint8_t patchVersion = 11;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -396,11 +396,11 @@ static bool networkStateChanged = false;  //Has the state changed since initial 
 
 */
 #if defined(USE_SPIFFS)
-  const char *logDirectory = "logs";
-  const char *logfilenameTemplate = "%s/log-%04u-%02u-%02u.txt";
+  const char *logDirectory PROGMEM = "logs";
+  const char *logfilenameTemplate PROGMEM = "%s/log-%04u-%02u-%02u.txt";
 #elif defined(USE_LITTLEFS)
-  const char *logDirectory = "/logs";
-  const char *logfilenameTemplate = "%s/log-%04u-%02u-%02u.txt";
+  const char *logDirectory PROGMEM = "/logs";
+  const char *logfilenameTemplate PROGMEM = "%s/log-%04u-%02u-%02u.txt";
 #endif
 const uint8_t logFilenameLength = 25;
 char logFilename[logFilenameLength]; //Big enough for with or without leading /

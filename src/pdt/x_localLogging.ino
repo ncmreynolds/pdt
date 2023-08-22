@@ -439,7 +439,7 @@ void deleteOldestLogs() //Iterate through the logs and delete the oldest file
     }
   #endif
   char logFileToDelete[logFilenameLength]; //Big enough for with or without leading /
-  sprintf(logFileToDelete,logfilenameTemplate,logDirectory,oldestYear,oldestMonth,oldestDay); //Make the current filename
+  sprintf_P(logFileToDelete,logfilenameTemplate,logDirectory,oldestYear,oldestMonth,oldestDay); //Make the current filename
   deleteFile(logFileToDelete);  //Remove the oldest log  
 }
 void showStartupInfo()
