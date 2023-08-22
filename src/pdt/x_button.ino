@@ -87,6 +87,16 @@
                   makeAbeep(beeperButtonTone);
                 }
               #endif
+              displayStatus();
+            }
+            else if(currentDisplayState == displayState::status)
+            {
+              #ifdef SUPPORT_BEEPER
+                if(beeperEnabled == true)
+                {
+                  makeAbeep(beeperButtonTone);
+                }
+              #endif
               displayAccuracy();
             }
             else if(currentDisplayState == displayState::accuracy)

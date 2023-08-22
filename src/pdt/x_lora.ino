@@ -174,13 +174,15 @@
       loRaReceiveBufferSize = 0;
     }
     #if defined(ACT_AS_TRACKER)
-      if(device[currentBeacon].hasFix == true && millis() - device[currentBeacon].lastReceive > device[currentBeacon].timeout)
+      if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && millis() - device[currentBeacon].lastReceive > device[currentBeacon].timeout)
       {
+        localLog(F("Currently tracked beacon "));
+        localLog(currentBeacon);
+        localLogLn(F(" gone offline"));
         device[currentBeacon].hasFix = false;
         currentBeacon = maximumNumberOfDevices;
-        localLogLn(F("Currently tracked beacon gone offline"));
         #ifdef SUPPORT_DISPLAY
-          if(currentDisplayState == displayState::distance && millis() - lastDisplayUpdate > 1000) //Clear distance if showing
+          if(currentDisplayState == displayState::distance) //Clear distance if showing
           {
             displayDistanceToBeacon();
           }
@@ -297,6 +299,9 @@
       packer.pack(device[0].id[5]);
       packer.pack(deviceStatusUpdateId);
       packer.pack(device[0].typeOfDevice);
+      packer.pack(majorVersion);
+      packer.pack(minorVersion);
+      packer.pack(patchVersion);
       packer.pack(millis());
       packer.pack(batteryVoltage);
       packer.pack(device[0].name);
@@ -316,8 +321,11 @@
             if(waitForBufferSpace(80))
             {
               #ifdef ACT_AS_SENSOR
-              SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+              SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
                 device[0].typeOfDevice,
+                majorVersion,
+                minorVersion,
+                patchVersion,
                 device[0].name,
                 printableUptime(millis()/1000).c_str(),
                 batteryVoltage,
@@ -327,8 +335,11 @@
                 numberOfStartingStunHits
                 );
               #else
-                SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, name: '%s', uptime:%s, supply:%.1fv\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+                SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
                 device[0].typeOfDevice,
+                majorVersion,
+                minorVersion,
+                patchVersion,
                 device[0].name,
                 printableUptime(millis()/1000).c_str(),
                 batteryVoltage
@@ -499,60 +510,101 @@
                       if(unpacker.isUInt7() || unpacker.isUInt8())  //Type of device/features
                       {
                         unpacker.unpack(device[deviceIndex].typeOfDevice);
-                        if(unpacker.isUInt16() || unpacker.isUInt32()) //Uptime
+                        if(unpacker.isUInt7() || unpacker.isUInt8())  //Major version
                         {
-                          unpacker.unpack(device[deviceIndex].uptime);
-                          if(unpacker.isFloat32() || unpacker.isFloat64())  //Supply voltage
+                          unpacker.unpack(device[deviceIndex].majorVersion);
+                          if(unpacker.isUInt7() || unpacker.isUInt8())  //Minor version
                           {
-                            unpacker.unpack(device[deviceIndex].supplyVoltage);
-                            if(unpacker.isStr())  //Name
+                            unpacker.unpack(device[deviceIndex].minorVersion);
+                            if(unpacker.isUInt7() || unpacker.isUInt8())  //Patch version
                             {
-                              if(device[deviceIndex].name == nullptr) //First time the name is received
+                              unpacker.unpack(device[deviceIndex].patchVersion);
+                              if(unpacker.isUInt16() || unpacker.isUInt32()) //Uptime
                               {
-                                String temp = String(unpacker.unpackString());
-                                device[deviceIndex].name = new char[temp.length() + 1];
-                                temp.toCharArray(device[deviceIndex].name, temp.length() + 1);
-                              }
-                              if(device[deviceIndex].typeOfDevice & 2)  //It's acting as a sensor
-                              {
-                                unpacker.unpack(device[deviceIndex].numberOfStartingHits);
-                                unpacker.unpack(device[deviceIndex].numberOfStartingStunHits);
-                                unpacker.unpack(device[deviceIndex].currentNumberOfHits);
-                                unpacker.unpack(device[deviceIndex].currentNumberOfStunHits);
-                              }
-                              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-                                if(waitForBufferSpace(60))
+                                unpacker.unpack(device[deviceIndex].uptime);
+                                if(unpacker.isFloat32() || unpacker.isFloat64())  //Supply voltage
                                 {
-                                  SERIAL_DEBUG_PORT.printf_P(PSTR("RX %02x:%02x:%02x:%02x:%02x:%02x device %u info type:%02x name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f"),
-                                    _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
-                                    deviceIndex,
-                                    device[deviceIndex].typeOfDevice,
-                                    device[deviceIndex].name,
-                                    printableUptime(device[deviceIndex].uptime/1000).c_str(),
-                                    device[deviceIndex].supplyVoltage,
-                                    lastRssi);
-                                }
-                              #endif
-                              if(device[deviceIndex].typeOfDevice & 2)  //It's acting as a sensor
-                              {
-                                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-                                  if(waitForBufferSpace(60))
+                                  unpacker.unpack(device[deviceIndex].supplyVoltage);
+                                  if(unpacker.isStr())  //Name
                                   {
-                                    SERIAL_DEBUG_PORT.printf_P(" hits %u/%u Stun %u/%u\r\n",
-                                      device[deviceIndex].currentNumberOfHits,
-                                      device[deviceIndex].numberOfStartingHits,
-                                      device[deviceIndex].currentNumberOfStunHits,
-                                      device[deviceIndex].numberOfStartingStunHits
-                                      );
+                                    if(device[deviceIndex].name == nullptr) //First time the name is received
+                                    {
+                                      String temp = String(unpacker.unpackString());
+                                      device[deviceIndex].name = new char[temp.length() + 1];
+                                      temp.toCharArray(device[deviceIndex].name, temp.length() + 1);
+                                    }
+                                    if(device[deviceIndex].typeOfDevice & 2)  //It's acting as a sensor
+                                    {
+                                      unpacker.unpack(device[deviceIndex].numberOfStartingHits);
+                                      unpacker.unpack(device[deviceIndex].numberOfStartingStunHits);
+                                      unpacker.unpack(device[deviceIndex].currentNumberOfHits);
+                                      unpacker.unpack(device[deviceIndex].currentNumberOfStunHits);
+                                    }
+                                    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                      if(waitForBufferSpace(60))
+                                      {
+                                        SERIAL_DEBUG_PORT.printf_P(PSTR("RX %02x:%02x:%02x:%02x:%02x:%02x device %u info type:%02x version:%u.%u.%u name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f"),
+                                          _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
+                                          deviceIndex,
+                                          device[deviceIndex].typeOfDevice,
+                                          device[deviceIndex].majorVersion,
+                                          device[deviceIndex].minorVersion,
+                                          device[deviceIndex].patchVersion,
+                                          device[deviceIndex].name,
+                                          printableUptime(device[deviceIndex].uptime/1000).c_str(),
+                                          device[deviceIndex].supplyVoltage,
+                                          lastRssi);
+                                      }
+                                      if(device[deviceIndex].typeOfDevice & 2)  //It's acting as a sensor
+                                      {
+                                        if(waitForBufferSpace(60))
+                                        {
+                                          SERIAL_DEBUG_PORT.printf_P(" hits %u/%u Stun %u/%u\r\n",
+                                            device[deviceIndex].currentNumberOfHits,
+                                            device[deviceIndex].numberOfStartingHits,
+                                            device[deviceIndex].currentNumberOfStunHits,
+                                            device[deviceIndex].numberOfStartingStunHits
+                                            );
+                                        }
+                                      }
+                                      else
+                                      {
+                                        if(waitForBufferSpace(2))
+                                        {
+                                          SERIAL_DEBUG_PORT.println();
+                                        }
+                                      }
+                                    #endif
                                   }
-                                #endif
+                                  else
+                                  {
+                                    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                      if(waitForBufferSpace(40))
+                                      {
+                                        SERIAL_DEBUG_PORT.print(F("Unexpected type for name: "));
+                                        SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
+                                      }
+                                    #endif
+                                  }
+                                }
+                                else
+                                {
+                                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                    if(waitForBufferSpace(40))
+                                    {
+                                      SERIAL_DEBUG_PORT.print(F("Unexpected type for supply voltage: "));
+                                      SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
+                                    }
+                                  #endif
+                                }
                               }
                               else
                               {
                                 #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-                                  if(waitForBufferSpace(2))
+                                  if(waitForBufferSpace(40))
                                   {
-                                    SERIAL_DEBUG_PORT.println();
+                                    SERIAL_DEBUG_PORT.print(F("Unexpected type for uptime: "));
+                                    SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
                                   }
                                 #endif
                               }
@@ -562,7 +614,7 @@
                               #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                 if(waitForBufferSpace(40))
                                 {
-                                  SERIAL_DEBUG_PORT.print(F("Unexpected type for name: "));
+                                  SERIAL_DEBUG_PORT.print(F("Unexpected type for patch version: "));
                                   SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
                                 }
                               #endif
@@ -573,7 +625,7 @@
                             #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                               if(waitForBufferSpace(40))
                               {
-                                SERIAL_DEBUG_PORT.print(F("Unexpected type for supply voltage: "));
+                                SERIAL_DEBUG_PORT.print(F("Unexpected type for minor version: "));
                                 SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
                               }
                             #endif
@@ -584,7 +636,7 @@
                           #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                             if(waitForBufferSpace(40))
                             {
-                              SERIAL_DEBUG_PORT.print(F("Unexpected type for uptime: "));
+                              SERIAL_DEBUG_PORT.print(F("Unexpected type for major version: "));
                               SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
                             }
                           #endif

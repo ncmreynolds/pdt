@@ -78,9 +78,9 @@
   void displayWelcomeScreen()
   {
     ssd1306_clearScreen8();
-    printTopLine("HALE");
-    printMiddleLine("PDT TRACKER");
-    printBottomLine("LIMITED");
+    printTopLine((const char*)F("HALE"));
+    printMiddleLine((const char*)F("PDT TRACKER"));
+    printBottomLine((const char*)F("LIMITED"));
     lastDisplayUpdate = millis();
     displayTimeout = shortDisplayTimeout; //Short timeout on this display
     currentDisplayState = displayState::welcome;
@@ -88,8 +88,8 @@
   void displayDistanceToBeacon()
   {
     ssd1306_clearScreen8();
-    printTopLine("RANGE");
-    printBottomLine("METERS");
+    printTopLine((const char*)F("RANGE"));
+    printBottomLine((const char*)F("METERS"));
     if(device[currentBeacon].hasFix == false || device[currentBeacon].distanceTo > maximumEffectiveRange || currentBeacon == maximumNumberOfDevices)
     {
       if(maximumEffectiveRange > 999)
@@ -129,9 +129,9 @@
         if(waitForBufferSpace(28))
         {
           SERIAL_DEBUG_PORT.print(F("Displaying range:"));
-          SERIAL_DEBUG_PORT.print (distanceToCurrentBeacon);
-          SERIAL_DEBUG_PORT.print(F(" cardinal:"));
-          SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentBeacon].course));
+          SERIAL_DEBUG_PORT.println(distanceToCurrentBeacon);
+          //SERIAL_DEBUG_PORT.print(F(" cardinal:"));
+          //SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentBeacon].course));
         }
       #endif
       if(maximumEffectiveRange > 999)
@@ -160,40 +160,143 @@
   void displayCourse()
   {
     
+    #ifdef SERIAL_DEBUG
+      if(waitForBufferSpace(20))
+      {
+        SERIAL_DEBUG_PORT.print(F("Displaying course: "));
+      }
+    #endif
     ssd1306_clearScreen8();
-    printTopLine("DIRECTION");
+    printTopLine((const char*)F("DIRECTION"));
     if(device[currentBeacon].hasFix == false || device[currentBeacon].distanceTo > maximumEffectiveRange || currentBeacon == maximumNumberOfDevices)
     {
-      printMiddleLine("UNKNOWN");
+      printMiddleLine((const char*)F("UNKNOWN"));
+      #ifdef SERIAL_DEBUG
+        if(waitForBufferSpace(20))
+        {
+          SERIAL_DEBUG_PORT.println(F("UNKNOWN"));
+        }
+      #endif
     }
     else
     {
       if(distanceToCurrentBeacon > 10) //Below 10m direction gets a bit meaningless
       {
         printMiddleLine(TinyGPSPlus::cardinal(device[currentBeacon].course));
+        #ifdef SERIAL_DEBUG
+          if(waitForBufferSpace(20))
+          {
+            SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentBeacon].course));
+          }
+        #endif
       }
       else
       {
-        printMiddleLine("CLOSE");
+        printMiddleLine((const char*)F("CLOSE"));
+        #ifdef SERIAL_DEBUG
+          if(waitForBufferSpace(20))
+          {
+            SERIAL_DEBUG_PORT.println(F("UNKNOWN"));
+          }
+        #endif
       }
     }
-    printBottomLine("CARDINAL");
-    #ifdef SERIAL_DEBUG
-      if(waitForBufferSpace(20))
-      {
-        SERIAL_DEBUG_PORT.print(F("Displaying course: "));
-        SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentBeacon].course));
-      }
-    #endif
+    printBottomLine((const char*)F("CARDINAL"));
     lastDisplayUpdate = millis();
     displayTimeout = shortDisplayTimeout; //Short timeout on this display
     currentDisplayState = displayState::course;
   }
+  void displayStatus()
+  {
+    
+    #ifdef SERIAL_DEBUG
+      if(waitForBufferSpace(20))
+      {
+        SERIAL_DEBUG_PORT.print(F("Displaying drone status: "));
+      }
+    #endif
+    ssd1306_clearScreen8();
+    printTopLine((const char*)F("DRONE"));
+    printBottomLine((const char*)F("STATUS"));
+    if(device[currentBeacon].numberOfStartingStunHits == 0 || device[currentBeacon].numberOfStartingHits == 0 || device[currentBeacon].hasFix == false || device[currentBeacon].distanceTo > maximumEffectiveRange || currentBeacon == maximumNumberOfDevices)
+    {
+      printMiddleLine((const char*)F("UNKNOWN"));
+      #ifdef SERIAL_DEBUG
+        if(waitForBufferSpace(20))
+        {
+          SERIAL_DEBUG_PORT.println(F("UNKNOWN"));
+        }
+      #endif
+    }
+    else
+    {
+      if(device[currentBeacon].currentNumberOfHits == 0)
+      {
+        printMiddleLine((const char*)F("DESTROYED"));
+        #ifdef SERIAL_DEBUG
+          if(waitForBufferSpace(20))
+          {
+            SERIAL_DEBUG_PORT.println(F("DESTROYED"));
+          }
+        #endif
+      }
+      else if(device[currentBeacon].currentNumberOfStunHits == 0)
+      {
+        printMiddleLine((const char*)F("DISRUPTED"));
+        #ifdef SERIAL_DEBUG
+          if(waitForBufferSpace(20))
+          {
+            SERIAL_DEBUG_PORT.println(F("DISRUPTED"));
+          }
+        #endif
+      }
+      else if(device[currentBeacon].currentNumberOfHits > 0 && device[currentBeacon].currentNumberOfHits == device[currentBeacon].numberOfStartingHits && device[currentBeacon].currentNumberOfStunHits > 0) //Below 10m direction gets a bit meaningless
+      {
+        printMiddleLine((const char*)F("UNDAMAGED"));
+        #ifdef SERIAL_DEBUG
+          if(waitForBufferSpace(20))
+          {
+            SERIAL_DEBUG_PORT.println(F("UNDAMAGED"));
+          }
+        #endif
+      }
+      else
+      {
+        if(device[currentBeacon].currentNumberOfHits <= device[currentBeacon].currentNumberOfStunHits) //Show damage status
+        {
+          char displayText[14];
+          sprintf_P(displayText, PSTR("%02u%% DAMAGED"), (100*(uint16_t)(device[currentBeacon].numberOfStartingHits - device[currentBeacon].currentNumberOfHits))/(uint16_t)device[currentBeacon].numberOfStartingHits);
+          printMiddleLine(displayText);
+          #ifdef SERIAL_DEBUG
+            if(waitForBufferSpace(20))
+            {
+              SERIAL_DEBUG_PORT.println(displayText);
+            }
+          #endif
+        }
+        else  //Show stun status
+        {
+          char displayText[16];
+          sprintf_P(displayText, PSTR("%02u%% DISRUPTED"), (100*(uint16_t)(device[currentBeacon].numberOfStartingStunHits - device[currentBeacon].currentNumberOfStunHits))/(uint16_t)device[currentBeacon].numberOfStartingStunHits);
+          printMiddleLine(displayText);
+          #ifdef SERIAL_DEBUG
+            if(waitForBufferSpace(20))
+            {
+              SERIAL_DEBUG_PORT.println(displayText);
+            }
+          #endif
+        }
+      }
+    }
+    lastDisplayUpdate = millis();
+    displayTimeout = shortDisplayTimeout; //Short timeout on this display
+    currentDisplayState = displayState::status;
+  }
   void displayAccuracy()
   {
     ssd1306_clearScreen8();
-    printTopLine("LOCATION");
-    printBottomLine("ACCURACY");
+    printTopLine((const char*)F("LOCATION"));
+    printBottomLine((const char*)F("ACCURACY"));
     #ifdef SERIAL_DEBUG
       if(waitForBufferSpace(20))
       {
@@ -226,8 +329,8 @@
   void displayTrackingMode()
   {
     ssd1306_clearScreen8();
-    printTopLine("BEACON");
-    printBottomLine("HOLD TO CHANGE");
+    printTopLine((const char*)F("BEACON"));
+    printBottomLine((const char*)F("HOLD TO CHANGE"));
     #ifdef SERIAL_DEBUG
       if(waitForBufferSpace(28))
       {
@@ -236,7 +339,7 @@
     #endif
     if(currentTrackingMode == trackingMode::nearest)
     {
-      printMiddleLine("NEAREST");
+      printMiddleLine((const char*)F("NEAREST"));
       #ifdef SERIAL_DEBUG
         if(waitForBufferSpace(9))
         {
@@ -246,7 +349,7 @@
     }
     else if(currentTrackingMode == trackingMode::furthest)
     {
-      printMiddleLine("FURTHEST");
+      printMiddleLine((const char*)F("FURTHEST"));
       #ifdef SERIAL_DEBUG
         if(waitForBufferSpace(10))
         {
@@ -287,8 +390,8 @@
   void displayBatteryPercentage()
   {
     ssd1306_clearScreen8();
-    printTopLine("BATTERY");
-    printBottomLine("CAPACITY");
+    printTopLine((const char*)F("BATTERY"));
+    printBottomLine((const char*)F("CAPACITY"));
     if(batteryVoltage > chargingVoltage)
     {
       #ifdef SERIAL_DEBUG
@@ -297,7 +400,7 @@
           SERIAL_DEBUG_PORT.println(F("Displaying battery: charging"));
         }
       #endif
-      printMiddleLine("CHARGING");
+      printMiddleLine((const char*)F("CHARGING"));
     }
     else
     {
@@ -310,7 +413,7 @@
       #endif
       if(batteryPercentage > 99)
       {
-        printMiddleLine("FULL");
+        printMiddleLine((const char*)F("FULL"));
       }
       else
       {
@@ -326,8 +429,8 @@
   void displayVersion()
   {
     ssd1306_clearScreen8();
-    printTopLine("SOFTWARE");
-    printBottomLine("VERSION");
+    printTopLine((const char*)F("SOFTWARE"));
+    printBottomLine((const char*)F("VERSION"));
     char displayText[10];
     sprintf_P(displayText,PSTR("v%02u.%02u.%02u"),majorVersion,minorVersion,patchVersion);
     printMiddleLine(displayText);
@@ -345,8 +448,8 @@
   void displaySignalStrengthFromBeacon()
   {
     ssd1306_clearScreen8();
-    printTopLine("SIGNAL");
-    printBottomLine("STRENGTH");
+    printTopLine((const char*)F("SIGNAL"));
+    printBottomLine((const char*)F("STRENGTH"));
     if(device[currentBeacon].hasFix == false || device[currentBeacon].distanceTo > maximumEffectiveRange)
     {
       if(maximumEffectiveRange > 999)
@@ -357,7 +460,7 @@
           SERIAL_DEBUG_PORT.println(F("Displaying signal strength: ----"));
         }
         #endif
-        printMiddleLine("----");
+        printMiddleLine((const char*)F("----"));
       }
       else if(maximumEffectiveRange > 99)
       {
@@ -367,7 +470,7 @@
           SERIAL_DEBUG_PORT.println(F("Displaying signal strength: ---"));
         }
         #endif
-        printMiddleLine("---");
+        printMiddleLine((const char*)F("---"));
       }
       else
       {
@@ -377,7 +480,7 @@
           SERIAL_DEBUG_PORT.println(F("Displaying signal strength: --"));
         }
         #endif
-        printMiddleLine("--");
+        printMiddleLine((const char*)F("--"));
       }
     }
     else
@@ -401,8 +504,8 @@
     void displayBeeperStatus()
     {
       ssd1306_clearScreen8();
-      printTopLine("BEEPER");
-      printBottomLine("HOLD TO CHANGE");
+      printTopLine((const char*)F("BEEPER"));
+      printBottomLine((const char*)F("HOLD TO CHANGE"));
       #ifdef SERIAL_DEBUG
         if(waitForBufferSpace(30))
         {
@@ -412,11 +515,11 @@
       #endif
       if(beeperEnabled == true)
       {
-        printMiddleLine("ENABLED");
+        printMiddleLine((const char*)F("ENABLED"));
       }
       else
       {
-        printMiddleLine("DISABLED");
+        printMiddleLine((const char*)F("DISABLED"));
       }
       lastDisplayUpdate = millis();
       displayTimeout = shortDisplayTimeout; //Short timeout on this display

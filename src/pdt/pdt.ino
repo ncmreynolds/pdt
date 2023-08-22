@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 11;
+uint8_t patchVersion = 13;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -474,6 +474,7 @@ const uint16_t loggingSemaphoreTimeout = 5;
     welcome,
     distance,
     course,
+    status,
     accuracy,
     trackingMode,
     signal,
@@ -528,6 +529,9 @@ const uint16_t loggingSemaphoreTimeout = 5;
     bool hasFix = false;
     double lastRssi = 0;
     uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor
+    uint8_t majorVersion = 0;
+    uint8_t minorVersion = 0;
+    uint8_t patchVersion = 0;
     uint8_t numberOfStartingHits = 0;
     uint8_t numberOfStartingStunHits = 0;
     uint8_t currentNumberOfHits = 0;
