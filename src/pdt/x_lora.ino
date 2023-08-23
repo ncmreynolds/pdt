@@ -174,23 +174,31 @@
       loRaReceiveBufferSize = 0;
     }
     #if defined(ACT_AS_TRACKER)
-      if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && millis() - device[currentBeacon].lastReceive > device[currentBeacon].timeout)
+      if(currentBeacon != maximumNumberOfDevices && //Tracking something!
+        device[currentBeacon].hasFix == true && //Thing has fix!
+        device[currentBeacon].nextLocationUpdate != 0 &&  //Thing has shared when to expect the location update
+        millis() - device[currentBeacon].lastLocationUpdate > (device[currentBeacon].nextLocationUpdate + (device[currentBeacon].nextLocationUpdate>>3))) //Allow margin of 1/8 the expected interval
       {
         localLog(F("Currently tracked beacon "));
         localLog(currentBeacon);
         localLogLn(F(" gone offline"));
         device[currentBeacon].hasFix = false;
         currentBeacon = maximumNumberOfDevices;
+        distanceToCurrentBeacon = BEACONUNREACHABLE;
+        distanceToCurrentBeaconChanged = true;
         #ifdef SUPPORT_DISPLAY
           if(currentDisplayState == displayState::distance) //Clear distance if showing
           {
             displayDistanceToBeacon();
           }
         #endif
+        #ifdef SUPPORT_BEEPER
+          setBeeperUrgency();
+        #endif
       }
     #endif
     #ifdef SUPPORT_GPS
-    if(millis() - lastLocationSendTime > currentLocationSendInterval)
+    if(millis() - lastLocationSendTime > device[0].nextLocationUpdate)
     {
       lastLocationSendTime = millis();
       if(updateLocation())  //Get the latest GPS location, if possible
@@ -238,6 +246,7 @@
     packer.pack(device[0].course);
     packer.pack(device[0].speed);
     packer.pack(device[0].hdop);
+    packer.pack(device[0].nextLocationUpdate);
     if(packer.size() < MAX_LORA_BUFFER_SIZE)
     {
       memcpy(loRaSendBuffer, packer.data(),packer.size());
@@ -247,7 +256,14 @@
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
           if(waitForBufferSpace(80))
           {
-            SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5], device[0].latitude, device[0].longitude, device[0].course, device[0].speed, device[0].hdop);
+            SERIAL_DEBUG_PORT.printf_P(PSTR("TX %02x:%02x:%02x:%02x:%02x:%02x location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f next update:%u(ms)\r\n"),
+              device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+              device[0].latitude,
+              device[0].longitude,
+              device[0].course,
+              device[0].speed,
+              device[0].hdop,
+              device[0].nextLocationUpdate);
           }
         #endif
       }
@@ -444,14 +460,15 @@
                       }
                     #endif
                     device[deviceIndex].lastRssi = lastRssi;
-                    device[deviceIndex].lastReceive = millis();
                     if(messagetype == locationUpdateId)
                     {
+                      device[deviceIndex].lastLocationUpdate = millis();  //Only location updates matter for deciding when something has disappeared
                       unpacker.unpack(device[deviceIndex].latitude);
                       unpacker.unpack(device[deviceIndex].longitude);
                       unpacker.unpack(device[deviceIndex].course);
                       unpacker.unpack(device[deviceIndex].speed);
                       unpacker.unpack(device[deviceIndex].hdop);
+                      unpacker.unpack(device[deviceIndex].nextLocationUpdate);
                       if(device[deviceIndex].hdop < MINIMUM_VIABLE_HDOP)
                       {
                         if(device[deviceIndex].hasFix == false)
@@ -478,8 +495,8 @@
                       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                         if(waitForBufferSpace(80))
                         {
-                            SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course(deg):%03.1f Speed(m/s):%01.1f HDOP:%.1f Distance(m):%.1f RSSI:%.1f\r\n",
-                            device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi);
+                            SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) RSSI:%.1f next update:%u(ms)\r\n",
+                            device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi, device[deviceIndex].nextLocationUpdate);
                         }
                       #endif
                       #if defined(ACT_AS_TRACKER)
@@ -831,7 +848,7 @@
     device[numberOfDevices].id[5] = _remoteMacAddress[5];
     numberOfDevices++;
     lastDeviceStatus = (millis() - deviceStatusInterval) + random(5000,10000); //A new device prompts a status share in 5-10s
-    lastLocationSendTime = (millis() -  currentLocationSendInterval) + random(10000,20000); //A new device prompts a location share in 10-20s
+    lastLocationSendTime = (millis() -  device[0].nextLocationUpdate) + random(10000,20000); //A new device prompts a location share in 10-20s
     return numberOfDevices-1;
   }
   #endif

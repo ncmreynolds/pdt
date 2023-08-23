@@ -11,6 +11,7 @@ void setup() {
   #ifdef ACT_AS_SENSOR
     device[0].typeOfDevice = device[0].typeOfDevice | 2; //Mark it as a sensor
   #endif
+  device[0].nextLocationUpdate = 30000; //STart sending location updates every 30s by default
   numberOfDevices++;
   #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
     setupLogging();

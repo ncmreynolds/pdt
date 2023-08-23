@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 14;
+uint8_t patchVersion = 15;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -44,6 +44,7 @@ uint8_t patchVersion = 14;
 #if defined(ACT_AS_TRACKER)
   #define SUPPORT_DISPLAY
   #define SUPPORT_BEEPER
+  #define DEBUG_BEEPER
   #define USE_SSD1331
   #pragma message "Acting as tracker"
 #else
@@ -449,7 +450,6 @@ const uint16_t loggingSemaphoreTimeout = 5;
   uint8_t loRaSendBuffer[MAX_LORA_BUFFER_SIZE];
   uint8_t loRaReceiveBuffer[MAX_LORA_BUFFER_SIZE];
   uint32_t lastLocationSendTime = 0;    // last send time
-  uint32_t currentLocationSendInterval = 30000;    // current interval between sends, which will vary
   uint16_t loRaPerimiter1 = 10;       //Range at which beacon 1 applies
   uint32_t locationSendInterval1 = 5000;    // interval between sends
   uint16_t loRaPerimiter2 = 20;       //Range at which beacon 1 applies
@@ -522,10 +522,11 @@ const uint16_t loggingSemaphoreTimeout = 5;
     double hdop = 0;
     double distanceTo = 0;
     double courseTo = 0;
+    uint32_t lastLocationUpdate = 0;
+    uint16_t nextLocationUpdate = 0;
     uint32_t uptime = 0;
     float supplyVoltage = 0;
-    uint32_t lastReceive = 0;
-    uint32_t timeout = 60000;
+    //uint32_t timeout = 60000;
     bool hasFix = false;
     double lastRssi = 0;
     uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor
@@ -541,8 +542,9 @@ const uint16_t loggingSemaphoreTimeout = 5;
   uint8_t numberOfDevices = 0;
   deviceLocationInfo device[maximumNumberOfDevices];
   #if defined(ACT_AS_TRACKER)
+    #define BEACONUNREACHABLE 100000
     double maximumEffectiveRange = 99;
-    uint32_t distanceToCurrentBeacon = 9999;
+    uint32_t distanceToCurrentBeacon = BEACONUNREACHABLE;
     bool distanceToCurrentBeaconChanged = false;
     uint8_t currentBeacon = maximumNumberOfDevices;
     enum class trackingMode : std::int8_t {

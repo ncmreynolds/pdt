@@ -105,7 +105,7 @@
             {
               stopBeep();
             }
-            else if(beeperState == false && millis() - beeperLastStateChange > beeperOffTime)
+            else if(beeperState == false && beeperOffTime !=0 && millis() - beeperLastStateChange > beeperOffTime)
             {
               makeAbeep(beeperTone);
             }
@@ -119,20 +119,40 @@
   #if defined(ACT_AS_TRACKER)
     void setBeeperUrgency()
     {
-      if(distanceToCurrentBeacon > 0)
+      if(currentBeacon != maximumNumberOfDevices && distanceToCurrentBeacon < maximumEffectiveRange)
       {
-        #ifdef SUPPORT_LED
-          ledOffTime = distanceToCurrentBeacon * 100;
-        #endif
-        beeperOffTime = beeperOnTime + 50 + pow(distanceToCurrentBeacon,2);
+        if(distanceToCurrentBeacon < 5) 
+        {
+          #ifdef SUPPORT_LED
+            ledOffTime = 100;
+          #endif
+          beeperOffTime = beeperOnTime + 50;
+        }
+        else
+        {
+          #ifdef SUPPORT_LED
+            ledOffTime = distanceToCurrentBeacon * 100;
+          #endif
+          beeperOffTime = beeperOnTime + 50 + pow(distanceToCurrentBeacon,2);
+        }
       }
       else
       {
         #ifdef SUPPORT_LED
           ledOffTime = 100;
         #endif
-        beeperOffTime = beeperOnTime + 50;
+        beeperOffTime = 0;
       }
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_BEEPER)
+        if(beeperOffTime > 0)
+        {
+          SERIAL_DEBUG_PORT.printf_P(PSTR("Beeper off time: %ums\r\n"),beeperOffTime);
+        }
+        else
+        {
+          SERIAL_DEBUG_PORT.println(F("Beeper off"));
+        }
+      #endif
     }
   #endif
 #endif

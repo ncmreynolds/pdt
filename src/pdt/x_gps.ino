@@ -236,7 +236,7 @@
             device[beaconIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
             device[beaconIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
             #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-              SERIAL_DEBUG_PORT.printf_P(PSTR("Beacon %u - distance(m):%01.1f course(deg):%03.1f"), beaconIndex, device[beaconIndex].distanceTo, device[beaconIndex].courseTo);
+              SERIAL_DEBUG_PORT.printf_P(PSTR("Beacon %u - distance:%01.1f(m) course:%03.1f(deg)"), beaconIndex, device[beaconIndex].distanceTo, device[beaconIndex].courseTo);
             #endif
             if(beaconIndex == currentBeacon)
             {
@@ -247,6 +247,7 @@
               {
                 distanceToCurrentBeacon = (uint32_t)device[beaconIndex].distanceTo;
                 distanceToCurrentBeaconChanged = true;
+                /*
                 if(distanceToCurrentBeacon < loRaPerimiter1)
                 {
                   device[beaconIndex].timeout = locationSendInterval1 * 2.5;
@@ -263,6 +264,7 @@
                 {
                   device[beaconIndex].timeout = 60000;
                 }
+                */
               }
             }
             else
@@ -317,7 +319,15 @@
       {
         distanceToCurrentBeacon = uint32_t(device[index].distanceTo);
         distanceToCurrentBeaconChanged = true;
-        setBeeperUrgency();
+        #ifdef SUPPORT_DISPLAY
+          if(currentDisplayState == displayState::distance) //Clear distance if showing
+          {
+            displayDistanceToBeacon();
+          }
+        #endif
+        #ifdef SUPPORT_BEEPER
+          setBeeperUrgency();
+        #endif
       }
     }
     bool selectNearestBeacon()  //True only implies it has changed!
@@ -329,7 +339,7 @@
           xSemaphoreGive(gpsSemaphore);
           return false;
         }
-        else if(numberOfDevices == 2 && device[1].distanceTo < maximumEffectiveRange)
+        else if(numberOfDevices == 2 && device[1].hasFix == true && device[1].distanceTo < maximumEffectiveRange)
         {
           if(currentBeacon != 1)  //Only assign this once
           {
@@ -347,7 +357,7 @@
           uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
           for(uint8_t index = 0; index < numberOfDevices; index++)
           {
-            if((device[index].typeOfDevice & 0x01) == 0 && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
+            if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasFix == true && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
             {
               nearestBeacon = index;
             }
@@ -376,7 +386,7 @@
           xSemaphoreGive(gpsSemaphore);
           return false;
         }
-        else if(numberOfDevices == 2 && device[1].distanceTo < maximumEffectiveRange)
+        else if(numberOfDevices == 2 && device[1].hasFix == true && device[1].distanceTo < maximumEffectiveRange)
         {
           if(currentBeacon != 1)
           {
@@ -394,7 +404,7 @@
           uint8_t furthestBeacon = maximumNumberOfDevices;
           for(uint8_t index = 0; index < numberOfDevices; index++)
           {
-            if((device[index].typeOfDevice & 0x01) == 0 && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
+            if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasFix == true && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
             {
               furthestBeacon = index;
             }
