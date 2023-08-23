@@ -192,52 +192,23 @@
     #ifdef SUPPORT_GPS
     if(millis() - lastLocationSendTime > currentLocationSendInterval)
     {
-      if(updateLocation())
+      lastLocationSendTime = millis();
+      if(updateLocation())  //Get the latest GPS location, if possible
       {
         #if defined(ACT_AS_TRACKER)
-          if(numberOfDevices > 1)
+          selectDeviceToTrack();  //May need to change tracked device due to movement
+          if(loRaConnected && numberOfBeacons() > 0)  //Only share ocation if there are some beacons
           {
-            calculateDistanceToBeacons();
-            if(currentTrackingMode == trackingMode::nearest)
-            {
-              if(selectNearestBeacon())
-              {
-                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-                  SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
-                  SERIAL_DEBUG_PORT.println(currentBeacon);
-                #endif
-              }
-            }
-            else if(currentTrackingMode == trackingMode::furthest)
-            {
-              if(selectFurthestBeacon())
-              {
-                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-                  SERIAL_DEBUG_PORT.print(F("Tracking furthest beacon: "));
-                  SERIAL_DEBUG_PORT.println(currentBeacon);
-                #endif
-                currentTrackingMode = trackingMode::fixed;  //Switch to fixed as 'furthest' needs to fix once chose
-              }
-            }
-            else if(currentTrackingMode == trackingMode::fixed)
-            {
-              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-                SERIAL_DEBUG_PORT.print(F("Tracking specific beacon: "));
-                SERIAL_DEBUG_PORT.println(currentBeacon);
-              #endif
-            }
-          }
-          if(loRaConnected && numberOfBeacons() > 0)
-          {
-      #elif defined(ACT_AS_BEACON)
-          calculateDistanceToTrackers();
-          if(loRaConnected)
-          {
-      #endif
             shareLocation();
           }
-        } //matches if(updateLocation())
-        lastLocationSendTime = millis();
+        #elif defined(ACT_AS_BEACON)
+          calculateDistanceToTrackers();  //May need to change update frequency due to movement
+          if(loRaConnected) //Always share location
+          {
+            shareLocation();
+          }
+        #endif
+      } //matches if(updateLocation())
     }
     #endif
   }
@@ -464,6 +435,14 @@
                   uint8_t deviceIndex = identifyDevice(_remoteMacAddress);
                   if(deviceIndex < maximumNumberOfDevices)
                   {
+                    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                      if(waitForBufferSpace(80))
+                      {
+                        SERIAL_DEBUG_PORT.printf_P(PSTR("RX %02x:%02x:%02x:%02x:%02x:%02x device %u "),
+                          _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
+                          deviceIndex);
+                      }
+                    #endif
                     device[deviceIndex].lastRssi = lastRssi;
                     device[deviceIndex].lastReceive = millis();
                     if(messagetype == locationUpdateId)
@@ -480,7 +459,7 @@
                           #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                             if(waitForBufferSpace(40))
                             {
-                              SERIAL_DEBUG_PORT.printf("Device %u got GPS fix\r\n", deviceIndex);
+                              SERIAL_DEBUG_PORT.printf_P(PSTR("Device %u got GPS fix\r\n"), deviceIndex);
                             }
                           #endif
                           device[deviceIndex].hasFix = true;
@@ -491,7 +470,7 @@
                         #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                           if(waitForBufferSpace(40))
                           {
-                            SERIAL_DEBUG_PORT.printf("Device %u lost GPS fix\r\n", deviceIndex);
+                            SERIAL_DEBUG_PORT.printf_P(PSTR("Device %u lost GPS fix\r\n"), deviceIndex);
                           }
                         #endif
                         device[deviceIndex].hasFix = false;
@@ -499,10 +478,14 @@
                       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                         if(waitForBufferSpace(80))
                         {
-                            SERIAL_DEBUG_PORT.printf("RX %02x:%02x:%02x:%02x:%02x:%02x device %u location Lat:%03.4f Lon:%03.4f Course(deg):%03.1f Speed(m/s):%01.1f HDOP:%.1f Distance(m):%.1f RSSI:%.1f\r\n",
-                            _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
-                            deviceIndex, device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi);
+                            SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course(deg):%03.1f Speed(m/s):%01.1f HDOP:%.1f Distance(m):%.1f RSSI:%.1f\r\n",
+                            device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi);
                         }
+                      #endif
+                      #if defined(ACT_AS_TRACKER)
+                        selectDeviceToTrack(); //May need to change tracked device due to movement
+                      #else
+                        calculateDistanceToTrackers();  //May need to change update frequency due to movement
                       #endif
                     }
                     else if(messagetype == deviceStatusUpdateId)
@@ -527,25 +510,85 @@
                                   unpacker.unpack(device[deviceIndex].supplyVoltage);
                                   if(unpacker.isStr())  //Name
                                   {
+                                    String receivedDeviceName = String(unpacker.unpackString());
+                                    bool storeReceivedName = false;
                                     if(device[deviceIndex].name == nullptr) //First time the name is received
                                     {
-                                      String temp = String(unpacker.unpackString());
-                                      device[deviceIndex].name = new char[temp.length() + 1];
-                                      temp.toCharArray(device[deviceIndex].name, temp.length() + 1);
+                                      storeReceivedName = true;
+                                    }
+                                    else if(receivedDeviceName.equals(String(device[deviceIndex].name)) == false) //Check the name hasn't changed
+                                    {
+                                      delete[] device[deviceIndex].name;
+                                      storeReceivedName = true;
+                                    }
+                                    if(storeReceivedName == true)
+                                    {
+                                      device[deviceIndex].name = new char[receivedDeviceName.length() + 1];
+                                      receivedDeviceName.toCharArray(device[deviceIndex].name, receivedDeviceName.length() + 1);
                                     }
                                     if(device[deviceIndex].typeOfDevice & 2)  //It's acting as a sensor
                                     {
-                                      unpacker.unpack(device[deviceIndex].numberOfStartingHits);
-                                      unpacker.unpack(device[deviceIndex].numberOfStartingStunHits);
-                                      unpacker.unpack(device[deviceIndex].currentNumberOfHits);
-                                      unpacker.unpack(device[deviceIndex].currentNumberOfStunHits);
+                                      if(unpacker.isUInt7() || unpacker.isUInt8())  //Starting hits
+                                      {
+                                        unpacker.unpack(device[deviceIndex].numberOfStartingHits);
+                                        if(unpacker.isUInt7() || unpacker.isUInt8())  //Starting stun
+                                        {
+                                          unpacker.unpack(device[deviceIndex].numberOfStartingStunHits);
+                                          if(unpacker.isUInt7() || unpacker.isUInt8())  //Current hits
+                                          {
+                                              unpacker.unpack(device[deviceIndex].currentNumberOfHits);
+                                              if(unpacker.isUInt7() || unpacker.isUInt8())  //Current hits
+                                              {
+                                                  unpacker.unpack(device[deviceIndex].currentNumberOfStunHits);
+                                              }
+                                              else
+                                              {
+                                                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                                  if(waitForBufferSpace(40))
+                                                  {
+                                                    SERIAL_DEBUG_PORT.print(F("Unexpected type for current stun: "));
+                                                    SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
+                                                  }
+                                                #endif
+                                              }
+                                            }
+                                            else
+                                            {
+                                              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                                if(waitForBufferSpace(40))
+                                                {
+                                                  SERIAL_DEBUG_PORT.print(F("Unexpected type for current hits: "));
+                                                  SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
+                                                }
+                                              #endif
+                                            }
+                                          }
+                                          else
+                                          {
+                                            #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                              if(waitForBufferSpace(40))
+                                              {
+                                                SERIAL_DEBUG_PORT.print(F("Unexpected type for starting stun: "));
+                                                SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
+                                              }
+                                            #endif
+                                          }
+                                        }
+                                        else
+                                        {
+                                          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                            if(waitForBufferSpace(40))
+                                            {
+                                              SERIAL_DEBUG_PORT.print(F("Unexpected type for starting hits: "));
+                                              SERIAL_DEBUG_PORT.println(uint8_t(unpacker.getType()), HEX);
+                                            }
+                                          #endif
+                                        }
                                     }
                                     #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                       if(waitForBufferSpace(60))
                                       {
-                                        SERIAL_DEBUG_PORT.printf_P(PSTR("RX %02x:%02x:%02x:%02x:%02x:%02x device %u info type:%02x version:%u.%u.%u name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f"),
-                                          _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
-                                          deviceIndex,
+                                        SERIAL_DEBUG_PORT.printf_P(PSTR("info type:%02x version:%u.%u.%u name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f"),
                                           device[deviceIndex].typeOfDevice,
                                           device[deviceIndex].majorVersion,
                                           device[deviceIndex].minorVersion,

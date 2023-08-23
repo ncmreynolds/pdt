@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 13;
+uint8_t patchVersion = 14;
 /*
 
    Various nominally optional features that can be switched off during testing/development

@@ -32,14 +32,16 @@
   }
   void printRange(const char *text)
   {
-    ssd1306_setColor(RGB_COLOR8(255,0,0));
+    //ssd1306_setColor(RGB_COLOR8(255,0,0));
+    ssd1306_setColor(RGB_COLOR8(255,255,255));
     //ssd1306_setFixedFont(comic_sans_font24x32_123);
     ssd1306_setFixedFont(courier_new_font11x16_digits);
     ssd1306_printFixed8((screenWidth - (strlen(text)*11))/2,  (screenHeight - 16)/2, text, STYLE_BOLD);
   }
   void printMiddleLine(const char *text)
   {
-    ssd1306_setColor(RGB_COLOR8(255,0,0));
+    //ssd1306_setColor(RGB_COLOR8(255,0,0));
+    ssd1306_setColor(RGB_COLOR8(255,255,255));
     if(strlen(text) < screenWidth/8)
     {
       ssd1306_setFixedFont(ssd1306xled_font8x16);
@@ -265,7 +267,8 @@
         if(device[currentBeacon].currentNumberOfHits <= device[currentBeacon].currentNumberOfStunHits) //Show damage status
         {
           char displayText[14];
-          sprintf_P(displayText, PSTR("%02u%% DAMAGED"), (100*(uint16_t)(device[currentBeacon].numberOfStartingHits - device[currentBeacon].currentNumberOfHits))/(uint16_t)device[currentBeacon].numberOfStartingHits);
+          //sprintf_P(displayText, PSTR("%02u%% DAMAGE"), (100*(uint16_t)(device[currentBeacon].numberOfStartingHits - device[currentBeacon].currentNumberOfHits))/(uint16_t)device[currentBeacon].numberOfStartingHits);
+          sprintf_P(displayText, PSTR("%02u%% HEALTH"), (100*(uint16_t)device[currentBeacon].currentNumberOfHits)/(uint16_t)device[currentBeacon].numberOfStartingHits);
           printMiddleLine(displayText);
           #ifdef SERIAL_DEBUG
             if(waitForBufferSpace(20))

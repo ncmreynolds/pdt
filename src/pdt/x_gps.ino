@@ -276,7 +276,51 @@
         xSemaphoreGive(gpsSemaphore);
       }
     }
-    bool selectNearestBeacon()
+    void selectDeviceToTrack()
+    {
+      if(numberOfDevices > 1)
+      {
+        calculateDistanceToBeacons();
+        if(currentTrackingMode == trackingMode::nearest)
+        {
+          if(selectNearestBeacon())
+          {
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+              SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
+              SERIAL_DEBUG_PORT.println(currentBeacon);
+            #endif
+          }
+        }
+        else if(currentTrackingMode == trackingMode::furthest)
+        {
+          if(selectFurthestBeacon())
+          {
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+              SERIAL_DEBUG_PORT.print(F("Tracking furthest beacon: "));
+              SERIAL_DEBUG_PORT.println(currentBeacon);
+            #endif
+            currentTrackingMode = trackingMode::fixed;  //Switch to fixed as 'furthest' needs to fix once chose
+          }
+        }
+        else if(currentTrackingMode == trackingMode::fixed)
+        {
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+            SERIAL_DEBUG_PORT.print(F("Tracking specific beacon: "));
+            SERIAL_DEBUG_PORT.println(currentBeacon);
+          #endif
+        }
+      }
+    }
+    void updateDistanceToBeacon(const uint8_t index)
+    {
+      if(uint32_t(device[index].distanceTo) != distanceToCurrentBeacon)
+      {
+        distanceToCurrentBeacon = uint32_t(device[index].distanceTo);
+        distanceToCurrentBeaconChanged = true;
+        setBeeperUrgency();
+      }
+    }
+    bool selectNearestBeacon()  //True only implies it has changed!
     {
       if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
       {
@@ -287,47 +331,43 @@
         }
         else if(numberOfDevices == 2 && device[1].distanceTo < maximumEffectiveRange)
         {
-          currentBeacon = 1;
-          xSemaphoreGive(gpsSemaphore);
-          if(uint32_t(device[currentBeacon].distanceTo) != distanceToCurrentBeacon)
+          if(currentBeacon != 1)  //Only assign this once
           {
-            distanceToCurrentBeacon = uint32_t(device[currentBeacon].distanceTo);
-            distanceToCurrentBeaconChanged = true;
-            setBeeperUrgency();
-          }
-          return true;
-        }
-        else
-        {
-          for(uint8_t index = 0; index < numberOfDevices; index++)
-          {
-            if(device[index].typeOfDevice == 0 && device[index].distanceTo < maximumEffectiveRange && (currentBeacon == maximumNumberOfDevices || device[index].distanceTo < device[currentBeacon].distanceTo))
-            {
-              currentBeacon = index;
-            }
-          }
-          if(currentBeacon != maximumNumberOfDevices)
-          {
-            if(uint32_t(device[currentBeacon].distanceTo) != distanceToCurrentBeacon)
-            {
-              distanceToCurrentBeacon = uint32_t(device[currentBeacon].distanceTo);
-              distanceToCurrentBeaconChanged = true;
-              setBeeperUrgency();
-            }
+            currentBeacon = 1;
+            updateDistanceToBeacon(currentBeacon);
             xSemaphoreGive(gpsSemaphore);
             return true;
           }
-          else
+          updateDistanceToBeacon(currentBeacon);
+          xSemaphoreGive(gpsSemaphore);
+          return false;
+        }
+        else
+        {
+          uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
+          for(uint8_t index = 0; index < numberOfDevices; index++)
           {
-            xSemaphoreGive(gpsSemaphore);
-            return false;
+            if(device[index].typeOfDevice == 0 && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
+            {
+              nearestBeacon = index;
+            }
           }
+          if(nearestBeacon != maximumNumberOfDevices && currentBeacon != nearestBeacon) //Choose a new nearest beacon
+          {
+            currentBeacon = nearestBeacon;
+            updateDistanceToBeacon(currentBeacon);
+            xSemaphoreGive(gpsSemaphore);
+            return true;
+          }
+          updateDistanceToBeacon(currentBeacon);
+          xSemaphoreGive(gpsSemaphore);
+          return false;
         }
         xSemaphoreGive(gpsSemaphore);
       }
       return false;
     }
-    bool selectFurthestBeacon()
+    bool selectFurthestBeacon() //True implies this has changed!
     {
       if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
       {
@@ -338,41 +378,37 @@
         }
         else if(numberOfDevices == 2 && device[1].distanceTo < maximumEffectiveRange)
         {
-          currentBeacon = 1;
-          if(uint32_t(device[currentBeacon].distanceTo) != distanceToCurrentBeacon)
+          if(currentBeacon != 1)
           {
-            distanceToCurrentBeacon = uint32_t(device[currentBeacon].distanceTo);
-            distanceToCurrentBeaconChanged = true;
-            setBeeperUrgency();
-          }
-          xSemaphoreGive(gpsSemaphore);
-          return true;
-        }
-        else
-        {
-          for(uint8_t index = 0; index < numberOfDevices; index++)
-          {
-            if(device[index].typeOfDevice == 0 && device[index].distanceTo < maximumEffectiveRange && (currentBeacon == maximumNumberOfDevices || device[index].distanceTo > device[currentBeacon].distanceTo))
-            {
-              currentBeacon = index;
-            }
-          }
-          if(currentBeacon != maximumNumberOfDevices)
-          {
-            if(uint32_t(device[currentBeacon].distanceTo) != distanceToCurrentBeacon)
-            {
-              distanceToCurrentBeacon = uint32_t(device[currentBeacon].distanceTo);
-              distanceToCurrentBeaconChanged = true;
-              setBeeperUrgency();
-            }
+            currentBeacon = 1;
+            updateDistanceToBeacon(currentBeacon);
             xSemaphoreGive(gpsSemaphore);
             return true;
           }
-          else
+          updateDistanceToBeacon(currentBeacon);
+          xSemaphoreGive(gpsSemaphore);
+          return false;
+        }
+        else
+        {
+          uint8_t furthestBeacon = maximumNumberOfDevices;
+          for(uint8_t index = 0; index < numberOfDevices; index++)
           {
-            xSemaphoreGive(gpsSemaphore);
-            return false;
+            if(device[index].typeOfDevice == 0 && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
+            {
+              furthestBeacon = index;
+            }
           }
+          if(furthestBeacon != maximumNumberOfDevices && currentBeacon != furthestBeacon)
+          {
+            currentBeacon = furthestBeacon;
+            updateDistanceToBeacon(currentBeacon);
+            xSemaphoreGive(gpsSemaphore);
+            return true;
+          }
+          updateDistanceToBeacon(currentBeacon);
+          xSemaphoreGive(gpsSemaphore);
+          return false;
         }
         xSemaphoreGive(gpsSemaphore);
       }
@@ -384,15 +420,15 @@
       {
          return PSTR("excellent");
       }
-      else if(hdop < 2)
+      else if(hdop < 1.5)
       {
         return PSTR("good");
       }
-      else if(hdop < 3)
+      else if(hdop < 2)
       {
         return PSTR("normal");
       }
-      else if(hdop < 4)
+      else if(hdop < 3)
       {
         return PSTR("poor");
       }
