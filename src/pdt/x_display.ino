@@ -198,7 +198,7 @@
         #ifdef SERIAL_DEBUG
           if(waitForBufferSpace(20))
           {
-            SERIAL_DEBUG_PORT.println(F("UNKNOWN"));
+            SERIAL_DEBUG_PORT.println(F("CLOSE"));
           }
         #endif
       }

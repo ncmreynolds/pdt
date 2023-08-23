@@ -526,7 +526,7 @@
                                       device[deviceIndex].name = new char[receivedDeviceName.length() + 1];
                                       receivedDeviceName.toCharArray(device[deviceIndex].name, receivedDeviceName.length() + 1);
                                     }
-                                    if(device[deviceIndex].typeOfDevice & 2)  //It's acting as a sensor
+                                    if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
                                     {
                                       if(unpacker.isUInt7() || unpacker.isUInt8())  //Starting hits
                                       {
@@ -598,7 +598,7 @@
                                           device[deviceIndex].supplyVoltage,
                                           lastRssi);
                                       }
-                                      if(device[deviceIndex].typeOfDevice & 2)  //It's acting as a sensor
+                                      if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
                                       {
                                         if(waitForBufferSpace(60))
                                         {

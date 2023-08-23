@@ -218,7 +218,7 @@
       }
       for(uint8_t beaconIndex = 1; beaconIndex < numberOfDevices; beaconIndex++)
       {
-        if(device[beaconIndex].typeOfDevice == 0)
+        if((device[beaconIndex].typeOfDevice & 0x01) == 0x00)
         {
           count++;
         }
@@ -231,7 +231,7 @@
       {
         for(uint8_t beaconIndex = 1; beaconIndex < numberOfDevices; beaconIndex++)
         {
-          if(device[beaconIndex].typeOfDevice == 0 && device[beaconIndex].hasFix == true)
+          if((device[beaconIndex].typeOfDevice & 0x01) == 0x00 && device[beaconIndex].hasFix == true)
           {
             device[beaconIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
             device[beaconIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
@@ -347,7 +347,7 @@
           uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
           for(uint8_t index = 0; index < numberOfDevices; index++)
           {
-            if(device[index].typeOfDevice == 0 && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
+            if((device[index].typeOfDevice & 0x01) == 0 && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
             {
               nearestBeacon = index;
             }
@@ -394,7 +394,7 @@
           uint8_t furthestBeacon = maximumNumberOfDevices;
           for(uint8_t index = 0; index < numberOfDevices; index++)
           {
-            if(device[index].typeOfDevice == 0 && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
+            if((device[index].typeOfDevice & 0x01) == 0 && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
             {
               furthestBeacon = index;
             }
@@ -444,7 +444,7 @@
       {
         for(uint8_t trackerIndex = 1; trackerIndex < numberOfDevices; trackerIndex++)
         {
-          if(device[trackerIndex].typeOfDevice == 1 && device[trackerIndex].hasFix == true)
+          if((device[trackerIndex].typeOfDevice & 0x01) == 1 && device[trackerIndex].hasFix == true)
           {
             device[trackerIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
             device[trackerIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
