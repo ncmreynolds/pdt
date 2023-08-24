@@ -269,7 +269,7 @@
     for(uint8_t i = 0; i < numberOfMinutes; i++)
     {
       #ifdef SUPPORT_BEEPER
-        makeAbeep(300, 250);
+        makeAsingleBeep(300, 250);
       #endif
       #ifdef SUPPORT_LED
         ledOn(125, 0);
@@ -283,7 +283,7 @@
     for(uint8_t i = 0; i < currentNumberOfHits; i++)
     {
       #ifdef SUPPORT_BEEPER
-        makeAbeep(sensorTones[2], 50);
+        makeAsingleBeep(sensorTones[2], 50);
       #endif
       #ifdef SUPPORT_LED
         ledOn(25, 0);
@@ -305,7 +305,7 @@
     for(uint8_t i = 0; i < numberOfHits; i++)
     {
       #ifdef SUPPORT_BEEPER
-        makeAbeep(sensorTones[2], 75);
+        makeAsingleBeep(sensorTones[2], 75);
       #endif
       #ifdef SUPPORT_LED
         ledOn(100, 0);
@@ -313,14 +313,14 @@
       vTaskDelay(150 / portTICK_PERIOD_MS);
     }
     #ifdef SUPPORT_BEEPER
-      makeAbeep(900, 250);
+      makeAsingleBeep(900, 250);
     #endif
     #ifdef SUPPORT_LED
       ledOn(125, 0);
     #endif
     vTaskDelay(260 / portTICK_PERIOD_MS);
     #ifdef SUPPORT_BEEPER
-      makeAbeep(500, 400);
+      makeAsingleBeep(500, 400);
     #endif
     #ifdef SUPPORT_LED
       ledOn(200, 0);
@@ -331,7 +331,7 @@
   void playNearMissAnimation(void * parameter)
   {
     #ifdef SUPPORT_BEEPER
-      makeAbeep(sensorTones[2], 100);
+      makeAsingleBeep(sensorTones[2], 100);
     #endif
     #ifdef SUPPORT_LED
       ledOn(50, 0);
@@ -344,7 +344,7 @@
     while(currentSensorState == sensorState::dead)
     {
       #ifdef SUPPORT_BEEPER
-        makeAbeep(1000, 199);
+        makeAsingleBeep(1000, 199);
       #endif
       #ifdef SUPPORT_LED
         ledOn(100, 0);
@@ -358,14 +358,14 @@
     for(uint8_t i = 0; i < 3; i++)
     {
       #ifdef SUPPORT_BEEPER
-        makeAbeep(900, 200);
+        makeAsingleBeep(900, 200);
       #endif
       #ifdef SUPPORT_LED
         ledOn(100, 0);
       #endif
       vTaskDelay(210 / portTICK_PERIOD_MS);
       #ifdef SUPPORT_BEEPER
-        makeAbeep(500, 200);
+        makeAsingleBeep(500, 200);
       #endif
       #ifdef SUPPORT_LED
         ledOn(100, 0);

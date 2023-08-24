@@ -74,7 +74,7 @@
               #ifdef SUPPORT_BEEPER
                 if(beeperEnabled == true)
                 {
-                  makeAbeep(beeperButtonTone);
+                  makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
               #endif
               displayCourse();
@@ -84,7 +84,7 @@
               #ifdef SUPPORT_BEEPER
                 if(beeperEnabled == true)
                 {
-                  makeAbeep(beeperButtonTone);
+                  makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
               #endif
               displayStatus();
@@ -94,7 +94,7 @@
               #ifdef SUPPORT_BEEPER
                 if(beeperEnabled == true)
                 {
-                  makeAbeep(beeperButtonTone);
+                  makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
               #endif
               displayAccuracy();
@@ -104,7 +104,7 @@
               #ifdef SUPPORT_BEEPER
                 if(beeperEnabled == true)
                 {
-                  makeAbeep(beeperButtonTone);
+                  makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
               #endif
               displayTrackingMode();
@@ -114,7 +114,7 @@
               #ifdef SUPPORT_BEEPER
                 if(beeperEnabled == true)
                 {
-                  makeAbeep(beeperButtonTone);
+                  makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
               #endif
               displaySignalStrengthFromBeacon();
@@ -124,7 +124,7 @@
               #ifdef SUPPORT_BEEPER
                 if(beeperEnabled == true)
                 {
-                  makeAbeep(beeperButtonTone);
+                  makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
               #endif
               displayBatteryPercentage();
@@ -134,7 +134,7 @@
               #ifdef SUPPORT_BEEPER
                 if(beeperEnabled == true)
                 {
-                  makeAbeep(beeperButtonTone);
+                  makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
                 displayBeeperStatus();
               #else
@@ -146,7 +146,7 @@
               {
                 if(beeperEnabled == true)
                 {
-                  makeAbeep(beeperButtonTone);
+                  makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
                 displayVersion();
               }
@@ -155,7 +155,7 @@
             {
               if(beeperEnabled == true)
               {
-                makeAbeep(beeperButtonTone);
+                makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
               }
               displayDistanceToBeacon();
             }

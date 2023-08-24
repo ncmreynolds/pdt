@@ -325,10 +325,10 @@
             displayDistanceToBeacon();
           }
         #endif
-        #ifdef SUPPORT_BEEPER
-          setBeeperUrgency();
-        #endif
       }
+      #ifdef SUPPORT_BEEPER
+        setBeeperUrgency();
+      #endif
     }
     bool selectNearestBeacon()  //True only implies it has changed!
     {

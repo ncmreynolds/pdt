@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 15;
+uint8_t patchVersion = 16;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -577,12 +577,15 @@ const uint16_t loggingSemaphoreTimeout = 5;
   TaskHandle_t beeperManagementTask = NULL;
   const uint16_t beeperYieldTime = 10;
   const uint16_t beeperSemaphoreTimeout = 5;
-  uint32_t beeperOnTime = 20;
-  uint32_t beeperOffTime = 0;
-  uint32_t beeperLastStateChange = 0;
+  uint32_t singleBeepOnTime = 25; //One shot beeps have their own on time
+  uint32_t singleBeepLastStateChange = 0;
+  uint32_t repeatingBeepOnTime = 20;  //Repeating beep on time
+  uint32_t repeatingBeepOffTime = 0;  //Repeating beep off time
+  uint32_t repeatingBeepLastStateChange = 0;
   bool beeperState = false;
   uint16_t beeperTone = 1400;
-  const uint16_t beeperButtonTone = 900;
+  const uint16_t beeperButtonTone = 900;  //Button push tone
+  const uint16_t beeperButtonOnTime = 25; //Button push on time
   bool beeperEnabled = true;
 #endif
 #ifdef SUPPORT_LED
