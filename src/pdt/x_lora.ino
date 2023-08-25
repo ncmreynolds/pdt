@@ -181,22 +181,31 @@
       {
         if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout)) //Take the semaphore to exclude the sentence processing task and udate the data structures
         {
+          device[currentBeacon].updateHistory = (device[currentBeacon].updateHistory >> 1) | 0x8000;
           localLog(F("Currently tracked beacon "));
           localLog(currentBeacon);
-          localLogLn(F(" gone offline"));
-          device[currentBeacon].hasFix = false;
-          currentBeacon = maximumNumberOfDevices;
-          distanceToCurrentBeacon = BEACONUNREACHABLE;
-          distanceToCurrentBeaconChanged = true;
-          #ifdef SUPPORT_BEEPER
-            endRepeatingBeep();
-          #endif
-          #ifdef SUPPORT_DISPLAY
-            if(currentDisplayState == displayState::distance) //Clear distance if showing
-            {
-              displayDistanceToBeacon();
-            }
-          #endif
+          if(device[currentBeacon].updateHistory < 0x00ff)
+          {
+            localLogLn(F(" gone offline"));
+            device[currentBeacon].hasFix = false;
+            currentBeacon = maximumNumberOfDevices;
+            distanceToCurrentBeacon = BEACONUNREACHABLE;
+            distanceToCurrentBeaconChanged = true;
+            #ifdef SUPPORT_BEEPER
+              endRepeatingBeep();
+            #endif
+            #ifdef SUPPORT_DISPLAY
+              if(currentDisplayState == displayState::distance) //Clear distance if showing
+              {
+                displayDistanceToBeacon();
+              }
+            #endif
+          }
+          else
+          {
+            localLog(F(" dropped packet, update history now:0x"));
+            localLogLn(String(device[currentBeacon].updateHistory,HEX));
+          }
           xSemaphoreGive(gpsSemaphore);
         }
       }
@@ -462,6 +471,7 @@
                     if(messagetype == locationUpdateId)
                     {
                       device[deviceIndex].lastLocationUpdate = millis();  //Only location updates matter for deciding when something has disappeared
+                      device[deviceIndex].updateHistory = (device[deviceIndex].updateHistory >> 1) | 0x8000;
                       unpacker.unpack(device[deviceIndex].latitude);
                       unpacker.unpack(device[deviceIndex].longitude);
                       unpacker.unpack(device[deviceIndex].course);
@@ -494,8 +504,16 @@
                       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                         if(waitForBufferSpace(80))
                         {
-                            SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) RSSI:%.1f next update:%u(ms)\r\n",
-                            device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi, device[deviceIndex].nextLocationUpdate);
+                            SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) RSSI:%.1f next update:%u(ms) update history:%04x\r\n",
+                            device[deviceIndex].latitude,
+                            device[deviceIndex].longitude,
+                            device[deviceIndex].course,
+                            device[deviceIndex].speed,
+                            device[deviceIndex].hdop,
+                            device[deviceIndex].distanceTo,
+                            lastRssi,
+                            device[deviceIndex].nextLocationUpdate,
+                            device[deviceIndex].updateHistory);
                         }
                       #endif
                     }

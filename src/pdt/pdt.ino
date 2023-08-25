@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 17;
+uint8_t patchVersion = 18;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -523,6 +523,7 @@ const uint16_t loggingSemaphoreTimeout = 5;
     double courseTo = 0;
     uint32_t lastLocationUpdate = 0;
     uint16_t nextLocationUpdate = 0;
+    uint16_t updateHistory = 0xffff;
     uint32_t uptime = 0;
     float supplyVoltage = 0;
     //uint32_t timeout = 60000;
