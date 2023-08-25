@@ -189,7 +189,7 @@
           distanceToCurrentBeacon = BEACONUNREACHABLE;
           distanceToCurrentBeaconChanged = true;
           #ifdef SUPPORT_BEEPER
-            stopRepeatingBeep();
+            endRepeatingBeep();
           #endif
           #ifdef SUPPORT_DISPLAY
             if(currentDisplayState == displayState::distance) //Clear distance if showing

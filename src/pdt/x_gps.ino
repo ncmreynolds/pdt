@@ -187,7 +187,7 @@
       }
       for(uint8_t beaconIndex = 1; beaconIndex < numberOfDevices; beaconIndex++)
       {
-        if((device[beaconIndex].typeOfDevice & 0x01) == 0x00)
+        if((device[beaconIndex].typeOfDevice & 0x01) == 0x00 && device[beaconIndex].hasFix == true)
         {
           count++;
         }

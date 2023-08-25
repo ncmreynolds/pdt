@@ -61,10 +61,23 @@
       xSemaphoreGive(beeperSemaphore);
     }
   }
-  void stopRepeatingBeep()
+  void pauseRepeatingBeep()
   {
     if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
     {
+      ledcWriteTone(beeperChannel, 0);  //Write no tone
+      //ledcDetachPin(beeperPin); //Detach because beeper is active low
+      //digitalWrite(beeperPin, HIGH);  //Write high because beeper is active low
+      beeperState = false;
+      repeatingBeepLastStateChange = millis();
+      xSemaphoreGive(beeperSemaphore);
+    }
+  }
+  void endRepeatingBeep()
+  {
+    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
+    {
+      repeatingBeepOffTime = 0;
       ledcWriteTone(beeperChannel, 0);  //Write no tone
       //ledcDetachPin(beeperPin); //Detach because beeper is active low
       //digitalWrite(beeperPin, HIGH);  //Write high because beeper is active low
@@ -92,7 +105,7 @@
           {
             if(millis() - repeatingBeepLastStateChange > repeatingBeepOnTime)  //There's an expiring repeating beep
             {
-              stopRepeatingBeep(); //Turn off the beeper until next time
+              pauseRepeatingBeep(); //Turn off the beeper until next time
             }
           }
         }
