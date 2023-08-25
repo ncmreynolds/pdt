@@ -9,19 +9,126 @@
     GPS_PORT.setRxBufferSize(256);  //Set the largest possible buffer for GPS data so it can buffer then be ingested quickly. 9600 baud sucks
     GPS_PORT.begin(GPSBaud, SERIAL_8N1, RXPin, TXPin);  //RX only hardware serial port
     localLog(F("Configuring GPS on hardware serial RX: pin "));
-    #ifdef USE_RTOS
-      //Use a semaphore to control access to global variables
-      gpsSemaphore = xSemaphoreCreateBinary();
-      xSemaphoreGive(gpsSemaphore);
-      //Start processing GPS data as an RTOS task
-      xTaskCreate(processGpsSentences, "processGpsSentences", 10000, NULL, 1, &gpsManagementTask );
-    #endif
+    //Use a semaphore to control access to global variables and data structures
+    gpsSemaphore = xSemaphoreCreateBinary();
+    xSemaphoreGive(gpsSemaphore);
+    //Start processing GPS data as an RTOS task
+    xTaskCreate(processGpsSentences, "processGpsSentences", 10000, NULL, 1, &gpsManagementTask );
     localLogLn(RXPin);
   }
   void manageGps()
   {
-    if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
+    if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout)) //Take the semaphore to exclude the sentence processing task and udate the data structures
     {
+      if(updateLocation())  //Get the latest GPS location stored in device[0], if there's a fix
+      {
+        if(millis() - lastDistanceCalculation > distanceCalculationInterval)  //Recalculate distances on a short interval
+        {
+          lastDistanceCalculation = millis();
+          #if defined(ACT_AS_TRACKER)
+            selectDeviceToTrack();  //May need to change tracked device due to movement
+          #elif defined(ACT_AS_BEACON)
+            calculateDistanceToTrackers();  //May need to change update frequency due to movement
+          #endif
+        }
+        #ifdef SUPPORT_BEEPER
+          if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && distanceToCurrentBeaconChanged == true)  //Set beeper urgency based on current distance, if it has changed
+          {
+            setBeeperUrgency();
+            #ifndef SUPPORT_DISPLAY
+              distanceToCurrentBeaconChanged = false; //If it's beeper only, acknowledge the change
+            #endif
+          }
+        #endif
+        #ifdef SUPPORT_DISPLAY
+          if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && distanceToCurrentBeaconChanged == true) //Show distance if it changes
+          {
+            distanceToCurrentBeaconChanged = false;
+            if(currentDisplayState == displayState::distance && millis() - lastDisplayUpdate > 100)
+            {
+              displayDistanceToBeacon();
+            }
+          }
+          if(currentDisplayState != displayState::blank && millis() - lastDisplayUpdate > displayTimeout) //Time out the display
+          {
+            if(currentDisplayState == displayState::distance)
+            {
+              blankDisplay(); //Blank the display
+            }
+            else if(currentDisplayState == displayState::trackingMode && currentTrackingMode == trackingMode::nearest)  //Find nearest then show user
+            {
+              displayDistanceToBeacon();  //Drop back to the range display
+            }
+            else if(currentDisplayState == displayState::trackingMode && currentTrackingMode == trackingMode::furthest) //Find furthest then show user
+            {
+              if(selectFurthestBeacon())
+              {
+                currentTrackingMode = trackingMode::fixed;
+                displayTrackingMode();
+              }
+              else
+              {
+                displayDistanceToBeacon();  //Drop back to the range display
+              }
+            }
+            else
+            {
+              displayDistanceToBeacon();  //Drop back to the range display
+            }
+          }
+        #endif
+        #ifdef SUPPORT_LED
+          //manageLed();
+        #endif
+      }
+      if(millis() - lastGpsTimeCheck > gpsTimeCheckInterval)  //Maintain system time using GPS which may be possible even without a full fix
+      {
+        lastGpsTimeCheck = millis();
+        updateTimeFromGps();
+      }
+      xSemaphoreGive(gpsSemaphore);
+    }
+  }
+  void updateTimeFromGps()
+  {
+    if(gps.time.isValid() == true)
+    {
+      if(timeIsValid() == false)  //Get an initial time at startup
+      {
+        localLog(F("Attempting to use GPS for time: "));
+        setTimeFromGps();
+        if(timeIsValid() == true)
+        {
+          localLogLn(F("OK"));
+          gpsTimeCheckInterval = 1800000;  //Reduce the check interval to half an hour
+        }
+        else
+        {
+          localLogLn(F("failed"));
+        }
+      }
+      else
+      {
+        localLogLn(F("Updating time from GPS"));
+        setTimeFromGps();
+        gpsTimeCheckInterval = 1800000;  //Reduce the check interval to half an hour
+      }
+    }
+  }
+  bool updateLocation() //True implies there's a GPS fix
+  {
+    if(gps.location.isValid() == true)
+    {
+      if(device[0].hasFix == false)
+      {
+        device[0].hasFix = true;
+        localLogLn(F("GPS got fix"));
+      }
+      device[0].latitude = gps.location.lat();
+      device[0].longitude = gps.location.lng();
+      device[0].course = gps.course.deg();
+      device[0].speed = gps.speed.mps();
+      device[0].hdop = gps.hdop.hdop();
       #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
         if(millis() - lastGPSstatus > 10000)
         {
@@ -29,184 +136,46 @@
           showGPSstatus();
         }
       #endif
-      if(device[0].hasFix == false && gps.location.isValid() == true)
-      {
-        device[0].hasFix = true;
-        if(timeIsValid())
-        {
-          localLogLn(F("GPS got fix"));
-        }
-        else
-        {
-          localLog(F("GPS got fix, using for time: "));
-          setTimeFromGps();
-          if(timeIsValid())
-          {
-            gpsTimeCheckInterval = 1800000; //Change to hourly updates, if succesful
-            localLogLn(F("OK"));
-          }
-          else
-          {
-            localLogLn(F("failed"));
-          }
-        }
-      }
-      if(device[0].hasFix == true && gps.location.isValid() == false)
-      {
-        device[0].hasFix = false;
-        localLogLn(F("GPS lost fix"));
-      }
-      #ifdef SUPPORT_DISPLAY
-        if(device[0].hasFix == true && device[currentBeacon].hasFix == true && currentDisplayState == displayState::distance && distanceToCurrentBeaconChanged == true && millis() - lastDisplayUpdate > 1000) //Show distance if it changes
-        {
-          displayDistanceToBeacon();
-          distanceToCurrentBeaconChanged = false;
-        }
-        else if(currentDisplayState != displayState::blank && millis() - lastDisplayUpdate > displayTimeout) //Time out the display
-        {
-          if(currentDisplayState == displayState::distance)
-          {
-            blankDisplay(); //Blank the display
-          }
-          else if(currentDisplayState == displayState::trackingMode && currentTrackingMode == trackingMode::nearest)  //Find nearest then show user
-          {
-            /*
-            if(selectNearestBeacon())
-            {
-              currentTrackingMode = trackingMode::fixed;
-              displayTrackingMode();
-            }
-            else
-            */
-            {
-              displayDistanceToBeacon();  //Drop back to the range display
-            }
-          }
-          else if(currentDisplayState == displayState::trackingMode && currentTrackingMode == trackingMode::furthest) //Find furthest then show user
-          {
-            if(selectFurthestBeacon())
-            {
-              currentTrackingMode = trackingMode::fixed;
-              displayTrackingMode();
-            }
-            else
-            {
-              displayDistanceToBeacon();  //Drop back to the range display
-            }
-          }
-          else
-          {
-            displayDistanceToBeacon();  //Drop back to the range display
-          }
-        }
-      #endif
-      if(millis() - lastGpsTimeCheck > gpsTimeCheckInterval)  //Maintain system time using GPS
-      {
-        lastGpsTimeCheck = millis();
-        //Update time if possible
-        if(gps.time.isValid() == true)
-        {
-          if(timeIsValid() == false)  //Get an initial time at startup
-          {
-            localLog(F("Attempting to use GPS for time: "));
-            setTimeFromGps();
-            if(timeIsValid() == true)
-            {
-              localLogLn(F("OK"));
-              gpsTimeCheckInterval = 1800000;  //Reduce the check interval to half an hour
-            }
-            else
-            {
-              localLogLn(F("failed"));
-            }
-          }
-          else
-          {
-            localLogLn(F("Updating time from GPS"));
-            setTimeFromGps();
-            gpsTimeCheckInterval = 1800000;  //Reduce the check interval to half an hour
-          }
-        }
-        #ifdef SUPPORT_LED
-          //manageLed();
-        #endif
-      }
-      xSemaphoreGive(gpsSemaphore);
+      return true;
     }
+    else if(device[0].hasFix == true)
+    {
+      device[0].hasFix = false;
+      localLogLn(F("GPS lost fix"));
+    }
+    return false;
   }
-  #ifdef USE_RTOS
-    bool updateLocation()
+  void processGpsSentences(void * parameter)
+  {
+    char character;
+    while(true)
     {
       if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
       {
-        if(gps.location.isValid() == true)
+        while(GPS_PORT.available()) //Check for incoming GPS data
         {
-          device[0].hasFix = true;
-          device[0].latitude = gps.location.lat();
-          device[0].longitude = gps.location.lng();
-          device[0].course = gps.course.deg();
-          device[0].speed = gps.speed.mps();
-          device[0].hdop = gps.hdop.hdop();
-          xSemaphoreGive(gpsSemaphore);
-          return true;
+          character = GPS_PORT.read();
+          gps.encode(character);  //Process the data
+          //SERIAL_DEBUG_PORT.print(character);
         }
-        else
-        {
-          xSemaphoreGive(gpsSemaphore);
-          return false;
-        }
+        xSemaphoreGive(gpsSemaphore);
       }
-      return false;
+      vTaskDelay(gpsYieldTime / portTICK_PERIOD_MS); //Hand back for 100ms
     }
-    void processGpsSentences(void * parameter)
-    {
-      char character;
-      while(true)
-      {
-        if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
-        {
-          while(GPS_PORT.available()) //Check for incoming GPS data
-          {
-            character = GPS_PORT.read();
-            gps.encode(character);  //Process the data
-            //SERIAL_DEBUG_PORT.print(character);
-          }
-          xSemaphoreGive(gpsSemaphore);
-        }
-        vTaskDelay(gpsYieldTime / portTICK_PERIOD_MS); //Hand back for 100ms
-      }
-    }
-  #else
-    void smartDelay(uint32_t ms)
-    {
-      uint32_t start = millis();
-      do 
-      {
-        while(GPS_PORT.available())
-        {
-          //SERIAL_DEBUG_PORT.print(char(GPS_PORT.peek()));
-          gps.encode(GPS_PORT.read());
-        }
-      } while (millis() - start < ms);
-    }
-  #endif
+  }
   void setTimeFromGps()
   {
-    //if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
-    {
-      struct tm tm;
-      tm.tm_year = gps.date.year() - 1900;
-      tm.tm_mon = gps.date.month() - 1;
-      tm.tm_mday = gps.date.day();
-      tm.tm_hour = gps.time.hour();
-      tm.tm_min = gps.time.minute();
-      tm.tm_sec = gps.time.second();
-      time_t t = mktime(&tm);
-      //printf("Setting time: %s", asctime(&tm));
-      struct timeval now = { .tv_sec = t };
-      settimeofday(&now, NULL);
-      //xSemaphoreGive(gpsSemaphore);
-    }
+    struct tm tm;
+    tm.tm_year = gps.date.year() - 1900;
+    tm.tm_mon = gps.date.month() - 1;
+    tm.tm_mday = gps.date.day();
+    tm.tm_hour = gps.time.hour();
+    tm.tm_min = gps.time.minute();
+    tm.tm_sec = gps.time.second();
+    time_t t = mktime(&tm);
+    //printf("Setting time: %s", asctime(&tm));
+    struct timeval now = { .tv_sec = t };
+    settimeofday(&now, NULL);
   }
   #if defined(ACT_AS_TRACKER)
     uint8_t numberOfBeacons()
@@ -227,55 +196,51 @@
     }
     void calculateDistanceToBeacons()
     {
-      if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
+      for(uint8_t beaconIndex = 1; beaconIndex < numberOfDevices; beaconIndex++)
       {
-        for(uint8_t beaconIndex = 1; beaconIndex < numberOfDevices; beaconIndex++)
+        if((device[beaconIndex].typeOfDevice & 0x01) == 0x00 && device[beaconIndex].hasFix == true)
         {
-          if((device[beaconIndex].typeOfDevice & 0x01) == 0x00 && device[beaconIndex].hasFix == true)
+          device[beaconIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
+          device[beaconIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+            SERIAL_DEBUG_PORT.printf_P(PSTR("Beacon %u - distance:%01.1f(m) course:%03.1f(deg)"), beaconIndex, device[beaconIndex].distanceTo, device[beaconIndex].courseTo);
+          #endif
+          if(beaconIndex == currentBeacon)
           {
-            device[beaconIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
-            device[beaconIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
             #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-              SERIAL_DEBUG_PORT.printf_P(PSTR("Beacon %u - distance:%01.1f(m) course:%03.1f(deg)"), beaconIndex, device[beaconIndex].distanceTo, device[beaconIndex].courseTo);
+              SERIAL_DEBUG_PORT.println(F(" - tracking"));
             #endif
-            if(beaconIndex == currentBeacon)
+            if(distanceToCurrentBeacon != (uint32_t)device[beaconIndex].distanceTo)
             {
-              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-                SERIAL_DEBUG_PORT.println(F(" - tracking"));
-              #endif
-              if(distanceToCurrentBeacon != (uint32_t)device[beaconIndex].distanceTo)
+              distanceToCurrentBeacon = (uint32_t)device[beaconIndex].distanceTo;
+              distanceToCurrentBeaconChanged = true;
+              /*
+              if(distanceToCurrentBeacon < loRaPerimiter1)
               {
-                distanceToCurrentBeacon = (uint32_t)device[beaconIndex].distanceTo;
-                distanceToCurrentBeaconChanged = true;
-                /*
-                if(distanceToCurrentBeacon < loRaPerimiter1)
-                {
-                  device[beaconIndex].timeout = locationSendInterval1 * 2.5;
-                }
-                else if(distanceToCurrentBeacon < loRaPerimiter2)
-                {
-                  device[beaconIndex].timeout = locationSendInterval2 * 2.5;
-                }
-                else if(distanceToCurrentBeacon < loRaPerimiter3)
-                {
-                  device[beaconIndex].timeout = locationSendInterval3 * 2.5;
-                }
-                else
-                {
-                  device[beaconIndex].timeout = 60000;
-                }
-                */
+                device[beaconIndex].timeout = locationSendInterval1 * 2.5;
               }
-            }
-            else
-            {
-              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-                SERIAL_DEBUG_PORT.println();
-              #endif
+              else if(distanceToCurrentBeacon < loRaPerimiter2)
+              {
+                device[beaconIndex].timeout = locationSendInterval2 * 2.5;
+              }
+              else if(distanceToCurrentBeacon < loRaPerimiter3)
+              {
+                device[beaconIndex].timeout = locationSendInterval3 * 2.5;
+              }
+              else
+              {
+                device[beaconIndex].timeout = 60000;
+              }
+              */
             }
           }
+          else
+          {
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+              SERIAL_DEBUG_PORT.println();
+            #endif
+          }
         }
-        xSemaphoreGive(gpsSemaphore);
       }
     }
     void selectDeviceToTrack()
@@ -326,101 +291,80 @@
           }
         #endif
       }
-      #ifdef SUPPORT_BEEPER
-        setBeeperUrgency();
-      #endif
     }
     bool selectNearestBeacon()  //True only implies it has changed!
     {
-      if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
+      if(numberOfDevices == 0)
       {
-        if(numberOfDevices == 0)
+        return false;
+      }
+      else if(numberOfDevices == 2 && device[1].hasFix == true && device[1].distanceTo < maximumEffectiveRange)
+      {
+        if(currentBeacon != 1)  //Only assign this once
         {
-          xSemaphoreGive(gpsSemaphore);
-          return false;
-        }
-        else if(numberOfDevices == 2 && device[1].hasFix == true && device[1].distanceTo < maximumEffectiveRange)
-        {
-          if(currentBeacon != 1)  //Only assign this once
-          {
-            currentBeacon = 1;
-            updateDistanceToBeacon(currentBeacon);
-            xSemaphoreGive(gpsSemaphore);
-            return true;
-          }
+          currentBeacon = 1;
           updateDistanceToBeacon(currentBeacon);
-          xSemaphoreGive(gpsSemaphore);
-          return false;
+          return true;
         }
-        else
+        updateDistanceToBeacon(currentBeacon);
+        return false;
+      }
+      else
+      {
+        uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
+        for(uint8_t index = 0; index < numberOfDevices; index++)
         {
-          uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
-          for(uint8_t index = 0; index < numberOfDevices; index++)
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasFix == true && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           {
-            if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasFix == true && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
-            {
-              nearestBeacon = index;
-            }
+            nearestBeacon = index;
           }
-          if(nearestBeacon != maximumNumberOfDevices && currentBeacon != nearestBeacon) //Choose a new nearest beacon
-          {
-            currentBeacon = nearestBeacon;
-            updateDistanceToBeacon(currentBeacon);
-            xSemaphoreGive(gpsSemaphore);
-            return true;
-          }
-          updateDistanceToBeacon(currentBeacon);
-          xSemaphoreGive(gpsSemaphore);
-          return false;
         }
-        xSemaphoreGive(gpsSemaphore);
+        if(nearestBeacon != maximumNumberOfDevices && currentBeacon != nearestBeacon) //Choose a new nearest beacon
+        {
+          currentBeacon = nearestBeacon;
+          updateDistanceToBeacon(currentBeacon);
+          return true;
+        }
+        updateDistanceToBeacon(currentBeacon);
+        return false;
       }
       return false;
     }
     bool selectFurthestBeacon() //True implies this has changed!
     {
-      if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
+      if(numberOfDevices == 1)
       {
-        if(numberOfDevices == 1)
+        return false;
+      }
+      else if(numberOfDevices == 2 && device[1].hasFix == true && device[1].distanceTo < maximumEffectiveRange)
+      {
+        if(currentBeacon != 1)
         {
-          xSemaphoreGive(gpsSemaphore);
-          return false;
-        }
-        else if(numberOfDevices == 2 && device[1].hasFix == true && device[1].distanceTo < maximumEffectiveRange)
-        {
-          if(currentBeacon != 1)
-          {
-            currentBeacon = 1;
-            updateDistanceToBeacon(currentBeacon);
-            xSemaphoreGive(gpsSemaphore);
-            return true;
-          }
+          currentBeacon = 1;
           updateDistanceToBeacon(currentBeacon);
-          xSemaphoreGive(gpsSemaphore);
-          return false;
+          return true;
         }
-        else
+        updateDistanceToBeacon(currentBeacon);
+        return false;
+      }
+      else
+      {
+        uint8_t furthestBeacon = maximumNumberOfDevices;
+        for(uint8_t index = 0; index < numberOfDevices; index++)
         {
-          uint8_t furthestBeacon = maximumNumberOfDevices;
-          for(uint8_t index = 0; index < numberOfDevices; index++)
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasFix == true && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           {
-            if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasFix == true && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
-            {
-              furthestBeacon = index;
-            }
+            furthestBeacon = index;
           }
-          if(furthestBeacon != maximumNumberOfDevices && currentBeacon != furthestBeacon)
-          {
-            currentBeacon = furthestBeacon;
-            updateDistanceToBeacon(currentBeacon);
-            xSemaphoreGive(gpsSemaphore);
-            return true;
-          }
-          updateDistanceToBeacon(currentBeacon);
-          xSemaphoreGive(gpsSemaphore);
-          return false;
         }
-        xSemaphoreGive(gpsSemaphore);
+        if(furthestBeacon != maximumNumberOfDevices && currentBeacon != furthestBeacon)
+        {
+          currentBeacon = furthestBeacon;
+          updateDistanceToBeacon(currentBeacon);
+          return true;
+        }
+        updateDistanceToBeacon(currentBeacon);
+        return false;
       }
       return false;
     }
@@ -463,7 +407,6 @@
             #endif
           }
         }
-        xSemaphoreGive(gpsSemaphore);
       }
     }
   #endif
@@ -520,7 +463,6 @@
         }
         */
         SERIAL_DEBUG_PORT.println();
-        //xSemaphoreGive(gpsSemaphore);
       }
     }
   #endif

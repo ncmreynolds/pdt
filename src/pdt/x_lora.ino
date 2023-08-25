@@ -179,44 +179,43 @@
         device[currentBeacon].nextLocationUpdate != 0 &&  //Thing has shared when to expect the location update
         millis() - device[currentBeacon].lastLocationUpdate > (device[currentBeacon].nextLocationUpdate + (device[currentBeacon].nextLocationUpdate>>3))) //Allow margin of 1/8 the expected interval
       {
-        localLog(F("Currently tracked beacon "));
-        localLog(currentBeacon);
-        localLogLn(F(" gone offline"));
-        device[currentBeacon].hasFix = false;
-        currentBeacon = maximumNumberOfDevices;
-        distanceToCurrentBeacon = BEACONUNREACHABLE;
-        distanceToCurrentBeaconChanged = true;
-        #ifdef SUPPORT_DISPLAY
-          if(currentDisplayState == displayState::distance) //Clear distance if showing
-          {
-            displayDistanceToBeacon();
-          }
-        #endif
-        #ifdef SUPPORT_BEEPER
-          setBeeperUrgency();
-        #endif
+        if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout)) //Take the semaphore to exclude the sentence processing task and udate the data structures
+        {
+          localLog(F("Currently tracked beacon "));
+          localLog(currentBeacon);
+          localLogLn(F(" gone offline"));
+          device[currentBeacon].hasFix = false;
+          currentBeacon = maximumNumberOfDevices;
+          distanceToCurrentBeacon = BEACONUNREACHABLE;
+          distanceToCurrentBeaconChanged = true;
+          #ifdef SUPPORT_BEEPER
+            stopRepeatingBeep();
+          #endif
+          #ifdef SUPPORT_DISPLAY
+            if(currentDisplayState == displayState::distance) //Clear distance if showing
+            {
+              displayDistanceToBeacon();
+            }
+          #endif
+          xSemaphoreGive(gpsSemaphore);
+        }
       }
     #endif
     #ifdef SUPPORT_GPS
     if(millis() - lastLocationSendTime > device[0].nextLocationUpdate)
     {
       lastLocationSendTime = millis();
-      if(updateLocation())  //Get the latest GPS location, if possible
-      {
-        #if defined(ACT_AS_TRACKER)
-          selectDeviceToTrack();  //May need to change tracked device due to movement
-          if(loRaConnected && numberOfBeacons() > 0)  //Only share ocation if there are some beacons
-          {
-            shareLocation();
-          }
-        #elif defined(ACT_AS_BEACON)
-          calculateDistanceToTrackers();  //May need to change update frequency due to movement
-          if(loRaConnected) //Always share location
-          {
-            shareLocation();
-          }
-        #endif
-      } //matches if(updateLocation())
+      #if defined(ACT_AS_TRACKER)
+        if(loRaConnected && numberOfBeacons() > 0)  //Only share ocation if there are some beacons
+        {
+          shareLocation();
+        }
+      #elif defined(ACT_AS_BEACON)
+        if(loRaConnected) //Always share location
+        {
+          shareLocation();
+        }
+      #endif
     }
     #endif
   }
@@ -498,11 +497,6 @@
                             SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) RSSI:%.1f next update:%u(ms)\r\n",
                             device[deviceIndex].latitude, device[deviceIndex].longitude, device[deviceIndex].course, device[deviceIndex].speed, device[deviceIndex].hdop, device[deviceIndex].distanceTo, lastRssi, device[deviceIndex].nextLocationUpdate);
                         }
-                      #endif
-                      #if defined(ACT_AS_TRACKER)
-                        selectDeviceToTrack(); //May need to change tracked device due to movement
-                      #else
-                        calculateDistanceToTrackers();  //May need to change update frequency due to movement
                       #endif
                     }
                     else if(messagetype == deviceStatusUpdateId)

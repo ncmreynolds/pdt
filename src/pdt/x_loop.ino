@@ -12,15 +12,7 @@ void loop()
     manageLoRa();
   #endif
   #ifdef SUPPORT_GPS
-    #ifndef USE_RTOS
-      smartDelay(250);
-    #endif
     manageGps();
-  #endif
-  #ifdef SUPPORT_BEEPER
-    #ifndef USE_RTOS
-      manageBeeper();
-    #endif
   #endif
   #ifdef SUPPORT_BATTERY_METER
     manageBattery();
@@ -36,9 +28,6 @@ void loop()
       localLogLn(F("Time synced"));
     }
   }
-  #ifndef USE_RTOS
-    manageLogging();
-  #endif
   if(saveConfigurationSoon != 0 && millis() - saveConfigurationSoon > 500) //Save configuration after a delay to avoid AsyncWebserver doing it in a callback
   {
     saveConfigurationSoon = 0;

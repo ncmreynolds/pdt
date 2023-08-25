@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 16;
+uint8_t patchVersion = 17;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -58,7 +58,6 @@ uint8_t patchVersion = 16;
   #pragma message "Acting as beacon"
 #endif
 #define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
-#define USE_RTOS
 //#define SERVE_CONFIG_FILE
 /*
 
@@ -499,17 +498,17 @@ const uint16_t loggingSemaphoreTimeout = 5;
 
 */
 #ifdef SUPPORT_GPS
-  #ifdef USE_RTOS
-    TaskHandle_t gpsManagementTask = NULL;
-    SemaphoreHandle_t gpsSemaphore = NULL;
-    const uint16_t gpsSemaphoreTimeout = 5;
-    const uint16_t gpsYieldTime = 100;
-  #endif
+  TaskHandle_t gpsManagementTask = NULL;
+  SemaphoreHandle_t gpsSemaphore = NULL;
+  const uint16_t gpsSemaphoreTimeout = 5;
+  const uint16_t gpsYieldTime = 100;
   #define MINIMUM_VIABLE_HDOP 10
   TinyGPSPlus gps;
   const uint32_t GPSBaud = 9600;
   uint32_t lastGpsTimeCheck = 0;
   uint32_t gpsTimeCheckInterval = 30000;
+  uint32_t lastDistanceCalculation = 0;
+  uint32_t distanceCalculationInterval = 5000;
   //double trackerLatitude = 51.508131; //London
   //double trackerLongitude = -0.128002;
   struct deviceLocationInfo {

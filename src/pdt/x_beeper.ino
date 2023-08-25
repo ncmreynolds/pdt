@@ -4,9 +4,7 @@
     localLog(F("Configuring beeper: "));
     pinMode(beeperPin, OUTPUT);
     //Use a semaphore to control access to global variables
-    #ifdef USE_RTOS
-      beeperSemaphore = xSemaphoreCreateBinary();
-    #endif
+    beeperSemaphore = xSemaphoreCreateBinary();
     //pinMode(beeperPin, OUTPUT);
     pinMode(beeperPin, INPUT);
     digitalWrite(beeperPin, HIGH);
@@ -14,18 +12,14 @@
     ledcSetup(beeperChannel, beeperButtonTone, 8);  //Set up eight bit resolution
     ledcWriteTone(beeperChannel, 0);  //Set an initial tone of nothing
     ledcAttachPin(beeperPin, beeperChannel);
-    #ifdef USE_RTOS
-      xSemaphoreGive(beeperSemaphore);
-      xTaskCreate(manageBeeper, "manageBeeper", 1000, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
-    #endif
+    xSemaphoreGive(beeperSemaphore);
+    xTaskCreate(manageBeeper, "manageBeeper", 1000, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
     localLogLn(F("OK"));
   }
   void makeAsingleBeep(uint16_t frequency, uint16_t duration) //A single beep can override a repeating one
   {
-    #ifdef USE_RTOS
     if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
     {
-    #endif
       if(beeperState == false)
       {
         //ledcAttachPin(beeperPin, beeperChannel);
@@ -34,19 +28,15 @@
       singleBeepOnTime = duration; //0 means continuous
       singleBeepLastStateChange = millis();
       beeperState = true;
-    #ifdef USE_RTOS
       xSemaphoreGive(beeperSemaphore);
     }
-    #endif
   }
   void makeArepeatingBeep(uint16_t frequency, uint32_t ontime, uint32_t offtime = 0) //0 ontime means continuous, 0 offtime means don't repeat
   {
     if(beeperState == false)
     {
-      #ifdef USE_RTOS
       if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
       {
-      #endif
         ledcAttachPin(beeperPin, beeperChannel);
         ledcWriteTone(beeperChannel, frequency);
         beeperTone = frequency;
@@ -54,44 +44,34 @@
         repeatingBeepOffTime = offtime;
         repeatingBeepLastStateChange = millis();
         beeperState = true;
-      #ifdef USE_RTOS
         xSemaphoreGive(beeperSemaphore);
       }
-      #endif
     }
   }
   void stopSingleBeep()
   {
-    #ifdef USE_RTOS
     if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
     {
-    #endif
       ledcWriteTone(beeperChannel, 0);  //Write no tone
       //ledcDetachPin(beeperPin); //Detach because beeper is active low
       //digitalWrite(beeperPin, HIGH);  //Write high because beeper is active low
       beeperState = false;
       singleBeepLastStateChange = millis(); //Update the state change time
       singleBeepOnTime = 0; //Mark the single beep as done
-    #ifdef USE_RTOS
       xSemaphoreGive(beeperSemaphore);
     }
-    #endif
   }
   void stopRepeatingBeep()
   {
-    #ifdef USE_RTOS
     if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
     {
-    #endif
       ledcWriteTone(beeperChannel, 0);  //Write no tone
       //ledcDetachPin(beeperPin); //Detach because beeper is active low
       //digitalWrite(beeperPin, HIGH);  //Write high because beeper is active low
       beeperState = false;
       repeatingBeepLastStateChange = millis();
-    #ifdef USE_RTOS
       xSemaphoreGive(beeperSemaphore);
     }
-    #endif
   }
   void manageBeeper(void * parameter)
   {

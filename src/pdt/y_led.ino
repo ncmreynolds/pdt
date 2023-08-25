@@ -3,20 +3,14 @@
   {
     pinMode(ledPin, OUTPUT);
     digitalWrite(ledPin,LOW);
-    #ifdef USE_RTOS
-      ledSemaphore = xSemaphoreCreateBinary();
-    #endif
-    #ifdef USE_RTOS
-      xSemaphoreGive(ledSemaphore);
-      xTaskCreate(manageLed, "manageLed", 1000, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
-    #endif
+    ledSemaphore = xSemaphoreCreateBinary();
+    xSemaphoreGive(ledSemaphore);
+    xTaskCreate(manageLed, "manageLed", 1000, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
   }
   void ledOn(uint32_t ontime, uint32_t offtime)
   {
-    #ifdef USE_RTOS
     if(xSemaphoreTake(ledSemaphore, ledSemaphoreTimeout))
     {
-    #endif
       if(ledState == false)
       {
         digitalWrite(ledPin, HIGH);
@@ -24,26 +18,18 @@
         ledLastStateChange = millis();
         ledState = true;
       }
-    #ifdef USE_RTOS
       xSemaphoreGive(ledSemaphore);
     }
-    #endif
   }
   void ledOff()
   {
-    #ifdef USE_RTOS
     if(xSemaphoreTake(ledSemaphore, ledSemaphoreTimeout))
     {
-    #endif
       digitalWrite(ledPin, LOW);
       ledState = false;
       ledLastStateChange = millis();
-      #ifdef USE_RTOS
       xSemaphoreGive(ledSemaphore);
-      #endif
-    #ifdef USE_RTOS
     }
-    #endif
   }
   void manageLed(void * parameter)
   {
