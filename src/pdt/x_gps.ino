@@ -20,6 +20,55 @@
   {
     if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout)) //Take the semaphore to exclude the sentence processing task and udate the data structures
     {
+      for(uint8_t index = 0; index < numberOfDevices; index++)  //Degrade quality if location updates missed, this INCLUDES this device!
+      {
+        if(device[index].hasFix == true && //Thing has fix!
+            device[index].nextLocationUpdate != 0 &&  //Thing has shared when to expect the location update
+            millis() - device[index].lastLocationUpdate > (device[index].nextLocationUpdate + (device[index].nextLocationUpdate>>3))) //Allow margin of 1/8 the expected interval
+        {
+          device[index].lastLocationUpdate = millis();  //A failed update is an 'update'
+          device[index].updateHistory = device[index].updateHistory >> 1; //Reduce update history quality
+          //device[index].nextLocationUpdate = device[index].nextLocationUpdate >> 1; //Halve the timeout
+          #ifdef ACT_AS_TRACKER
+          if(index == currentBeacon)
+          {
+            localLog(F("Currently tracked beacon "));
+          }
+          else
+          #endif
+          {
+            localLog(F("Device "));
+          }
+          localLog(index);
+          if(device[index].updateHistory < 0x00ff)
+          {
+            localLogLn(F(" gone offline"));
+            device[index].hasFix = false;
+            #ifdef ACT_AS_TRACKER
+              if(index == currentBeacon) //Need to stop tracking this beacon
+              {
+                currentBeacon = maximumNumberOfDevices;
+                distanceToCurrentBeacon = BEACONUNREACHABLE;
+                distanceToCurrentBeaconChanged = true;
+                #ifdef SUPPORT_BEEPER
+                  endRepeatingBeep();
+                #endif
+                #ifdef SUPPORT_DISPLAY
+                  if(currentDisplayState == displayState::distance) //Clear distance if showing
+                  {
+                    displayDistanceToBeacon();
+                  }
+                #endif
+              }
+            #endif
+          }
+          else
+          {
+            localLog(F(" dropped packet, update history now:0x"));
+            localLogLn(String(device[index].updateHistory,HEX));
+          }
+        }
+      }
       if(updateLocation())  //Get the latest GPS location stored in device[0], if there's a fix
       {
         if(millis() - lastDistanceCalculation > distanceCalculationInterval)  //Recalculate distances on a short interval
@@ -32,13 +81,15 @@
           #endif
         }
         #ifdef SUPPORT_BEEPER
-          if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && distanceToCurrentBeaconChanged == true)  //Set beeper urgency based on current distance, if it has changed
-          {
-            setBeeperUrgency();
-            #ifndef SUPPORT_DISPLAY
-              distanceToCurrentBeaconChanged = false; //If it's beeper only, acknowledge the change
-            #endif
-          }
+          #ifdef ACT_AS_TRACKER
+            if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && distanceToCurrentBeaconChanged == true)  //Set beeper urgency based on current distance, if it has changed
+            {
+              setBeeperUrgency();
+              #ifndef SUPPORT_DISPLAY
+                distanceToCurrentBeaconChanged = false; //If it's beeper only, acknowledge the change
+              #endif
+            }
+          #endif
         #endif
         #ifdef SUPPORT_DISPLAY
           if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && distanceToCurrentBeaconChanged == true) //Show distance if it changes
@@ -124,6 +175,7 @@
         device[0].hasFix = true;
         localLogLn(F("GPS got fix"));
       }
+      device[0].lastLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
       device[0].latitude = gps.location.lat();
       device[0].longitude = gps.location.lng();
       device[0].course = gps.course.deg();
@@ -312,7 +364,7 @@
       else
       {
         uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
-        for(uint8_t index = 0; index < numberOfDevices; index++)
+        for(uint8_t index = 1; index < numberOfDevices; index++)
         {
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasFix == true && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           {
@@ -350,7 +402,7 @@
       else
       {
         uint8_t furthestBeacon = maximumNumberOfDevices;
-        for(uint8_t index = 0; index < numberOfDevices; index++)
+        for(uint8_t index = 1; index < numberOfDevices; index++)
         {
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasFix == true && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           {
@@ -392,20 +444,39 @@
       }
     }
   #elif defined(ACT_AS_BEACON)
+    uint8_t numberOfTrackers()
+    {
+      uint8_t count = 0;
+      if(numberOfDevices == 1)
+      {
+        return 0;
+      }
+      for(uint8_t index = 1; index < numberOfDevices; index++)
+      {
+        if((device[index].typeOfDevice & 0x01) == 0x01) //Tracker doesn't need to have a fix
+        {
+          count++;
+        }
+      }
+      return count;
+    }
     void calculateDistanceToTrackers()
     {
-      if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
+      distanceToClosestTracker = TRACKERUNREACHABLE;
+      for(uint8_t index = 1; index < numberOfDevices; index++)
       {
-        for(uint8_t trackerIndex = 1; trackerIndex < numberOfDevices; trackerIndex++)
+        if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasFix == true)
         {
-          if((device[trackerIndex].typeOfDevice & 0x01) == 1 && device[trackerIndex].hasFix == true)
+          device[index].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
+          device[index].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
+          if(device[index].distanceTo < distanceToClosestTracker)
           {
-            device[trackerIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
-            device[trackerIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
-            #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-              SERIAL_DEBUG_PORT.printf_P(PSTR("Tracker %u: distance %f course %f\r\n"), trackerIndex, device[trackerIndex].distanceTo, device[trackerIndex].courseTo);
-            #endif
+            distanceToClosestTracker = device[index].distanceTo;
+            closestTracker = index;
           }
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+            SERIAL_DEBUG_PORT.printf_P(PSTR("Tracker %u: distance %f course %f\r\n"), index, device[index].distanceTo, device[index].courseTo);
+          #endif
         }
       }
     }

@@ -12,11 +12,11 @@
    The same sketch has the code for both devices, uncomment the '#define ACT_AS_TRACKER' below to build for the tracker, otherwise it is a beacon
 
 */
-#define ACT_AS_TRACKER
+//#define ACT_AS_TRACKER
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 18;
+uint8_t patchVersion = 21;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -560,7 +560,9 @@ const uint16_t loggingSemaphoreTimeout = 5;
       bool ledState = false;
     #endif
   #elif defined(ACT_AS_BEACON)
-    uint8_t currentTracker = maximumNumberOfDevices;
+    #define TRACKERUNREACHABLE 100000
+    uint8_t closestTracker = maximumNumberOfDevices;
+    uint16_t distanceToClosestTracker = TRACKERUNREACHABLE;
   #endif
   uint32_t lastGPSstatus = 0;
   uint32_t chars;

@@ -310,14 +310,14 @@ void setupWebServer()
             }
           #elif defined(ACT_AS_BEACON)
             response->print(F("<li>Distance to tracker: "));
-            if(currentTracker < maximumNumberOfDevices)
+            if(closestTracker < maximumNumberOfDevices)
             {
-              if(device[currentTracker].hasFix)
+              if(device[closestTracker].hasFix)
               {
-                response->print(device[currentTracker].distanceTo);
+                response->print(device[closestTracker].distanceTo);
                 response->print(F("m</li>"));
                 response->print(F("<li>Course to tracker: "));
-                response->print(device[currentTracker].courseTo);
+                response->print(device[closestTracker].courseTo);
               }
               else
               {

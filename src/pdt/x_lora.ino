@@ -173,56 +173,71 @@
       }
       loRaReceiveBufferSize = 0;
     }
-    #if defined(ACT_AS_TRACKER)
-      if(currentBeacon != maximumNumberOfDevices && //Tracking something!
-        device[currentBeacon].hasFix == true && //Thing has fix!
-        device[currentBeacon].nextLocationUpdate != 0 &&  //Thing has shared when to expect the location update
-        millis() - device[currentBeacon].lastLocationUpdate > (device[currentBeacon].nextLocationUpdate + (device[currentBeacon].nextLocationUpdate>>3))) //Allow margin of 1/8 the expected interval
-      {
-        if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout)) //Take the semaphore to exclude the sentence processing task and udate the data structures
-        {
-          device[currentBeacon].updateHistory = (device[currentBeacon].updateHistory >> 1) | 0x8000;
-          localLog(F("Currently tracked beacon "));
-          localLog(currentBeacon);
-          if(device[currentBeacon].updateHistory < 0x00ff)
-          {
-            localLogLn(F(" gone offline"));
-            device[currentBeacon].hasFix = false;
-            currentBeacon = maximumNumberOfDevices;
-            distanceToCurrentBeacon = BEACONUNREACHABLE;
-            distanceToCurrentBeaconChanged = true;
-            #ifdef SUPPORT_BEEPER
-              endRepeatingBeep();
-            #endif
-            #ifdef SUPPORT_DISPLAY
-              if(currentDisplayState == displayState::distance) //Clear distance if showing
-              {
-                displayDistanceToBeacon();
-              }
-            #endif
-          }
-          else
-          {
-            localLog(F(" dropped packet, update history now:0x"));
-            localLogLn(String(device[currentBeacon].updateHistory,HEX));
-          }
-          xSemaphoreGive(gpsSemaphore);
-        }
-      }
-    #endif
     #ifdef SUPPORT_GPS
     if(millis() - lastLocationSendTime > device[0].nextLocationUpdate)
     {
       lastLocationSendTime = millis();
       #if defined(ACT_AS_TRACKER)
-        if(loRaConnected && numberOfBeacons() > 0)  //Only share ocation if there are some beacons
+        if(loRaConnected)
         {
-          shareLocation();
+          if(numberOfBeacons() > 0)  //Only share ocation if there are some beacons
+          {
+            shareLocation();
+            if(currentBeacon != maximumNumberOfDevices) //There is a current beacon
+            {
+              if(distanceToCurrentBeacon < 25)
+              {
+                device[0].nextLocationUpdate = 5000;
+              }
+              else if(distanceToCurrentBeacon < 50)
+              {
+                device[0].nextLocationUpdate = 10000;
+              }
+              else if(distanceToCurrentBeacon < 100)
+              {
+                device[0].nextLocationUpdate = 20000;
+              }
+              else
+              {
+                device[0].nextLocationUpdate = 30000;
+              }
+            }
+          }
+          else
+          {
+            device[0].nextLocationUpdate = 30000;
+          }
         }
       #elif defined(ACT_AS_BEACON)
         if(loRaConnected) //Always share location
         {
-          shareLocation();
+          if(numberOfTrackers() > 0)
+          {
+            shareLocation();
+            if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
+            {
+              if(distanceToClosestTracker < 25)
+              {
+                device[0].nextLocationUpdate = 5000;
+              }
+              else if(distanceToClosestTracker < 50)
+              {
+                device[0].nextLocationUpdate = 10000;
+              }
+              else if(distanceToClosestTracker < 100)
+              {
+                device[0].nextLocationUpdate = 20000;
+              }
+              else
+              {
+                device[0].nextLocationUpdate = 30000;
+              }
+            }
+          }
+          else
+          {
+            device[0].nextLocationUpdate = 30000;
+          }
         }
       #endif
     }
