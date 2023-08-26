@@ -12,11 +12,11 @@
    The same sketch has the code for both devices, uncomment the '#define ACT_AS_TRACKER' below to build for the tracker, otherwise it is a beacon
 
 */
-//#define ACT_AS_TRACKER
+#define ACT_AS_TRACKER
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 2;
-uint8_t patchVersion = 21;
+uint8_t patchVersion = 22;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -27,6 +27,7 @@ uint8_t patchVersion = 21;
 #endif
 #define SERIAL_DEBUG
 #define SERIAL_LOG
+//#define DEBUG_LOGGING
 #define SUPPORT_LORA
 #define DEBUG_LORA
 #define SUPPORT_GPS
@@ -36,11 +37,11 @@ uint8_t patchVersion = 21;
 #define SUPPORT_BUTTON
 #define SUPPORT_OTA
 #define USE_LITTLEFS
-//#define ENABLE_LOCAL_WEBSERVER
-//#define ENABLE_REMOTE_RESTART
-//#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
-//#define ENABLE_OTA_UPDATE
-//#define ENABLE_LOG_DELETION
+#define ENABLE_LOCAL_WEBSERVER
+#define ENABLE_REMOTE_RESTART
+#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
+#define ENABLE_OTA_UPDATE
+#define ENABLE_LOG_DELETION
 #if defined(ACT_AS_TRACKER)
   #define SUPPORT_DISPLAY
   #define SUPPORT_BEEPER
@@ -72,6 +73,9 @@ uint8_t patchVersion = 21;
 //#include <MD5Builder.h> //MD5 has library to hash authorisation lists
 #include <ArduinoJson.h>  //Used to serialise/deserialise configuration files and server responses
 #ifdef SUPPORT_WIFI
+  #include <espBoilerplate.h>
+  #include <DNSServer.h>
+  /*
   #if defined(ESP8266)
     #include <ESP8266WiFi.h>
     #include <ESP8266mDNS.h>
@@ -79,6 +83,7 @@ uint8_t patchVersion = 21;
   #elif defined(ESP32)
     #include <WiFi.h>
   #endif
+  */
   #if defined(ENABLE_OTA_UPDATE)
     #include <ArduinoOTA.h> //Over-the-air update library
   #endif
@@ -295,11 +300,10 @@ uint8_t patchVersion = 21;
 
 */
 #if defined(ACT_AS_BEACON)
-  const char* default_nodeName = "PDT beacon";
+  const char* default_deviceName = "PDT beacon";
 #else
-  const char* default_nodeName = "PDT tracker";
+  const char* default_deviceName = "PDT tracker";
 #endif
-char* nodeName = nullptr;
 char* configurationComment = nullptr;
 char default_configurationComment[] = "";
 //Username for the Web UI
@@ -369,17 +373,25 @@ uint32_t restartTimer = 0;  //Used to schedule a restart
   uint8_t _remoteMacAddress[6] = {0, 0, 0, 0, 0, 0};  //MAC address of the remote device
 #endif
 #if defined(SUPPORT_WIFI)
-  bool startWiFiOnBoot = true;
-  uint32_t wiFiInactivityTimer = 0;
+  bool startWiFiClientOnBoot = true;
+  bool startWiFiApOnBoot = true;
+  bool enableCaptivePortal = true;
+  DNSServer* dnsServer = nullptr; //May not be used so don't create the object unless it is enabled
+  uint32_t wiFiClientInactivityTimer = 0;
   uint32_t lastWifiActivity = 0;
   const char* default_WiFi_SSID = WIFI_PSK;
   const char* default_WiFi_PSK = WIFI_SSID;
   char* SSID = nullptr;
   char* PSK = nullptr;
+  const char* default_AP_PSK = "12345678";
+  char* APSSID = nullptr;
+  char* APPSK = nullptr;
+  uint8_t wifiClientTimeout = 30;
 #endif
-const int8_t networkTimeout = 30;  //Timeout in seconds for network connection, both WiFi and Ethernet
-static bool networkConnected = false; //Is the network connected?
-static bool networkStateChanged = false;  //Has the state changed since initial connection
+const int8_t networkTimeout = 30;  //Timeout in seconds for network connection
+static bool wifiClientConnected = false; //Is the network connected?
+static bool wifiApStarted = false; //Is the WiFi AP started?
+//static bool networkStateChanged = false;  //Has the state changed since initial connection
 /*
    Over-the-update
 */
@@ -409,7 +421,8 @@ uint8_t logfileMonth = 0; //Used to detect rollover
 uint16_t logfileYear = 0; //Used to detect rollover
 bool startOfLogLine = true; //If true then the logging add the time/date at the start of the line
 String loggingBuffer = ""; //A logging backlog buffer
-uint16_t loggingBufferSize = 2048; //The space to reserve for a logging backlog. This is not a hard limit, it is to reduce heap fragmentation.
+//uint16_t loggingBufferSize = 2048; //The space to reserve for a logging backlog. This is not a hard limit, it is to reduce heap fragmentation.
+uint16_t loggingBufferSize = 32768; //The space to reserve for a logging backlog. This is not a hard limit, it is to reduce heap fragmentation.
 uint32_t logLastFlushed = 0;  //Time (millis) of the last log flush
 bool autoFlush = false;
 bool flushLogNow = false;
@@ -448,13 +461,16 @@ const uint16_t loggingSemaphoreTimeout = 5;
   #endif
   uint8_t loRaSendBuffer[MAX_LORA_BUFFER_SIZE];
   uint8_t loRaReceiveBuffer[MAX_LORA_BUFFER_SIZE];
+  uint32_t lastDeviceInfoSendTime = 0;    // last send time
+  uint32_t deviceInfoSendInterval = 30000;    // Send info eveyr 30s
   uint32_t lastLocationSendTime = 0;    // last send time
-  uint16_t loRaPerimiter1 = 10;       //Range at which beacon 1 applies
+  uint32_t defaultLocationSendInterval = 60000;
+  uint16_t loRaPerimiter1 = 25;             //Range at which beacon 1 applies
   uint32_t locationSendInterval1 = 5000;    // interval between sends
-  uint16_t loRaPerimiter2 = 20;       //Range at which beacon 1 applies
-  uint32_t locationSendInterval2 = 5000;    // interval between sends
-  uint16_t loRaPerimiter3 = 30;       //Range at which beacon 1 applies
-  uint32_t locationSendInterval3 = 5000;    // interval between sends
+  uint16_t loRaPerimiter2 = 50;             //Range at which beacon 2 applies
+  uint32_t locationSendInterval2 = 15000;   // interval between sends
+  uint16_t loRaPerimiter3 = 100;            //Range at which beacon 3 applies
+  uint32_t locationSendInterval3 = 30000;   // interval between sends
   float rssiAttenuation = -6.0;           //Rate at which double the distance degrades RSSI (should be -6)
   float rssiAttenuationBaseline = -40;    //RSSI at 10m
   float rssiAttenuationPerimeter = 10;
@@ -526,7 +542,6 @@ const uint16_t loggingSemaphoreTimeout = 5;
     uint16_t updateHistory = 0xffff;
     uint32_t uptime = 0;
     float supplyVoltage = 0;
-    //uint32_t timeout = 60000;
     bool hasFix = false;
     double lastRssi = 0;
     uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor

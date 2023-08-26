@@ -15,7 +15,7 @@ void setupLogging()
     SERIAL_DEBUG_PORT.println(F("Online?"));  //Try to send something
     delay(100); //Wait for it to send
     debugPortAvailable = SERIAL_DEBUG_PORT.availableForWrite() == debugPortStartingBufferSize; //Check if USB port is connected by seeing if it has been able to send stuff
-    if(debugPortAvailable)
+    //if(debugPortAvailable)
     {
         delay(5000);  //Allow time for the serial console to be opened by a person
     }
@@ -36,7 +36,7 @@ void manageLogging(void * parameter)
       {
         logLastFlushed = millis();
         flushLogNow = false;
-        #ifdef SERIAL_LOG
+        #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
           if(waitForBufferSpace(18))
           {
             SERIAL_DEBUG_PORT.println(F("PERIODIC LOG FLUSH"));
@@ -48,7 +48,7 @@ void manageLogging(void * parameter)
         }
         else
         {
-          #ifdef SERIAL_LOG
+          #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
             if(waitForBufferSpace(30))
             {
               SERIAL_DEBUG_PORT.println(F("LOG BUFFER SUSPICIOUSLY EMPTY"));
@@ -87,7 +87,7 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
       {
         if(autoFlush == true)
         {
-          #ifdef SERIAL_LOG
+          #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
             if(waitForBufferSpace(27))
             {
               SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
@@ -146,7 +146,7 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
       {
         if(autoFlush == true)
         {
-          #ifdef SERIAL_LOG
+          #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
             if(waitForBufferSpace(29))
             {
               SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
@@ -205,7 +205,7 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
       {
         if(autoFlush == true)
         {
-          #ifdef SERIAL_LOG
+          #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
             if(waitForBufferSpace(25))
             {
               SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
@@ -277,7 +277,7 @@ void flushLog() //Flush the log to filesystem if it seems safe to do so
 {
   if(timeIsValid() == true && logfileYear!= 0 && filesystemMounted == true) //Valid time & a log file is selected & filesystem is mounted
   {
-    #ifdef SERIAL_LOG
+    #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
       if(waitForBufferSpace(50))
       {
         SERIAL_DEBUG_PORT.print(F("FLUSHING LOG TO FILE: "));
@@ -289,7 +289,7 @@ void flushLog() //Flush the log to filesystem if it seems safe to do so
     {
       logFile.print(loggingBuffer);
       logFile.close();
-      #ifdef SERIAL_LOG
+      #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
         if(waitForBufferSpace(30))
         {
           SERIAL_DEBUG_PORT.print(F("FLUSHED, FILE SYSTEM USED: "));
@@ -305,7 +305,7 @@ void flushLog() //Flush the log to filesystem if it seems safe to do so
     }
     else
     {
-      #ifdef SERIAL_LOG
+      #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
         if(waitForBufferSpace(50))
         {
           SERIAL_DEBUG_PORT.print(F("UNABLE TO FLUSH LOG TO FILE: "));
@@ -318,7 +318,7 @@ void flushLog() //Flush the log to filesystem if it seems safe to do so
   { 
     if(filesystemMounted == false)
     {
-      #ifdef SERIAL_LOG
+      #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
         if(waitForBufferSpace(70))
         {
           SERIAL_DEBUG_PORT.println(F("UNABLE TO FLUSH LOG: FILESYSTEM NOT MOUNTED"));
@@ -327,7 +327,7 @@ void flushLog() //Flush the log to filesystem if it seems safe to do so
     }
     else
     {
-      #ifdef SERIAL_LOG
+      #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
         if(waitForBufferSpace(80))
         {
           SERIAL_DEBUG_PORT.println(F("UNABLE TO FLUSH LOG: NOT YET OPENED/TIME NOT SET"));

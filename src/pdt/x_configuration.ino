@@ -10,13 +10,18 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   localLog(filename);
   localLog(F("\": "));
   DynamicJsonDocument configuration(2048);
-  configuration["nodeName"] = nodeName;
+  configuration["deviceName"] = device[0].name;
   configuration["configurationComment"] = configurationComment;
   #if defined(SUPPORT_WIFI)
     configuration["SSID"] = SSID;
     configuration["PSK"] = PSK;
-    configuration["startWiFiOnBoot"] = startWiFiOnBoot;
-    configuration["wiFiInactivityTimer"]  = wiFiInactivityTimer;
+    configuration["startWiFiClientOnBoot"] = startWiFiClientOnBoot;
+    configuration["APSSID"] = APSSID;
+    configuration["APPSK"] = APPSK;
+    configuration["startWiFiApOnBoot"] = startWiFiApOnBoot;
+    configuration["enableCaptivePortal"] = enableCaptivePortal;
+    configuration["wiFiClientInactivityTimer"]  = wiFiClientInactivityTimer;
+    configuration["wifiClientTimeout"]  = wifiClientTimeout;
   #endif
   #ifdef ENABLE_LOCAL_WEBSERVER
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
@@ -39,6 +44,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
   #endif
   #if defined(SUPPORT_LORA)
+    configuration["defaultLocationSendInterval"] = defaultLocationSendInterval;
     configuration["locationSendInterval1"] = locationSendInterval1;
     configuration["loRaPerimiter1"] = loRaPerimiter1;
     configuration["locationSendInterval2"] = locationSendInterval2;
@@ -135,12 +141,13 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
     #endif
     #if defined(SUPPORT_LORA)
+      defaultLocationSendInterval = configuration["defaultLocationSendInterval"] | 60000;
       locationSendInterval1 = configuration["locationSendInterval1"] | 5000;
       loRaPerimiter1 = configuration["loRaPerimiter1"] | 20;
-      locationSendInterval2 = configuration["locationSendInterval2"] | 5000;
-      loRaPerimiter2 = configuration["loRaPerimiter2"] | 20;
-      locationSendInterval3 = configuration["locationSendInterval3"] | 5000;
-      loRaPerimiter3 = configuration["loRaPerimiter3"] | 20;
+      locationSendInterval2 = configuration["locationSendInterval2"] | 15000;
+      loRaPerimiter2 = configuration["loRaPerimiter2"] | 50;
+      locationSendInterval3 = configuration["locationSendInterval3"] | 30000;
+      loRaPerimiter3 = configuration["loRaPerimiter3"] | 100;
       rssiAttenuationPerimeter = configuration["rssiAttenuationPerimeter"];
       rssiAttenuation = configuration["rssiAttenuation"];
       rssiAttenuationBaseline = configuration["rssiAttenuationBaseline"];
@@ -148,15 +155,15 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     loggingBufferSize = configuration["loggingBufferSize"] | 2048;
     logFlushThreshold = configuration["logFlushThreshold"] | 2000;
     logFlushInterval = configuration["logFlushInterval"] | 57600;
-    if(configuration["nodeName"])
+    if(configuration["deviceName"])
     {
-      nodeName = new char[strlen(configuration["nodeName"]) + 1];
-      strlcpy(nodeName,configuration["nodeName"],strlen(configuration["nodeName"]) + 1);
+      device[0].name = new char[strlen(configuration["deviceName"]) + 1];
+      strlcpy(device[0].name,configuration["deviceName"],strlen(configuration["deviceName"]) + 1);
     }
     else
     {
-      nodeName = new char[strlen(default_nodeName) + 5];
-      sprintf_P(nodeName, PSTR("%s%02X%02X"), default_nodeName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
+      device[0].name = new char[strlen(default_deviceName) + 5];
+      sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
     }
     if(configuration["configurationComment"])
     {
@@ -189,8 +196,30 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         PSK = new char[strlen(default_WiFi_PSK) + 1];
         strlcpy(PSK,default_WiFi_PSK,strlen(default_WiFi_PSK) + 1);
       }
-      startWiFiOnBoot = configuration["startWiFiOnBoot"] | true;
-      wiFiInactivityTimer = configuration["wiFiInactivityTimer"] | 0;
+      startWiFiClientOnBoot = configuration["startWiFiClientOnBoot"] | true;
+      startWiFiApOnBoot = configuration["startWiFiApOnBoot"] | true;
+      if(configuration["APSSID"])
+      {
+        APSSID = new char[strlen(configuration["APSSID"]) + 1];
+        strlcpy(APSSID,configuration["APSSID"],strlen(configuration["APSSID"]) + 1);
+      }
+      else
+      {
+        APSSID = new char[strlen(default_deviceName) + 5];
+        sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
+      }
+      if(configuration["APPSK"])
+      {
+        APPSK = new char[strlen(configuration["APPSK"]) + 1];
+        strlcpy(APPSK,configuration["APPSK"],strlen(configuration["APPSK"]) + 1);
+      }
+      else
+      {
+        APPSK = new char[strlen(default_AP_PSK) + 1];
+        strlcpy(APPSK,default_AP_PSK,strlen(default_AP_PSK) + 1);
+      }
+      wiFiClientInactivityTimer = configuration["wiFiClientInactivityTimer"] | 0;
+      wifiClientTimeout = configuration["wifiClientTimeout"] | 30;
     #endif
     #ifdef ENABLE_LOCAL_WEBSERVER
       #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
@@ -252,10 +281,8 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
 bool loadDefaultConfiguration()
 {
   localLogLn(F("Loading default configuration"));
-  //nodeName = new char[strlen(default_nodeName) + 1];  //Assign space on heap
-  //strlcpy(nodeName,default_nodeName,strlen(default_nodeName) + 1);  //Copy in default
-  nodeName = new char[strlen(default_nodeName) + 5];
-  sprintf_P(nodeName, PSTR("%s%02X%02X"), default_nodeName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
+  device[0].name = new char[strlen(default_deviceName) + 5];
+  sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
   #ifdef ENABLE_LOCAL_WEBSERVER
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
       http_user = new char[strlen(default_http_user) + 1];
@@ -284,10 +311,10 @@ bool loadDefaultConfiguration()
 void printConfiguration()
 {
   localLogLn(F("==Current configuration=="));
-  localLog(F("nodeName: "));
-  if(nodeName != nullptr)
+  localLog(F("deviceName: "));
+  if(device[0].name != nullptr)
   {
-    localLogLn(nodeName);
+    localLogLn(device[0].name);
   }
   else
   {
@@ -303,8 +330,8 @@ void printConfiguration()
     localLogLn(F("<none>"));
   }
   #if defined(SUPPORT_WIFI)
-    localLog(F("startWiFiOnBoot: "));
-    if(startWiFiOnBoot)
+    localLog(F("startWiFiClientOnBoot: "));
+    if(startWiFiClientOnBoot)
     {
       localLogLn(F("enabled"));
     }
@@ -330,8 +357,46 @@ void printConfiguration()
     {
       localLogLn(F("<none>"));
     }
-    localLog(F("wiFiInactivityTimer: "));
-    localLogLn(wiFiInactivityTimer);
+    localLog(F("wifiClientTimeout: "));
+    localLogLn(wifiClientTimeout);
+    localLog(F("wiFiClientInactivityTimer: "));
+    localLogLn(wiFiClientInactivityTimer);
+    localLog(F("startWiFiApOnBoot: "));
+    if(startWiFiApOnBoot)
+    {
+      localLogLn(F("enabled"));
+    }
+    else
+    {
+      localLogLn(F("disabled"));
+    }
+    localLog(F("AP SSID: "));
+    if(APSSID != nullptr)
+    {
+      localLogLn(APSSID);
+    }
+    else
+    {
+      localLogLn(F("<none>"));
+    }
+    localLog(F("AP PSK: "));
+    if(APPSK != nullptr)
+    {
+      localLogLn(F("<set>"));
+    }
+    else
+    {
+      localLogLn(F("<none>"));
+    }
+    localLog(F("enableCaptivePortal: "));
+    if(enableCaptivePortal)
+    {
+      localLogLn(F("enabled"));
+    }
+    else
+    {
+      localLogLn(F("disabled"));
+    }
     localLog(F("timeServer: "));
     if(timeServer != nullptr)
     {

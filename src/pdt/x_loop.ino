@@ -5,7 +5,7 @@
  */
 void loop()
 {
-  #if defined(SUPPORT_ETHERNET) || defined(SUPPORT_WIFI)
+  #if defined(SUPPORT_WIFI)
     manageNetwork();
   #endif
   #if defined(SUPPORT_LORA) && defined(SUPPORT_GPS)

@@ -6,9 +6,9 @@
 #if defined(ENABLE_LOCAL_WEBSERVER)
 void addPageHeader(AsyncResponseStream *response, uint8_t refresh, const char* refreshTo)
 {
-  if(nodeName != nullptr)
+  if(device[0].name != nullptr)
   {
-    response->printf_P(PSTR("<!DOCTYPE html><html><head><title>%s</title>"), nodeName);
+    response->printf_P(PSTR("<!DOCTYPE html><html><head><title>%s</title>"), device[0].name);
   }
   else
   {
@@ -30,9 +30,9 @@ void addPageHeader(AsyncResponseStream *response, uint8_t refresh, const char* r
   response->print(F("<link rel=\"stylesheet\" href=\"/css/normalize.css\">"));
   response->print(F("<link rel=\"stylesheet\" href=\"/css/skeleton.css\">"));
   response->print(F("</head><body><div class=\"container\">"));
-  if(nodeName != nullptr)
+  if(device[0].name != nullptr)
   {
-    response->printf_P(PSTR("<h1>%s</h1>"),nodeName);
+    response->printf_P(PSTR("<h1>%s</h1>"),device[0].name);
   }
 }
 void addPageFooter(AsyncResponseStream *response)
@@ -111,17 +111,6 @@ void setupWebServer()
         response->print(ESP.getFreeHeap()/1024);
         response->print(F("KB</li>"));
       //#endif
-      #if defined(USE_WIEGAND_RFID_READER)
-        response->print(F("<li>Wiegand RFID reader: "));
-        if(wiegandRfidReaderConnected == true)
-        {
-          response->print(F("initialised</li>"));
-        }
-        else
-        {
-          response->print(F("failed</li>"));
-        }
-      #endif
       response->print(F("<li>USB serial logging: "));
       #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
         if(debugPortAvailable)
@@ -186,18 +175,18 @@ void setupWebServer()
       #endif
       response->print(F("</li>"));
       #if defined(SUPPORT_WIFI)
-        if(wiFiInactivityTimer > 0)
+        if(wiFiClientInactivityTimer > 0)
         {
           response->print(F("<li>WiFi disconnecting after : "));
-          if(wiFiInactivityTimer == 60000)
+          if(wiFiClientInactivityTimer == 60000)
           {
             response->print(F("1 minute"));
           }
-          else if(wiFiInactivityTimer == 180000)
+          else if(wiFiClientInactivityTimer == 180000)
           {
             response->print(F("3 minutes"));
           }
-          else if(wiFiInactivityTimer == 300000)
+          else if(wiFiClientInactivityTimer == 300000)
           {
             response->print(F("f minutes"));
           }
@@ -475,22 +464,34 @@ void setupWebServer()
       addPageHeader(response, 0, nullptr);
       response->print(F("<h2>Configuration</h2>"));
       response->print(F("<form method=\"POST\">"));
-      response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"nodeName\">Node name</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"nodeName\" name=\"nodeName\"></div></div>"), nodeName);
+      response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"deviceName\">Node name</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"deviceName\" name=\"deviceName\"></div></div>"), device[0].name);
       response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Networking</h3></div></div>"));
       #if defined(SUPPORT_WIFI)
         response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>WiFi</h3></div></div>"));
-        response->print(F("<div class=\"row\"><div class=\"three columns\"><label for=\"startWiFiOnBoot\">Enable WiFi on boot</label><select class=\"u-full-width\" id=\"startWiFiOnBoot\" name=\"startWiFiOnBoot\">"));
-        response->print(F("<option value=\"true\""));response->print(startWiFiOnBoot == true ? " selected>":">");response->print(F("Enabled</option>"));
-        response->print(F("<option value=\"false\""));response->print(startWiFiOnBoot == false ? " selected>":">");response->print(F("Disabled</option>"));
+        //WiFi client
+        response->print(F("<div class=\"row\"><div class=\"three columns\"><label for=\"startWiFiClientOnBoot\">Enable WiFi client on boot</label><select class=\"u-full-width\" id=\"startWiFiClientOnBoot\" name=\"startWiFiClientOnBoot\">"));
+        response->print(F("<option value=\"true\""));response->print(startWiFiClientOnBoot == true ? " selected>":">");response->print(F("Enabled</option>"));
+        response->print(F("<option value=\"false\""));response->print(startWiFiClientOnBoot == false ? " selected>":">");response->print(F("Disabled</option>"));
         response->print(F("</select></div>"));
-        response->print(F("<div class=\"three columns\"><label for=\"wiFiInactivityTimer\">WiFi inactivity timer</label><select class=\"u-full-width\" id=\"wiFiInactivityTimer\" name=\"wiFiInactivityTimer\">"));
-        response->print(F("<option value=\"0\""));response->print(wiFiInactivityTimer == 0 ? " selected>":">");response->print(F("Never</option>"));
-        response->print(F("<option value=\"60000\""));response->print(wiFiInactivityTimer == 60000 ? " selected>":">");response->print(F("1m</option>"));
-        response->print(F("<option value=\"180000\""));response->print(wiFiInactivityTimer == 180000 ? " selected>":">");response->print(F("3m</option>"));
-        response->print(F("<option value=\"300000\""));response->print(wiFiInactivityTimer == 300000 ? " selected>":">");response->print(F("5m</option>"));
+        response->print(F("<div class=\"three columns\"><label for=\"wiFiClientInactivityTimer\">WiFi inactivity timer</label><select class=\"u-full-width\" id=\"wiFiClientInactivityTimer\" name=\"wiFiClientInactivityTimer\">"));
+        response->print(F("<option value=\"0\""));response->print(wiFiClientInactivityTimer == 0 ? " selected>":">");response->print(F("Never</option>"));
+        response->print(F("<option value=\"60000\""));response->print(wiFiClientInactivityTimer == 60000 ? " selected>":">");response->print(F("1m</option>"));
+        response->print(F("<option value=\"180000\""));response->print(wiFiClientInactivityTimer == 180000 ? " selected>":">");response->print(F("3m</option>"));
+        response->print(F("<option value=\"300000\""));response->print(wiFiClientInactivityTimer == 300000 ? " selected>":">");response->print(F("5m</option>"));
         response->print(F("</select></div>"));
         response->printf_P(PSTR("<div class=\"three columns\"><label for=\"SSID\">WiFi SSID</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"SSID\" name=\"SSID\"></div>"), SSID);
         response->print(F("<div class=\"three columns\"><label for=\"PSK\">WiFi PSK</label><input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"PSK\" name=\"PSK\"></div></div>"));
+        //WiFi AP        
+        response->print(F("<div class=\"row\"><div class=\"three columns\"><label for=\"startWiFiApOnBoot\">Enable WiFi AP on boot</label><select class=\"u-full-width\" id=\"startWiFiApOnBoot\" name=\"startWiFiApOnBoot\">"));
+        response->print(F("<option value=\"true\""));response->print(startWiFiApOnBoot == true ? " selected>":">");response->print(F("Enabled</option>"));
+        response->print(F("<option value=\"false\""));response->print(startWiFiApOnBoot == false ? " selected>":">");response->print(F("Disabled</option>"));
+        response->print(F("</select></div>"));
+        response->print(F("<div class=\"three columns\"><label for=\"enableCaptivePortal\">Enable captive portal</label><select class=\"u-full-width\" id=\"enableCaptivePortal\" name=\"enableCaptivePortal\">"));
+        response->print(F("<option value=\"true\""));response->print(enableCaptivePortal == true ? " selected>":">");response->print(F("Enabled</option>"));
+        response->print(F("<option value=\"false\""));response->print(enableCaptivePortal == false ? " selected>":">");response->print(F("Disabled</option>"));
+        response->print(F("</select></div>"));
+        response->printf_P(PSTR("<div class=\"three columns\"><label for=\"APSSID\">AP SSID</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"APSSID\" name=\"APSSID\"></div>"), APSSID);
+        response->print(F("<div class=\"three columns\"><label for=\"APPSK\">AP PSK</label><input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"APPSK\" name=\"APPSK\"></div></div>"));
       #endif
       #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
         response->print(F("<div class=\"row\"><div class=\"four columns\"><label for=\"basicAuthEnabled\">Web UI login</label><select class=\"u-full-width\" id=\"basicAuthEnabled\" name=\"basicAuthEnabled\">"));
@@ -564,41 +565,48 @@ void setupWebServer()
         response->print(F("<option value=\"30\""));response->print(loRaPerimiter1 == 30 ? " selected>":">");response->print(F("30m</option>"));
         response->print(F("</select></div>"));
         response->print(F("<div class=\"six columns\"><label for=\"locationSendInterval1\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"locationSendInterval1\" name=\"locationSendInterval1\">"));
-        response->print(F("<option value=\"1000\""));response->print(locationSendInterval1 == 1000 ? " selected>":">");response->print(F("1s</option>"));
-        response->print(F("<option value=\"2000\""));response->print(locationSendInterval1 == 2000 ? " selected>":">");response->print(F("2s</option>"));
         response->print(F("<option value=\"5000\""));response->print(locationSendInterval1 == 5000 ? " selected>":">");response->print(F("5s</option>"));
         response->print(F("<option value=\"10000\""));response->print(locationSendInterval1 == 10000 ? " selected>":">");response->print(F("10s</option>"));
         response->print(F("<option value=\"30000\""));response->print(locationSendInterval1 == 30000 ? " selected>":">");response->print(F("30s</option>"));
         response->print(F("</select></div></div>"));
         //LoRa beacon interval 2
         response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter2\">LoRa perimiter</label><select class=\"u-full-width\" id=\"loRaPerimiter2\" name=\"loRaPerimiter2\">"));
-        response->print(F("<option value=\"10\""));response->print(loRaPerimiter2 == 10 ? " selected>":">");response->print(F("10m</option>"));
-        response->print(F("<option value=\"15\""));response->print(loRaPerimiter2 == 15 ? " selected>":">");response->print(F("15m</option>"));
-        response->print(F("<option value=\"20\""));response->print(loRaPerimiter2 == 20 ? " selected>":">");response->print(F("20m</option>"));
         response->print(F("<option value=\"25\""));response->print(loRaPerimiter2 == 25 ? " selected>":">");response->print(F("25m</option>"));
         response->print(F("<option value=\"30\""));response->print(loRaPerimiter2 == 30 ? " selected>":">");response->print(F("30m</option>"));
+        response->print(F("<option value=\"35\""));response->print(loRaPerimiter2 == 35 ? " selected>":">");response->print(F("35m</option>"));
+        response->print(F("<option value=\"40\""));response->print(loRaPerimiter2 == 40 ? " selected>":">");response->print(F("40m</option>"));
+        response->print(F("<option value=\"45\""));response->print(loRaPerimiter2 == 45 ? " selected>":">");response->print(F("45m</option>"));
+        response->print(F("<option value=\"50\""));response->print(loRaPerimiter2 == 50 ? " selected>":">");response->print(F("50m</option>"));
         response->print(F("</select></div>"));
         response->print(F("<div class=\"six columns\"><label for=\"locationSendInterval2\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"locationSendInterval2\" name=\"locationSendInterval2\">"));
-        response->print(F("<option value=\"1000\""));response->print(locationSendInterval2 == 1000 ? " selected>":">");response->print(F("1s</option>"));
-        response->print(F("<option value=\"2000\""));response->print(locationSendInterval2 == 2000 ? " selected>":">");response->print(F("2s</option>"));
         response->print(F("<option value=\"5000\""));response->print(locationSendInterval2 == 5000 ? " selected>":">");response->print(F("5s</option>"));
         response->print(F("<option value=\"10000\""));response->print(locationSendInterval2 == 10000 ? " selected>":">");response->print(F("10s</option>"));
         response->print(F("<option value=\"30000\""));response->print(locationSendInterval2 == 30000 ? " selected>":">");response->print(F("30s</option>"));
+        response->print(F("<option value=\"45000\""));response->print(locationSendInterval2 == 45000 ? " selected>":">");response->print(F("45s</option>"));
+        response->print(F("<option value=\"60000\""));response->print(locationSendInterval2 == 60000 ? " selected>":">");response->print(F("60s</option>"));
         response->print(F("</select></div></div>"));
         //LoRa beacon interval 3
         response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter3\">LoRa perimiter</label><select class=\"u-full-width\" id=\"loRaPerimiter3\" name=\"loRaPerimiter3\">"));
-        response->print(F("<option value=\"10\""));response->print(loRaPerimiter3 == 10 ? " selected>":">");response->print(F("10m</option>"));
-        response->print(F("<option value=\"15\""));response->print(loRaPerimiter3 == 15 ? " selected>":">");response->print(F("15m</option>"));
-        response->print(F("<option value=\"20\""));response->print(loRaPerimiter3 == 20 ? " selected>":">");response->print(F("20m</option>"));
-        response->print(F("<option value=\"25\""));response->print(loRaPerimiter3 == 25 ? " selected>":">");response->print(F("25m</option>"));
-        response->print(F("<option value=\"30\""));response->print(loRaPerimiter3 == 30 ? " selected>":">");response->print(F("30m</option>"));
+        response->print(F("<option value=\"50\""));response->print(loRaPerimiter3 == 50 ? " selected>":">");response->print(F("50m</option>"));
+        response->print(F("<option value=\"75\""));response->print(loRaPerimiter3 == 75 ? " selected>":">");response->print(F("75m</option>"));
+        response->print(F("<option value=\"100\""));response->print(loRaPerimiter3 == 100 ? " selected>":">");response->print(F("100m</option>"));
+        response->print(F("<option value=\"150\""));response->print(loRaPerimiter3 == 150 ? " selected>":">");response->print(F("150m</option>"));
         response->print(F("</select></div>"));
         response->print(F("<div class=\"six columns\"><label for=\"locationSendInterval3\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"locationSendInterval3\" name=\"locationSendInterval3\">"));
-        response->print(F("<option value=\"1000\""));response->print(locationSendInterval3 == 1000 ? " selected>":">");response->print(F("1s</option>"));
-        response->print(F("<option value=\"2000\""));response->print(locationSendInterval3 == 2000 ? " selected>":">");response->print(F("2s</option>"));
-        response->print(F("<option value=\"5000\""));response->print(locationSendInterval3 == 5000 ? " selected>":">");response->print(F("5s</option>"));
         response->print(F("<option value=\"10000\""));response->print(locationSendInterval3 == 10000 ? " selected>":">");response->print(F("10s</option>"));
+        response->print(F("<option value=\"15000\""));response->print(locationSendInterval3 == 15000 ? " selected>":">");response->print(F("15s</option>"));
         response->print(F("<option value=\"30000\""));response->print(locationSendInterval3 == 30000 ? " selected>":">");response->print(F("30s</option>"));
+        response->print(F("<option value=\"45000\""));response->print(locationSendInterval3 == 45000 ? " selected>":">");response->print(F("45s</option>"));
+        response->print(F("<option value=\"60000\""));response->print(locationSendInterval3 == 60000 ? " selected>":">");response->print(F("60s</option>"));
+        response->print(F("<option value=\"90000\""));response->print(locationSendInterval3 == 90000 ? " selected>":">");response->print(F("90s</option>"));
+        response->print(F("</select></div></div>"));
+        response->print(F("<div class=\"row\"><div class=\"six columns\">Default</div>"));
+        response->print(F("<div class=\"six columns\"><label for=\"defaultLocationSendInterval\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"defaultLocationSendInterval\" name=\"defaultLocationSendInterval\">"));
+        response->print(F("<option value=\"30000\""));response->print(defaultLocationSendInterval == 30000 ? " selected>":">");response->print(F("30s</option>"));
+        response->print(F("<option value=\"60000\""));response->print(defaultLocationSendInterval == 60000 ? " selected>":">");response->print(F("60s</option>"));
+        response->print(F("<option value=\"90000\""));response->print(defaultLocationSendInterval == 90000 ? " selected>":">");response->print(F("90s</option>"));
+        response->print(F("<option value=\"120000\""));response->print(defaultLocationSendInterval == 120000 ? " selected>":">");response->print(F("2m</option>"));
+        response->print(F("<option value=\"180000\""));response->print(defaultLocationSendInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
         response->print(F("</select></div></div>"));
         //RSSI range estimation
         response->printf_P(PSTR("<div class=\"row\"><div class=\"four columns\"><label for=\"rssiAttenuation\">RSSI attenuation (distance halfing rate)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuation\" name=\"rssiAttenuation\"></div>"), rssiAttenuation);
@@ -653,16 +661,16 @@ void setupWebServer()
       }
       */
       //Read the submitted configuration
-      if(request->hasParam("nodeName", true))
+      if(request->hasParam("deviceName", true))
       {
-        if(nodeName != nullptr)
+        if(device[0].name != nullptr)
         {
-          delete [] nodeName;
+          delete [] device[0].name;
         }
-        nodeName = new char[request->getParam("nodeName", true)->value().length() + 1];
-        strlcpy(nodeName,request->getParam("nodeName", true)->value().c_str(),request->getParam("nodeName", true)->value().length() + 1);
-        localLog(F("nodeName: "));
-        localLogLn(nodeName);
+        device[0].name = new char[request->getParam("deviceName", true)->value().length() + 1];
+        strlcpy(device[0].name,request->getParam("deviceName", true)->value().c_str(),request->getParam("deviceName", true)->value().length() + 1);
+        localLog(F("deviceName: "));
+        localLogLn(device[0].name);
       }
       if(request->hasParam("configurationComment", true))
       {
@@ -795,25 +803,25 @@ void setupWebServer()
             localLogLn(F("PSK: ********"));
           }
         }
-        if(request->hasParam("startWiFiOnBoot", true))
+        if(request->hasParam("startWiFiClientOnBoot", true))
         {
-          localLog(F("startWiFiOnBoot: "));
-          if(request->getParam("startWiFiOnBoot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+          localLog(F("startWiFiClientOnBoot: "));
+          if(request->getParam("startWiFiClientOnBoot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
           {
-            startWiFiOnBoot = true;
+            startWiFiClientOnBoot = true;
             localLogLn(F("enabled"));
           }
           else
           {
-            startWiFiOnBoot = false;
+            startWiFiClientOnBoot = false;
             localLogLn(F("disabled"));
           }
         }
-        if(request->hasParam("wiFiInactivityTimer", true))
+        if(request->hasParam("wiFiClientInactivityTimer", true))
         {
-          wiFiInactivityTimer = request->getParam("wiFiInactivityTimer", true)->value().toInt();
-          localLog(F("wiFiInactivityTimer: "));
-          localLogLn(wiFiInactivityTimer);
+          wiFiClientInactivityTimer = request->getParam("wiFiClientInactivityTimer", true)->value().toInt();
+          localLog(F("wiFiClientInactivityTimer: "));
+          localLogLn(wiFiClientInactivityTimer);
         }
         if(request->hasParam("timeServer", true))
         {
@@ -1092,7 +1100,7 @@ void setupWebServer()
         AsyncResponseStream *response = request->beginResponseStream("text/html");
         addPageHeader(response, 0, nullptr);
         response->print(F("<h2>Restart confirmation</h2>"));
-        response->printf_P(PSTR("<p>Are you sure you want to restart \"%s\"?</p>"),nodeName);
+        response->printf_P(PSTR("<p>Are you sure you want to restart \"%s\"?</p>"),device[0].name);
         response->print(F("<a href =\"/restartConfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\"></a> "));
         response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"No\"></a> "));
         addPageFooter(response);
@@ -1131,7 +1139,14 @@ void setupWebServer()
     });
     webServer.onNotFound([](AsyncWebServerRequest *request){  //This lambda function is a minimal 404 handler
       lastWifiActivity = millis();
-      request->send(404, "text/plain", request->url() + " not found");
+      if(enableCaptivePortal)
+      {
+        request->redirect("/"); //Needed for captive portal
+      }
+      else
+      {
+        request->send(404, "text/plain", request->url() + " not found");
+      }
     });
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
       #if defined(USE_SPIFFS)

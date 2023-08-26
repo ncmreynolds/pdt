@@ -11,7 +11,6 @@ void setup() {
   #ifdef ACT_AS_SENSOR
     device[0].typeOfDevice = device[0].typeOfDevice | 2; //Mark it as a sensor
   #endif
-  device[0].nextLocationUpdate = 30000; //STart sending location updates every 30s by default
   numberOfDevices++;
   #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
     setupLogging();
@@ -19,9 +18,6 @@ void setup() {
   #endif
   //Mount file system so configuration can be read
   setupFilesystem();
-  //Set the name in the device record
-  device[0].name = new char[strlen(nodeName) + 1];
-  strcpy(device[0].name, nodeName);
   #ifdef SUPPORT_BUTTON
     setupButton();
   #endif
@@ -32,17 +28,10 @@ void setup() {
   #ifdef SUPPORT_WIFI
     setupNetwork();
   #endif
-  if(networkConnected == true)
+  if(wifiClientConnected == true)
   {
-    showNetworkInformation();
-    networkStateChanged = false; //Suppress normal handling of network state changes
+    //networkStateChanged = false; //Suppress normal handling of network state changes
   }
-  #if defined(ENABLE_LOCAL_WEBSERVER)
-    setupWebServer(); //Set up the web server callbacks which are used to get hold of logs
-  #endif
-  #if defined(ENABLE_OTA_UPDATE)
-    configureOTA(); //Set up OTA callbacks
-  #endif
   #ifdef SUPPORT_LORA
     setupLoRa();  //Needs to be before SPI display
   #endif

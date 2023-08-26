@@ -3,8 +3,14 @@
   {
     localLog(F("Configuring battery monitor: "));
     analogSetAttenuation(ADC_11db); //Set ADC to read up to 2600mV
-    checkBatteryVoltage();  //Set initial voltage reading
-    batteryPercentage = estimateBatteryPercentage(batteryVoltage); //Set initial capacity estimate
+    #if defined(ARDUINO_ESP32C3_DEV)
+      //batteryVoltage = analogRead(voltageMonitorPin)*5.8/4095.0;
+      batteryVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/2.8;
+    #else
+      batteryVoltage = analogRead(voltageMonitorPin)*3.3/512.0;
+    #endif
+    batteryPercentage = estimateBatteryPercentage(batteryVoltage);
+    //checkBatteryVoltage();  //Set initial voltage reading
     localLogLn(F("OK"));
   }
   void manageBattery()
@@ -13,7 +19,6 @@
     {
       lastDeviceStatus = millis();
       checkBatteryVoltage();
-      shareDeviceInfo();
     }
   }
   void checkBatteryVoltage()

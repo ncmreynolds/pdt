@@ -173,6 +173,11 @@
       }
       loRaReceiveBufferSize = 0;
     }
+    if(millis() - lastDeviceInfoSendTime > deviceInfoSendInterval)
+    {
+      lastDeviceInfoSendTime = millis();
+      shareDeviceInfo();
+    }
     #ifdef SUPPORT_GPS
     if(millis() - lastLocationSendTime > device[0].nextLocationUpdate)
     {
@@ -185,27 +190,12 @@
             shareLocation();
             if(currentBeacon != maximumNumberOfDevices) //There is a current beacon
             {
-              if(distanceToCurrentBeacon < 25)
-              {
-                device[0].nextLocationUpdate = 5000;
-              }
-              else if(distanceToCurrentBeacon < 50)
-              {
-                device[0].nextLocationUpdate = 10000;
-              }
-              else if(distanceToCurrentBeacon < 100)
-              {
-                device[0].nextLocationUpdate = 20000;
-              }
-              else
-              {
-                device[0].nextLocationUpdate = 30000;
-              }
+              device[0].nextLocationUpdate = newLocationSharingInterval(distanceToCurrentBeacon);
             }
           }
           else
           {
-            device[0].nextLocationUpdate = 30000;
+            device[0].nextLocationUpdate = newLocationSharingInterval(BEACONUNREACHABLE);
           }
         }
       #elif defined(ACT_AS_BEACON)
@@ -216,32 +206,36 @@
             shareLocation();
             if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
             {
-              if(distanceToClosestTracker < 25)
-              {
-                device[0].nextLocationUpdate = 5000;
-              }
-              else if(distanceToClosestTracker < 50)
-              {
-                device[0].nextLocationUpdate = 10000;
-              }
-              else if(distanceToClosestTracker < 100)
-              {
-                device[0].nextLocationUpdate = 20000;
-              }
-              else
-              {
-                device[0].nextLocationUpdate = 30000;
-              }
+              device[0].nextLocationUpdate = newLocationSharingInterval(distanceToClosestTracker);
             }
           }
           else
           {
-            device[0].nextLocationUpdate = 30000;
+            device[0].nextLocationUpdate = newLocationSharingInterval(TRACKERUNREACHABLE);
           }
         }
       #endif
     }
     #endif
+  }
+  uint32_t newLocationSharingInterval(uint16_t distance)
+  {
+    if(distance < loRaPerimiter1)
+    {
+      return locationSendInterval1;
+    }
+    else if(distance < loRaPerimiter2)
+    {
+      return locationSendInterval2;
+    }
+    else if(distance < loRaPerimiter3)
+    {
+      return locationSendInterval3;
+    }
+    else
+    {
+      return defaultLocationSendInterval;
+    }
   }
   void shareLocation()
   {

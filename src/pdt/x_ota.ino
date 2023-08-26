@@ -8,7 +8,7 @@
     void configureOTA()
     {
       localLog(F("Configuring OTA updates: "));
-      ArduinoOTA.setHostname(nodeName);  //This hostname appears in the list of devices in the IDE, so is used to differentiate between devices
+      ArduinoOTA.setHostname(device[0].name);  //This hostname appears in the list of devices in the IDE, so is used to differentiate between devices
       if(otaAuthenticationEnabled == true)
       {
         ArduinoOTA.setPassword(http_password);  //Sets the OTA password

@@ -279,7 +279,7 @@
     {
       if(fileExists(filename) == false) {
         localLogLn(F("failed, file not found"));
-        if (networkConnected) {
+        if (wifiClientConnected) {
         }
         return "";
       }
