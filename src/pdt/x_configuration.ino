@@ -44,6 +44,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
   #endif
   #if defined(SUPPORT_LORA)
+    configuration["deviceInfoSendInterval"] = deviceInfoSendInterval;
     configuration["defaultLocationSendInterval"] = defaultLocationSendInterval;
     configuration["locationSendInterval1"] = locationSendInterval1;
     configuration["loRaPerimiter1"] = loRaPerimiter1;
@@ -141,6 +142,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
     #endif
     #if defined(SUPPORT_LORA)
+      deviceInfoSendInterval = configuration["deviceInfoSendInterval"] | 60000;
       defaultLocationSendInterval = configuration["defaultLocationSendInterval"] | 60000;
       locationSendInterval1 = configuration["locationSendInterval1"] | 5000;
       loRaPerimiter1 = configuration["loRaPerimiter1"] | 20;
@@ -471,6 +473,8 @@ void printConfiguration()
     localLogLn(maximumEffectiveRange);
   #endif
   #if defined(SUPPORT_LORA)
+    localLog(F("deviceInfoSendInterval: "));
+    localLogLn(deviceInfoSendInterval);
     localLog(F("defaultLocationSendInterval: "));
     localLogLn(defaultLocationSendInterval);
     localLog(F("loRaPerimiter1: "));

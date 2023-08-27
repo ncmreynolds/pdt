@@ -4,6 +4,13 @@
  * 
  */
 #ifdef SUPPORT_LORA
+  void calculateLoRaDutyCycle()
+  {
+    calculatedLoRaDutyCycle = ((float)loRaTxTime/(float)millis())*100;
+    localLog(F("LoRa TX duty cycle: "));
+    localLog(calculatedLoRaDutyCycle);
+    localLogLn('%');
+  }
   #ifdef LORA_NON_BLOCKING
     /*
      * Interrupt service routines for LoRa, which need some care when there are other async things in use
@@ -18,6 +25,7 @@
           portENTER_CRITICAL(&loRaTxSynch);
         #endif
       #endif
+      loRaTxTime += millis() - loRaTxStartTime; //Calculate the time spent sending for duty cycle
       loRaTxPackets++;
       LoRa.receive();
       loRaTxBusy = false;
@@ -144,10 +152,14 @@
   #endif
   void setupLoRa()
   {
-    LoRa.setPins(loRaCSpin, loRaResetPin, loRaIrqPin);// set CS, reset, IRQ pin
     localLog(F("Configuring LoRa radio: "));
-    if (LoRa.begin(868E6) == true)
+    LoRa.setPins(loRaCSpin, loRaResetPin, loRaIrqPin);// set CS, reset, IRQ pin
+    if (LoRa.begin(868E6) == true)  //For EU, US is 915E6, Asia 433E6
     {
+      LoRa.setTxPower(defaultLoRaTxPower);
+      LoRa.setSpreadingFactor(defaultLoRaSpreadingFactor);
+      LoRa.setSignalBandwidth(defaultLoRaSignalBandwidth);
+      LoRa.setSyncWord(loRaSyncWord);
       localLogLn(F("OK"));
       loRaConnected = true;
       LoRa.enableCrc();
@@ -177,6 +189,7 @@
     {
       lastDeviceInfoSendTime = millis();
       shareDeviceInfo();
+      calculateLoRaDutyCycle();
     }
     #ifdef SUPPORT_GPS
     if(millis() - lastLocationSendTime > device[0].nextLocationUpdate)
@@ -384,7 +397,7 @@
       LoRa.beginPacket(); //Start a new packet
       LoRa.write(loRaSendBuffer, loRaSendBufferSize);
       #if defined(LORA_NON_BLOCKING)
-        txTimer = millis() ; //Time the send
+        loRaTxStartTime = millis() ; //Time the send
         LoRa.endPacket(true); //Send the packet
       #else
         LoRa.endPacket(); //Send the packet

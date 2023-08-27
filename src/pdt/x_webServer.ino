@@ -207,6 +207,8 @@ void setupWebServer()
         response->print(F(" RX / "));
         response->print(loRaTxPackets);
         response->print(F(" TX"));
+        calculatedLoRaDutyCycle = ((float)loRaTxTime/(float)millis())*100;
+        response->printf_P(PSTR(" Duty cycle: %.02f%%"),calculatedLoRaDutyCycle);
       }
       else
       {
@@ -608,6 +610,13 @@ void setupWebServer()
         response->print(F("<option value=\"120000\""));response->print(defaultLocationSendInterval == 120000 ? " selected>":">");response->print(F("2m</option>"));
         response->print(F("<option value=\"180000\""));response->print(defaultLocationSendInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
         response->print(F("</select></div></div>"));
+        response->print(F("<div class=\"row\"><div class=\"six columns\">Configuration sync interval</div>"));
+        response->print(F("<div class=\"six columns\"><label for=\"deviceInfoSendInterval\">LoRa beacon interval</label><select class=\"u-full-width\" id=\"deviceInfoSendInterval\" name=\"deviceInfoSendInterval\">"));
+        response->print(F("<option value=\"60000\""));response->print(deviceInfoSendInterval == 60000 ? " selected>":">");response->print(F("60s</option>"));
+        response->print(F("<option value=\"90000\""));response->print(deviceInfoSendInterval == 90000 ? " selected>":">");response->print(F("90s</option>"));
+        response->print(F("<option value=\"180000\""));response->print(deviceInfoSendInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
+        response->print(F("<option value=\"120000\""));response->print(deviceInfoSendInterval == 300000 ? " selected>":">");response->print(F("5m</option>"));
+        response->print(F("</select></div></div>"));
         //RSSI range estimation
         response->printf_P(PSTR("<div class=\"row\"><div class=\"four columns\"><label for=\"rssiAttenuation\">RSSI attenuation (distance halfing rate)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuation\" name=\"rssiAttenuation\"></div>"), rssiAttenuation);
         response->printf_P(PSTR("<div class=\"four columns\"><label for=\"rssiAttenuationBaseline\">RSSI at 10m (approx)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuationBaseline\" name=\"rssiAttenuationBaseline\"></div>"), rssiAttenuationBaseline);
@@ -885,6 +894,12 @@ void setupWebServer()
         }
       #endif
       #if defined(SUPPORT_LORA)
+        if(request->hasParam("deviceInfoSendInterval", true))
+        {
+          deviceInfoSendInterval = request->getParam("deviceInfoSendInterval", true)->value().toInt();
+          localLog(F("deviceInfoSendInterval: "));
+          localLogLn(deviceInfoSendInterval);
+        }
         if(request->hasParam("defaultLocationSendInterval", true))
         {
           defaultLocationSendInterval = request->getParam("defaultLocationSendInterval", true)->value().toInt();

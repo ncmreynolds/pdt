@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 3;
-uint8_t patchVersion = 0;
+uint8_t patchVersion = 1;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -166,6 +166,17 @@ uint8_t patchVersion = 0;
   #include "CRC.h"
   #define LORA_CRC_POLYNOME 0xac9a  //Taken from https://users.ece.cmu.edu/~koopman/crc/
   #define LORA_NON_BLOCKING //Uncomment to use callbacks, rather than polling for LoRa events
+  uint8_t defaultLoRaTxPower = 17;
+  uint8_t defaultLoRaSpreadingFactor = 7;
+  uint32_t defaultLoRaSignalBandwidth = 250E3; //125E3; //Supported values are 7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3(default), 250E3, and 500E3.
+  // Each nibble of the SX127x SyncWord must be strictly below 8 to be compatible with SX126x
+  // Each nibble of the SX127x SynchWord must be different from each other and from 0 or you might experience a slight loss of sensitivity
+  // Translation from SX127x to SX126x : 0xYZ -> 0xY4Z4 : if you do not set the two 4 you might lose sensitivity
+  // There is more to it, but this should be enough to setup your networks and hopefully the official response will be more complete.
+  uint8_t loRaSyncWord = 0x12;  //Don't use 0x34 as that is LoRaWAN, valid options are 0x12, 0x56, 0x78
+  uint32_t loRaTxTime = 0; //Time in ms spent transmitting
+  float maximumLoRaDutyCycle = 1.0;
+  float calculatedLoRaDutyCycle = 0.0;  //Calculated from loRaTxTime and millis()
 #endif
 /*
 
@@ -442,7 +453,7 @@ const uint16_t loggingSemaphoreTimeout = 5;
       portMUX_TYPE loRaRxSynch = portMUX_INITIALIZER_UNLOCKED;  //Mutex for multi-core ESP32s
       portMUX_TYPE loRaTxSynch = portMUX_INITIALIZER_UNLOCKED;  //Mutex for multi-core ESP32s
     #endif
-    volatile uint32_t txTimer = 0;
+    volatile uint32_t loRaTxStartTime = 0; //Used to calculate TX time for each packet
     volatile bool loRaTxBusy = false;
     volatile bool loRaRxBusy = false;
     volatile uint8_t loRaSendBufferSize = 0;
@@ -462,7 +473,7 @@ const uint16_t loggingSemaphoreTimeout = 5;
   uint8_t loRaSendBuffer[MAX_LORA_BUFFER_SIZE];
   uint8_t loRaReceiveBuffer[MAX_LORA_BUFFER_SIZE];
   uint32_t lastDeviceInfoSendTime = 0;    // last send time
-  uint32_t deviceInfoSendInterval = 30000;    // Send info eveyr 30s
+  uint32_t deviceInfoSendInterval = 60000;    // Send info every 60s
   uint32_t lastLocationSendTime = 0;    // last send time
   uint32_t defaultLocationSendInterval = 60000;
   uint16_t loRaPerimiter1 = 25;             //Range at which beacon 1 applies
