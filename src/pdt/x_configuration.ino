@@ -471,6 +471,8 @@ void printConfiguration()
     localLogLn(maximumEffectiveRange);
   #endif
   #if defined(SUPPORT_LORA)
+    localLog(F("defaultLocationSendInterval: "));
+    localLogLn(defaultLocationSendInterval);
     localLog(F("loRaPerimiter1: "));
     localLogLn(loRaPerimiter1);
     localLog(F("locationSendInterval1: "));

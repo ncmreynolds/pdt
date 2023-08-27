@@ -28,6 +28,7 @@
       }
       if(wifiApStarted == true || wifiClientConnected == true)
       {
+        espBoilerplate.setHostname(device[0].name); //Set mDNS name
         setupWebServer();
         if(otaEnabled == true)
         {

@@ -453,38 +453,15 @@
     ssd1306_clearScreen8();
     printTopLine((const char*)F("SIGNAL"));
     printBottomLine((const char*)F("STRENGTH"));
-    if(device[currentBeacon].hasFix == false || device[currentBeacon].distanceTo > maximumEffectiveRange)
+    if(currentBeacon == maximumNumberOfDevices || device[currentBeacon].hasFix == false || device[currentBeacon].distanceTo > maximumEffectiveRange)
     {
-      if(maximumEffectiveRange > 999)
+      #if defined(SERIAL_DEBUG)
+      if(waitForBufferSpace(35))
       {
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(35))
-        {
-          SERIAL_DEBUG_PORT.println(F("Displaying signal strength: ----"));
-        }
-        #endif
-        printMiddleLine((const char*)F("----"));
+        SERIAL_DEBUG_PORT.println(F("Displaying signal strength: --"));
       }
-      else if(maximumEffectiveRange > 99)
-      {
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(35))
-        {
-          SERIAL_DEBUG_PORT.println(F("Displaying signal strength: ---"));
-        }
-        #endif
-        printMiddleLine((const char*)F("---"));
-      }
-      else
-      {
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(35))
-        {
-          SERIAL_DEBUG_PORT.println(F("Displaying signal strength: --"));
-        }
-        #endif
-        printMiddleLine((const char*)F("--"));
-      }
+      #endif
+      printMiddleLine((const char*)F("N/A"));
     }
     else
     {
@@ -492,11 +469,11 @@
         if(waitForBufferSpace(35))
         {
           SERIAL_DEBUG_PORT.print(F("Displaying signal strength: "));
-          SERIAL_DEBUG_PORT.println(lastRssi);
+          SERIAL_DEBUG_PORT.println(device[currentBeacon].lastRssi);
         }
       #endif
       char displayText[11];
-      sprintf_P(displayText,PSTR("%03.1fdbM"),lastRssi);
+      sprintf_P(displayText,PSTR("%03.1fdbM"),device[currentBeacon].lastRssi);
       printMiddleLine(displayText);
     }
     lastDisplayUpdate = millis();

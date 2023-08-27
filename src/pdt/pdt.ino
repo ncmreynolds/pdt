@@ -15,8 +15,8 @@
 #define ACT_AS_TRACKER
 
 uint8_t majorVersion = 0;
-uint8_t minorVersion = 2;
-uint8_t patchVersion = 22;
+uint8_t minorVersion = 3;
+uint8_t patchVersion = 0;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -530,24 +530,24 @@ const uint16_t loggingSemaphoreTimeout = 5;
   struct deviceLocationInfo {
     uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     char* name = nullptr;
-    double latitude = 0;
-    double longitude = 0;
-    double course = 0;
-    double speed = 0;
-    double hdop = 0;
-    double distanceTo = 0;
-    double courseTo = 0;
-    uint32_t lastLocationUpdate = 0;
-    uint16_t nextLocationUpdate = 0;
-    uint16_t updateHistory = 0xffff;
-    uint32_t uptime = 0;
-    float supplyVoltage = 0;
     bool hasFix = false;
-    double lastRssi = 0;
     uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor
-    uint8_t majorVersion = 0;
+    float supplyVoltage = 0;  // Battery health can be guesstimated from this
+    uint32_t uptime = 0;  // Check for reboots
+    uint8_t majorVersion = 0; //Software version
     uint8_t minorVersion = 0;
     uint8_t patchVersion = 0;
+    uint32_t lastLocationUpdate = 0;  // Used to track packet loss
+    uint16_t nextLocationUpdate = 0;  // Used to track packet loss
+    uint16_t updateHistory = 0xffff;  // Rolling bitmask of packets received/not received based on expected arrival times
+    double latitude = 0;  //Location info
+    double longitude = 0;
+    float course = 0;
+    float speed = 0;
+    float hdop = 0;
+    float distanceTo = 0;
+    float courseTo = 0;
+    float lastRssi = 0; // Can also be used to estimate distance
     uint8_t numberOfStartingHits = 0;
     uint8_t numberOfStartingStunHits = 0;
     uint8_t currentNumberOfHits = 0;

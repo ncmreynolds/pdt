@@ -273,14 +273,14 @@
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
           if(waitForBufferSpace(80))
           {
-            SERIAL_DEBUG_PORT.printf_P(PSTR("TX %02x:%02x:%02x:%02x:%02x:%02x location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f next update:%u(ms)\r\n"),
+            SERIAL_DEBUG_PORT.printf_P(PSTR("TX %02x:%02x:%02x:%02x:%02x:%02x location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f next update:%us\r\n"),
               device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
               device[0].latitude,
               device[0].longitude,
               device[0].course,
               device[0].speed,
               device[0].hdop,
-              device[0].nextLocationUpdate);
+              device[0].nextLocationUpdate/1000);
           }
         #endif
       }
@@ -314,6 +314,14 @@
         packer.pack(numberOfStartingStunHits);
         packer.pack(currentNumberOfHits);
         packer.pack(currentNumberOfStunHits);
+      #else
+        packer.pack(defaultLocationSendInterval);
+        packer.pack(loRaPerimiter1);
+        packer.pack(locationSendInterval1);
+        packer.pack(loRaPerimiter2);
+        packer.pack(locationSendInterval2);
+        packer.pack(loRaPerimiter3);
+        packer.pack(locationSendInterval3);
       #endif
       if(packer.size() < MAX_LORA_BUFFER_SIZE)
       {
@@ -339,14 +347,21 @@
                 numberOfStartingStunHits
                 );
               #else
-                SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+                SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv\r\n\tIntervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
                 device[0].typeOfDevice,
                 majorVersion,
                 minorVersion,
                 patchVersion,
                 device[0].name,
                 printableUptime(millis()/1000).c_str(),
-                batteryVoltage
+                batteryVoltage,
+                defaultLocationSendInterval/1000,
+                loRaPerimiter1,
+                locationSendInterval1/1000,
+                loRaPerimiter2,
+                locationSendInterval2/1000,
+                loRaPerimiter3,
+                locationSendInterval3/1000
                 );
               #endif
             }
@@ -513,15 +528,15 @@
                       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                         if(waitForBufferSpace(80))
                         {
-                            SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) RSSI:%.1f next update:%u(ms) update history:%04x\r\n",
+                            SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) RSSI:%.1f next update:%us update history:%04x\r\n",
                             device[deviceIndex].latitude,
                             device[deviceIndex].longitude,
                             device[deviceIndex].course,
                             device[deviceIndex].speed,
                             device[deviceIndex].hdop,
                             device[deviceIndex].distanceTo,
-                            lastRssi,
-                            device[deviceIndex].nextLocationUpdate,
+                            device[deviceIndex].lastRssi,
+                            device[deviceIndex].nextLocationUpdate/1000,
                             device[deviceIndex].updateHistory);
                         }
                       #endif
@@ -564,6 +579,20 @@
                                       device[deviceIndex].name = new char[receivedDeviceName.length() + 1];
                                       receivedDeviceName.toCharArray(device[deviceIndex].name, receivedDeviceName.length() + 1);
                                     }
+                                    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                      if(waitForBufferSpace(60))
+                                      {
+                                        SERIAL_DEBUG_PORT.printf_P(PSTR("info type:%02x version:%u.%u.%u name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f"),
+                                          device[deviceIndex].typeOfDevice,
+                                          device[deviceIndex].majorVersion,
+                                          device[deviceIndex].minorVersion,
+                                          device[deviceIndex].patchVersion,
+                                          device[deviceIndex].name,
+                                          printableUptime(device[deviceIndex].uptime/1000).c_str(),
+                                          device[deviceIndex].supplyVoltage,
+                                          device[deviceIndex].lastRssi);
+                                      }
+                                    #endif
                                     if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
                                     {
                                       if(unpacker.isUInt7() || unpacker.isUInt8())  //Starting hits
@@ -578,6 +607,20 @@
                                               if(unpacker.isUInt7() || unpacker.isUInt8())  //Current hits
                                               {
                                                   unpacker.unpack(device[deviceIndex].currentNumberOfStunHits);
+                                                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                                    if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
+                                                    {
+                                                      if(waitForBufferSpace(60))
+                                                      {
+                                                        SERIAL_DEBUG_PORT.printf_P(" hits %u/%u Stun %u/%u\r\n",
+                                                          device[deviceIndex].currentNumberOfHits,
+                                                          device[deviceIndex].numberOfStartingHits,
+                                                          device[deviceIndex].currentNumberOfStunHits,
+                                                          device[deviceIndex].numberOfStartingStunHits
+                                                          );
+                                                      }
+                                                    }
+                                                  #endif
                                               }
                                               else
                                               {
@@ -623,39 +666,69 @@
                                           #endif
                                         }
                                     }
-                                    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-                                      if(waitForBufferSpace(60))
-                                      {
-                                        SERIAL_DEBUG_PORT.printf_P(PSTR("info type:%02x version:%u.%u.%u name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f"),
-                                          device[deviceIndex].typeOfDevice,
-                                          device[deviceIndex].majorVersion,
-                                          device[deviceIndex].minorVersion,
-                                          device[deviceIndex].patchVersion,
-                                          device[deviceIndex].name,
-                                          printableUptime(device[deviceIndex].uptime/1000).c_str(),
-                                          device[deviceIndex].supplyVoltage,
-                                          lastRssi);
-                                      }
-                                      if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
-                                      {
-                                        if(waitForBufferSpace(60))
+                                    else
+                                    {
+                                      uint32_t receivedDefaultLocationSendInterval;
+                                      uint16_t receivedLoRaPerimiter1;
+                                      uint32_t receivedLocationSendInterval1;
+                                      uint16_t receivedLoRaPerimiter2;
+                                      uint32_t receivedLocationSendInterval2;
+                                      uint16_t receivedLoRaPerimiter3;
+                                      uint32_t receivedLocationSendInterval3;
+                                      unpacker.unpack(receivedDefaultLocationSendInterval);
+                                      unpacker.unpack(receivedLoRaPerimiter1);
+                                      unpacker.unpack(receivedLocationSendInterval1);
+                                      unpacker.unpack(receivedLoRaPerimiter2);
+                                      unpacker.unpack(receivedLocationSendInterval2);
+                                      unpacker.unpack(receivedLoRaPerimiter3);
+                                      unpacker.unpack(receivedLocationSendInterval3);
+                                      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                        if(waitForBufferSpace(75))
                                         {
-                                          SERIAL_DEBUG_PORT.printf_P(" hits %u/%u Stun %u/%u\r\n",
-                                            device[deviceIndex].currentNumberOfHits,
-                                            device[deviceIndex].numberOfStartingHits,
-                                            device[deviceIndex].currentNumberOfStunHits,
-                                            device[deviceIndex].numberOfStartingStunHits
-                                            );
+                                          SERIAL_DEBUG_PORT.printf_P(PSTR("\r\n\tIntervals: default %us, %um %us, %um %us, %um %us"),
+                                            receivedDefaultLocationSendInterval/1000,
+                                            receivedLoRaPerimiter1,
+                                            receivedLocationSendInterval1/1000,
+                                            receivedLoRaPerimiter2,
+                                            receivedLocationSendInterval2/1000,
+                                            receivedLoRaPerimiter3,
+                                            receivedLocationSendInterval3/1000
+                                          );
                                         }
+                                      #endif
+                                      if(defaultLocationSendInterval != receivedDefaultLocationSendInterval ||
+                                        loRaPerimiter1 != receivedLoRaPerimiter1 ||
+                                        locationSendInterval1 != receivedLocationSendInterval1 ||
+                                        loRaPerimiter2 != receivedLoRaPerimiter2 ||
+                                        locationSendInterval2 != receivedLocationSendInterval2 ||
+                                        loRaPerimiter3 != receivedLoRaPerimiter3 ||
+                                        locationSendInterval3 != receivedLocationSendInterval3)
+                                      {
+                                        defaultLocationSendInterval = receivedDefaultLocationSendInterval;
+                                        loRaPerimiter1 = receivedLoRaPerimiter1;
+                                        locationSendInterval1 = receivedLocationSendInterval1;
+                                        loRaPerimiter2 = receivedLoRaPerimiter2;
+                                        locationSendInterval2 = receivedLocationSendInterval2;
+                                        loRaPerimiter3 = receivedLoRaPerimiter3;
+                                        locationSendInterval3 = receivedLocationSendInterval3;
+                                        saveConfigurationSoon = millis();
+                                        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                          if(waitForBufferSpace(75))
+                                          {
+                                            SERIAL_DEBUG_PORT.print(F(" syncing\r\n"));
+                                          }
+                                        #endif
                                       }
                                       else
                                       {
-                                        if(waitForBufferSpace(2))
-                                        {
-                                          SERIAL_DEBUG_PORT.println();
-                                        }
+                                        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                          if(waitForBufferSpace(75))
+                                          {
+                                            SERIAL_DEBUG_PORT.print(F(" matches\r\n"));
+                                          }
+                                        #endif
                                       }
-                                    #endif
+                                    }
                                   }
                                   else
                                   {

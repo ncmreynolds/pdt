@@ -885,6 +885,12 @@ void setupWebServer()
         }
       #endif
       #if defined(SUPPORT_LORA)
+        if(request->hasParam("defaultLocationSendInterval", true))
+        {
+          defaultLocationSendInterval = request->getParam("defaultLocationSendInterval", true)->value().toInt();
+          localLog(F("defaultLocationSendInterval: "));
+          localLogLn(defaultLocationSendInterval);
+        }
         if(request->hasParam("loRaPerimiter1", true))
         {
           loRaPerimiter1 = request->getParam("loRaPerimiter1", true)->value().toInt();

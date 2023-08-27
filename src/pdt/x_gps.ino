@@ -420,29 +420,6 @@
       }
       return false;
     }
-    char* hdopDescription(float hdop)
-    {
-      if(hdop < 1)
-      {
-         return PSTR("excellent");
-      }
-      else if(hdop < 1.5)
-      {
-        return PSTR("good");
-      }
-      else if(hdop < 2)
-      {
-        return PSTR("normal");
-      }
-      else if(hdop < 3)
-      {
-        return PSTR("poor");
-      }
-      else
-      {
-        return PSTR("inaccurate");
-      }
-    }
   #elif defined(ACT_AS_BEACON)
     uint8_t numberOfTrackers()
     {
@@ -481,6 +458,29 @@
       }
     }
   #endif
+  char* hdopDescription(float hdop)
+  {
+    if(hdop < 1)
+    {
+       return PSTR("excellent");
+    }
+    else if(hdop < 1.5)
+    {
+      return PSTR("good");
+    }
+    else if(hdop < 2)
+    {
+      return PSTR("normal");
+    }
+    else if(hdop < 3)
+    {
+      return PSTR("poor");
+    }
+    else
+    {
+      return PSTR("inaccurate");
+    }
+  }
   #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
     void showGPSstatus()
     {
