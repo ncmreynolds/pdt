@@ -63,6 +63,9 @@ void setupWebServer()
         //response->printf_P(PSTR("<li>PDT beacon firmware: %s %u.%u.%u</li>"), __BASE_FILE__, majorVersion, minorVersion, patchVersion);
         response->printf_P(PSTR("<li>PDT beacon firmware: %s v%u.%u.%u</li>"), majorVersion, minorVersion, patchVersion);
       #endif
+      response->print(F("<li>Features: "));
+      response->print(deviceFeatures(device[0].typeOfDevice));
+      response->print(F("</li>"));
       response->printf_P(PSTR("<li>Built: %s %s</li>"), __TIME__, __DATE__);
       response->printf_P(PSTR("<li>Board: %s</li>"), ARDUINO_BOARD);
       #ifdef ESP_IDF_VERSION_MAJOR
@@ -1166,8 +1169,8 @@ void setupWebServer()
       response->print(F("<table class=\"u-full-width\"><thead><tr><th>Name</th><th>Type</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th></th></tr></thead><tbody>"));
       for(uint8_t index = 0; index < numberOfDevices; index++)
       {
-        response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%f</td><td>%f</td><td>%04x</td><td>"),
-          device[index].name,
+        response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
+          (device[index].name == nullptr) ? "n/a" : device[index].name,
           deviceFeatures(device[index].typeOfDevice).c_str(),
           (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
           device[index].supplyVoltage,
