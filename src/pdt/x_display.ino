@@ -395,7 +395,7 @@
     ssd1306_clearScreen8();
     printTopLine((const char*)F("BATTERY"));
     printBottomLine((const char*)F("CAPACITY"));
-    if(batteryVoltage > chargingVoltage)
+    if(device[0].supplyVoltage > chargingVoltage)
     {
       #ifdef SERIAL_DEBUG
         if(waitForBufferSpace(32))

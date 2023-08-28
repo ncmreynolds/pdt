@@ -287,8 +287,17 @@ void flushLog() //Flush the log to filesystem if it seems safe to do so
     File logFile = openFileForAppend(logFilename); //Open file for appending
     if(logFile) //Log file is open
     {
-      logFile.print(loggingBuffer);
+      //logFile.print(loggingBuffer);
+      uint8_t chunkSize = 32;
+      uint16_t chunk = 0;
+      for(chunk = 0; chunk < loggingBuffer.length()/chunkSize; chunk++) //Chunk up the logfile
+      {
+        logFile.print(loggingBuffer.substring(chunk*chunkSize, (chunk*chunkSize) + chunkSize)); //Print a chunk
+        vTaskDelay(loggingYieldTime / portTICK_PERIOD_MS); //Hand back for 10ms
+      }
+      logFile.print(loggingBuffer.substring(chunk*chunkSize)); //Print any last chunk
       logFile.close();
+      vTaskDelay(loggingYieldTime / portTICK_PERIOD_MS); //Hand back for 10ms
       #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
         if(waitForBufferSpace(30))
         {

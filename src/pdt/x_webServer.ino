@@ -57,9 +57,11 @@ void setupWebServer()
       response->print(F("<h2>General</h2>"));
       response->print(F("<ul>"));
       #if defined(ACT_AS_TRACKER)
-        response->printf_P(PSTR("<li>PDT tracker firmware: %s %u.%u.%u</li>"), __BASE_FILE__, majorVersion, minorVersion, patchVersion);
+        //response->printf_P(PSTR("<li>PDT tracker firmware: %s %u.%u.%u</li>"), __BASE_FILE__, majorVersion, minorVersion, patchVersion);
+        response->printf_P(PSTR("<li>PDT tracker firmware: v%u.%u.%u</li>"), majorVersion, minorVersion, patchVersion);
       #elif defined(ACT_AS_BEACON)
-        response->printf_P(PSTR("<li>PDT beacon firmware: %s %u.%u.%u</li>"), __BASE_FILE__, majorVersion, minorVersion, patchVersion);
+        //response->printf_P(PSTR("<li>PDT beacon firmware: %s %u.%u.%u</li>"), __BASE_FILE__, majorVersion, minorVersion, patchVersion);
+        response->printf_P(PSTR("<li>PDT beacon firmware: %s v%u.%u.%u</li>"), majorVersion, minorVersion, patchVersion);
       #endif
       response->printf_P(PSTR("<li>Built: %s %s</li>"), __TIME__, __DATE__);
       response->printf_P(PSTR("<li>Board: %s</li>"), ARDUINO_BOARD);
@@ -207,7 +209,6 @@ void setupWebServer()
         response->print(F(" RX / "));
         response->print(loRaTxPackets);
         response->print(F(" TX"));
-        calculatedLoRaDutyCycle = ((float)loRaTxTime/(float)millis())*100;
         response->printf_P(PSTR(" Duty cycle: %.02f%%"),calculatedLoRaDutyCycle);
       }
       else
@@ -217,16 +218,16 @@ void setupWebServer()
       response->print(F("</li>"));
       #endif
       #ifdef SUPPORT_BATTERY_METER
-        if(batteryVoltage > chargingVoltage)
+        if(device[0].supplyVoltage > chargingVoltage)
         {
           response->print(F("<li>Battery voltage: USB power ("));
-          response->print(batteryVoltage);
+          response->print(device[0].supplyVoltage);
           response->print(F("v)</li>"));
         }
         else
         {
           response->print(F("<li>Battery voltage: "));
-          response->print(batteryVoltage);
+          response->print(device[0].supplyVoltage);
           response->print(F("v ("));
           response->print(batteryPercentage);
           response->print(F("% charge)</li>"));
@@ -328,6 +329,7 @@ void setupWebServer()
         }
       #endif
       response->print(F("</ul>"));
+      response->print(F("<a href =\"/devices\"><input class=\"button-primary\" type=\"button\" value=\"Devices\"></a> "));
       response->print(F("<a href =\"/listLogs\"><input class=\"button-primary\" type=\"button\" value=\"Logs\"></a> "));
       response->print(F("<a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Configuration\"></a> "));
       #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
@@ -651,9 +653,9 @@ void setupWebServer()
         }
       #endif
       int params = request->params();
+      /*
       localLog(F("Submitted Configuration parameters: "));
       localLogLn(params);
-      /*
       for(int i=0;i<params;i++){
         AsyncWebParameter* p = request->getParam(i);
         if(p->isFile()){ //p->isPost() is also true
@@ -678,8 +680,8 @@ void setupWebServer()
         }
         device[0].name = new char[request->getParam("deviceName", true)->value().length() + 1];
         strlcpy(device[0].name,request->getParam("deviceName", true)->value().c_str(),request->getParam("deviceName", true)->value().length() + 1);
-        localLog(F("deviceName: "));
-        localLogLn(device[0].name);
+        //localLog(F("deviceName: "));
+        //localLogLn(device[0].name);
       }
       if(request->hasParam("configurationComment", true))
       {
@@ -689,8 +691,8 @@ void setupWebServer()
         }
         configurationComment = new char[request->getParam("configurationComment", true)->value().length() + 1];
         strlcpy(configurationComment,request->getParam("configurationComment", true)->value().c_str(),request->getParam("configurationComment", true)->value().length() + 1);
-        localLog(F("configurationComment: "));
-        localLogLn(configurationComment);
+        //localLog(F("configurationComment: "));
+        //localLogLn(configurationComment);
       }
       else
       {
@@ -710,8 +712,8 @@ void setupWebServer()
           }
           http_user = new char[request->getParam("http_user", true)->value().length() + 1];
           strlcpy(http_user,request->getParam("http_user", true)->value().c_str(),request->getParam("http_user", true)->value().length() + 1);
-          localLog(F("http_user: "));
-          localLogLn(http_user);
+          //localLog(F("http_user: "));
+          //localLogLn(http_user);
         }
         if(request->hasParam("http_password", true))
         {
@@ -723,67 +725,67 @@ void setupWebServer()
             }
             http_password = new char[request->getParam("http_password", true)->value().length() + 1];
             strlcpy(http_password,request->getParam("http_password", true)->value().c_str(),request->getParam("http_password", true)->value().length() + 1);
-            localLogLn(F("http_password: ********"));
+            //localLogLn(F("http_password: ********"));
           }
         }
         if(request->hasParam("basicAuthEnabled", true))
         {
-          localLog(F("basicAuthEnabled: "));
+          //localLog(F("basicAuthEnabled: "));
           if(request->getParam("basicAuthEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
           {
             basicAuthEnabled = true;
-            localLogLn(F("enabled"));
+            //localLogLn(F("enabled"));
           }
           else
           {
             basicAuthEnabled = false;
-            localLogLn(F("disabled"));
+            //localLogLn(F("disabled"));
           }
         }
       #endif
       #if defined(ENABLE_OTA_UPDATE)
         if(request->hasParam("otaEnabled", true))
         {
-          localLog(F("otaEnabled: "));
+          //localLog(F("otaEnabled: "));
           if(request->getParam("otaEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
           {
             otaEnabled = true;
-            localLogLn(F("enabled"));
+            //localLogLn(F("enabled"));
           }
           else
           {
             otaEnabled = false;
-            localLogLn(F("disabled"));
+            //localLogLn(F("disabled"));
           }
         }
         if(request->hasParam("otaAuthenticationEnabled", true))
         {
-          localLog(F("otaAuthenticationEnabled: "));
+          //localLog(F("otaAuthenticationEnabled: "));
           if(request->getParam("otaAuthenticationEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
           {
             otaAuthenticationEnabled = true;
-            localLogLn(F("enabled"));
+            //localLogLn(F("enabled"));
           }
           else
           {
             otaAuthenticationEnabled = false;
-            localLogLn(F("disabled"));
+            //localLogLn(F("disabled"));
           }
         }
       #endif
       #if defined(SUPPORT_BEEPER)
         if(request->hasParam("beeperEnabled", true))
         {
-          localLog(F("beeperEnabled: "));
+          //localLog(F("beeperEnabled: "));
           if(request->getParam("beeperEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
           {
             beeperEnabled = true;
-            localLogLn(F("enabled"));
+            //localLogLn(F("enabled"));
           }
           else
           {
             beeperEnabled = false;
-            localLogLn(F("disabled"));
+            //localLogLn(F("disabled"));
           }
         }
       #endif
@@ -796,8 +798,8 @@ void setupWebServer()
           }
           SSID = new char[request->getParam("SSID", true)->value().length() + 1];
           strlcpy(SSID,request->getParam("SSID", true)->value().c_str(),request->getParam("SSID", true)->value().length() + 1);
-          localLog(F("SSID: "));
-          localLogLn(SSID);
+          //localLog(F("SSID: "));
+          //localLogLn(SSID);
         }
         if(request->hasParam("PSK", true))
         {
@@ -809,28 +811,28 @@ void setupWebServer()
             }
             PSK = new char[request->getParam("PSK", true)->value().length() + 1];
             strlcpy(PSK,request->getParam("PSK", true)->value().c_str(),request->getParam("PSK", true)->value().length() + 1);
-            localLogLn(F("PSK: ********"));
+            //localLogLn(F("PSK: ********"));
           }
         }
         if(request->hasParam("startWiFiClientOnBoot", true))
         {
-          localLog(F("startWiFiClientOnBoot: "));
+          //localLog(F("startWiFiClientOnBoot: "));
           if(request->getParam("startWiFiClientOnBoot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
           {
             startWiFiClientOnBoot = true;
-            localLogLn(F("enabled"));
+            //localLogLn(F("enabled"));
           }
           else
           {
             startWiFiClientOnBoot = false;
-            localLogLn(F("disabled"));
+            //localLogLn(F("disabled"));
           }
         }
         if(request->hasParam("wiFiClientInactivityTimer", true))
         {
           wiFiClientInactivityTimer = request->getParam("wiFiClientInactivityTimer", true)->value().toInt();
-          localLog(F("wiFiClientInactivityTimer: "));
-          localLogLn(wiFiClientInactivityTimer);
+          //localLog(F("wiFiClientInactivityTimer: "));
+          //localLogLn(wiFiClientInactivityTimer);
         }
         if(request->hasParam("timeServer", true))
         {
@@ -840,8 +842,8 @@ void setupWebServer()
           }
           timeServer = new char[request->getParam("timeServer", true)->value().length() + 1];
           strlcpy(timeServer,request->getParam("timeServer", true)->value().c_str(),request->getParam("timeServer", true)->value().length() + 1);
-          localLog(F("timeServer: "));
-          localLogLn(timeServer);
+          //localLog(F("timeServer: "));
+          //localLogLn(timeServer);
         }
         if(request->hasParam("timeZone", true))
         {
@@ -851,23 +853,23 @@ void setupWebServer()
           }
           timeZone = new char[request->getParam("timeZone", true)->value().length() + 1];
           strlcpy(timeZone,request->getParam("timeZone", true)->value().c_str(),request->getParam("timeZone", true)->value().length() + 1);
-          localLog(F("timeZone: "));
-          localLogLn(timeZone);
+          //localLog(F("timeZone: "));
+          //localLogLn(timeZone);
         }
       #endif
       #ifdef SUPPORT_GPS
         if(request->hasParam("useGpsForTimeSync", true))
         {
-          localLog(F("useGpsForTimeSync: "));
+          //localLog(F("useGpsForTimeSync: "));
           if(request->getParam("useGpsForTimeSync", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
           {
             useGpsForTimeSync = true;
-            localLogLn(F("enabled"));
+            //localLogLn(F("enabled"));
           }
           else
           {
             useGpsForTimeSync = false;
-            localLogLn(F("disabled"));
+            //localLogLn(F("disabled"));
           }
         }
       #endif
@@ -875,21 +877,21 @@ void setupWebServer()
         if(request->hasParam("maximumEffectiveRange", true))
         {
           maximumEffectiveRange = request->getParam("maximumEffectiveRange", true)->value().toInt();
-          localLog(F("maximumEffectiveRange: "));
-          localLogLn(maximumEffectiveRange);
+          //localLog(F("maximumEffectiveRange: "));
+          //localLogLn(maximumEffectiveRange);
         }
         if(request->hasParam("beeperEnabled", true))
         {
-          localLog(F("beeperEnabled: "));
+          //localLog(F("beeperEnabled: "));
           if(request->getParam("beeperEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
           {
             beeperEnabled = true;
-            localLogLn(F("enabled"));
+            //localLogLn(F("enabled"));
           }
           else
           {
             beeperEnabled = false;
-            localLogLn(F("disabled"));
+            //localLogLn(F("disabled"));
           }
         }
       #endif
@@ -897,87 +899,87 @@ void setupWebServer()
         if(request->hasParam("deviceInfoSendInterval", true))
         {
           deviceInfoSendInterval = request->getParam("deviceInfoSendInterval", true)->value().toInt();
-          localLog(F("deviceInfoSendInterval: "));
-          localLogLn(deviceInfoSendInterval);
+          //localLog(F("deviceInfoSendInterval: "));
+          //localLogLn(deviceInfoSendInterval);
         }
         if(request->hasParam("defaultLocationSendInterval", true))
         {
           defaultLocationSendInterval = request->getParam("defaultLocationSendInterval", true)->value().toInt();
-          localLog(F("defaultLocationSendInterval: "));
-          localLogLn(defaultLocationSendInterval);
+          //localLog(F("defaultLocationSendInterval: "));
+          //localLogLn(defaultLocationSendInterval);
         }
         if(request->hasParam("loRaPerimiter1", true))
         {
           loRaPerimiter1 = request->getParam("loRaPerimiter1", true)->value().toInt();
-          localLog(F("loRaPerimiter1: "));
-          localLogLn(loRaPerimiter1);
+          //localLog(F("loRaPerimiter1: "));
+          //localLogLn(loRaPerimiter1);
         }
         if(request->hasParam("locationSendInterval1", true))
         {
           locationSendInterval1 = request->getParam("locationSendInterval1", true)->value().toInt();
-          localLog(F("locationSendInterval1: "));
-          localLogLn(locationSendInterval1);
+          //localLog(F("locationSendInterval1: "));
+          //localLogLn(locationSendInterval1);
         }
         if(request->hasParam("loRaPerimiter2", true))
         {
           loRaPerimiter2 = request->getParam("loRaPerimiter2", true)->value().toInt();
-          localLog(F("loRaPerimiter2: "));
-          localLogLn(loRaPerimiter2);
+          //localLog(F("loRaPerimiter2: "));
+          //localLogLn(loRaPerimiter2);
         }
         if(request->hasParam("locationSendInterval2", true))
         {
           locationSendInterval2 = request->getParam("locationSendInterval2", true)->value().toInt();
-          localLog(F("locationSendInterval2: "));
-          localLogLn(locationSendInterval2);
+          //localLog(F("locationSendInterval2: "));
+          //localLogLn(locationSendInterval2);
         }
         if(request->hasParam("loRaPerimiter3", true))
         {
           loRaPerimiter3 = request->getParam("loRaPerimiter3", true)->value().toInt();
-          localLog(F("loRaPerimiter3: "));
-          localLogLn(loRaPerimiter3);
+          //localLog(F("loRaPerimiter3: "));
+          //localLogLn(loRaPerimiter3);
         }
         if(request->hasParam("locationSendInterval3", true))
         {
           locationSendInterval3 = request->getParam("locationSendInterval3", true)->value().toInt();
-          localLog(F("locationSendInterval3: "));
-          localLogLn(locationSendInterval3);
+          //localLog(F("locationSendInterval3: "));
+          //localLogLn(locationSendInterval3);
         }
         if(request->hasParam("rssiAttenuation", true))
         {
           rssiAttenuation = request->getParam("rssiAttenuation", true)->value().toFloat();
-          localLog(F("rssiAttenuation: "));
-          localLogLn(rssiAttenuation);
+          //localLog(F("rssiAttenuation: "));
+          //localLogLn(rssiAttenuation);
         }
         if(request->hasParam("rssiAttenuationBaseline", true))
         {
           rssiAttenuationBaseline = request->getParam("rssiAttenuationBaseline", true)->value().toFloat();
-          localLog(F("rssiAttenuationBaseline: "));
-          localLogLn(rssiAttenuationBaseline);
+          //localLog(F("rssiAttenuationBaseline: "));
+          //localLogLn(rssiAttenuationBaseline);
         }
         if(request->hasParam("rssiAttenuationPerimeter", true))
         {
           rssiAttenuationPerimeter = request->getParam("rssiAttenuationPerimeter", true)->value().toFloat();
-          localLog(F("rssiAttenuationPerimeter: "));
-          localLogLn(rssiAttenuationPerimeter);
+          //localLog(F("rssiAttenuationPerimeter: "));
+          //localLogLn(rssiAttenuationPerimeter);
         }
       #endif
       if(request->hasParam("loggingBufferSize", true))
       {
         loggingBufferSize = request->getParam("loggingBufferSize", true)->value().toInt();
-        localLog(F("loggingBufferSize: "));
-        localLogLn(loggingBufferSize);
+        //localLog(F("loggingBufferSize: "));
+        //localLogLn(loggingBufferSize);
       }
       if(request->hasParam("logFlushThreshold", true))
       {
         logFlushThreshold = request->getParam("logFlushThreshold", true)->value().toInt();
-        localLog(F("logFlushThreshold: "));
-        localLogLn(logFlushThreshold);
+        //localLog(F("logFlushThreshold: "));
+        //localLogLn(logFlushThreshold);
       }
       if(request->hasParam("logFlushInterval", true))
       {
         logFlushInterval = request->getParam("logFlushInterval", true)->value().toInt();
-        localLog(F("logFlushInterval: "));
-        localLogLn(logFlushInterval);
+        //localLog(F("logFlushInterval: "));
+        //localLogLn(logFlushInterval);
       }
       if(configurationChanged())
       {
@@ -1030,7 +1032,7 @@ void setupWebServer()
           bool updateSuccesful = !Update.hasError();
           if(updateSuccesful == true)
           {
-            localLogLn(F("Web UI software update complete, restarting shortly"));
+            //localLogLn(F("Web UI software update complete, restarting shortly"));
             restartTimer = millis();
           }
           if(updateSuccesful == true)
@@ -1150,6 +1152,57 @@ void setupWebServer()
         restartTimer = millis();
       });
     #endif
+    webServer.on("/devices", HTTP_GET, [](AsyncWebServerRequest *request){
+      lastWifiActivity = millis();
+      #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+        if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+        {
+            return request->requestAuthentication();  //Force basic authentication
+        }
+      #endif
+      AsyncResponseStream *response = request->beginResponseStream("text/html");
+      addPageHeader(response, 90, nullptr);
+      response->print(F("<h2>Devices</h2>"));
+      response->print(F("<table class=\"u-full-width\"><thead><tr><th>Name</th><th>Type</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th></th></tr></thead><tbody>"));
+      for(uint8_t index = 0; index < numberOfDevices; index++)
+      {
+        response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%f</td><td>%f</td><td>%04x</td><td>"),
+          device[index].name,
+          deviceFeatures(device[index].typeOfDevice).c_str(),
+          (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
+          device[index].supplyVoltage,
+          (device[index].hasFix == true) ? PSTR("Yes") : PSTR("No"),
+          device[index].latitude,
+          device[index].longitude,
+          device[index].distanceTo,
+          device[index].courseTo,
+          device[index].updateHistory);
+          if(index == 0)
+          {
+            response->print(F("This device"));
+          }
+          #ifdef ACT_AS_TRACKER
+            else if(index == currentBeacon)
+            {
+              response->print(F("Tracked"));
+            }
+            else
+            {
+              response->printf_P(PSTR("<a href =\"/track?index=%u\"><input class=\"button-primary\" type=\"button\" value=\"Track\"></a>"),index);
+            }
+          #else
+            else if(index == closestTracker)
+            {
+              response->print(F("Closest tracker"));
+            }
+          #endif
+          response->print(F("</td></tr>"));
+      }
+      response->print(F("</tbody></table>"));
+      response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
+      addPageFooter(response);
+      request->send(response);
+    });
     webServer.on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request) {
       lastWifiActivity = millis();
       request->send_P(200, "text/css", normalize);

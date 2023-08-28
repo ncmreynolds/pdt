@@ -508,3 +508,25 @@ void printConfiguration()
   localLogLn(logFlushInterval);
   localLogLn(F("========================="));
 }
+
+String deviceFeatures(uint8_t featureFlags)
+{
+  String features;
+  if((featureFlags & 0x01) == 0)
+  {
+    features = "Location beacon";
+  }
+  else
+  {
+    features = "Beacon tracker";
+  }
+  if((featureFlags & 0x02) == 2)
+  {
+    features += " Lasertag sensor";
+  }
+  if((featureFlags & 0x04) == 4)
+  {
+    features += ", Lasertag emitter";
+  }
+  return features;
+}

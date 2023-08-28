@@ -16,7 +16,7 @@
 
 uint8_t majorVersion = 0;
 uint8_t minorVersion = 3;
-uint8_t patchVersion = 1;
+uint8_t patchVersion = 2;
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -38,6 +38,7 @@ uint8_t patchVersion = 1;
 #define SUPPORT_OTA
 #define USE_LITTLEFS
 #define ENABLE_LOCAL_WEBSERVER
+#define DEBUG_LOCAL_WEBSERVER
 #define ENABLE_REMOTE_RESTART
 #define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
 #define ENABLE_OTA_UPDATE
@@ -441,7 +442,7 @@ uint32_t logFlushInterval = 57600; //Frequency in seconds of log flush, this is 
 uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
 SemaphoreHandle_t loggingSemaphore = NULL;
 TaskHandle_t loggingManagementTask = NULL;
-const uint16_t loggingYieldTime = 1000;
+const uint16_t loggingYieldTime = 10;
 const uint16_t loggingSemaphoreTimeout = 5;
 
 
@@ -637,6 +638,5 @@ const uint16_t loggingSemaphoreTimeout = 5;
 #ifdef SUPPORT_BATTERY_METER
   uint32_t lastDeviceStatus = 0;
   uint32_t deviceStatusInterval = 60000;
-  float batteryVoltage = 0.0;
   uint8_t batteryPercentage = 100;
 #endif

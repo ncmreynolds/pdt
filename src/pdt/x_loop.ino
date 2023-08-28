@@ -28,7 +28,7 @@ void loop()
       localLogLn(F("Time synced"));
     }
   }
-  if(saveConfigurationSoon != 0 && millis() - saveConfigurationSoon > 500) //Save configuration after a delay to avoid AsyncWebserver doing it in a callback
+  if(saveConfigurationSoon != 0 && millis() - saveConfigurationSoon > 5000) //Save configuration after a delay to avoid AsyncWebserver doing it in a callback
   {
     saveConfigurationSoon = 0;
     saveConfiguration(configurationFile);

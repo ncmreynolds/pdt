@@ -4,12 +4,12 @@
     localLog(F("Configuring battery monitor: "));
     analogSetAttenuation(ADC_11db); //Set ADC to read up to 2600mV
     #if defined(ARDUINO_ESP32C3_DEV)
-      //batteryVoltage = analogRead(voltageMonitorPin)*5.8/4095.0;
-      batteryVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/2.8;
+      //device[0].supplyVoltage = analogRead(voltageMonitorPin)*5.8/4095.0;
+      device[0].supplyVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/2.8;
     #else
-      batteryVoltage = analogRead(voltageMonitorPin)*3.3/512.0;
+      device[0].supplyVoltage = analogRead(voltageMonitorPin)*3.3/512.0;
     #endif
-    batteryPercentage = estimateBatteryPercentage(batteryVoltage);
+    batteryPercentage = estimateBatteryPercentage(device[0].supplyVoltage);
     //checkBatteryVoltage();  //Set initial voltage reading
     localLogLn(F("OK"));
   }
@@ -24,14 +24,14 @@
   void checkBatteryVoltage()
   {
     #if defined(ARDUINO_ESP32C3_DEV)
-      //batteryVoltage = analogRead(voltageMonitorPin)*5.8/4095.0;
-      batteryVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/2.8;
+      //device[0].supplyVoltage = analogRead(voltageMonitorPin)*5.8/4095.0;
+      device[0].supplyVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/2.8;
     #else
-      batteryVoltage = analogRead(voltageMonitorPin)*3.3/512.0;
+      device[0].supplyVoltage = analogRead(voltageMonitorPin)*3.3/512.0;
     #endif
-    batteryPercentage = estimateBatteryPercentage(batteryVoltage);
+    batteryPercentage = estimateBatteryPercentage(device[0].supplyVoltage);
     localLog(F("Battery voltage: "));
-    localLog(batteryVoltage);
+    localLog(device[0].supplyVoltage);
     localLog('v');
     localLog(F(" capacity: "));
     localLog(batteryPercentage);

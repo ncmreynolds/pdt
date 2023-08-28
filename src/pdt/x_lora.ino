@@ -203,12 +203,12 @@
             shareLocation();
             if(currentBeacon != maximumNumberOfDevices) //There is a current beacon
             {
-              device[0].nextLocationUpdate = newLocationSharingInterval(distanceToCurrentBeacon);
+              device[0].nextLocationUpdate = newLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
             }
           }
           else
           {
-            device[0].nextLocationUpdate = newLocationSharingInterval(BEACONUNREACHABLE);
+            device[0].nextLocationUpdate = newLocationSharingInterval(BEACONUNREACHABLE, 0);
           }
         }
       #elif defined(ACT_AS_BEACON)
@@ -219,36 +219,52 @@
             shareLocation();
             if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
             {
-              device[0].nextLocationUpdate = newLocationSharingInterval(distanceToClosestTracker);
+              device[0].nextLocationUpdate = newLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
             }
           }
           else
           {
-            device[0].nextLocationUpdate = newLocationSharingInterval(TRACKERUNREACHABLE);
+            device[0].nextLocationUpdate = newLocationSharingInterval(TRACKERUNREACHABLE, 0);
           }
         }
       #endif
     }
     #endif
   }
-  uint32_t newLocationSharingInterval(uint16_t distance)
+  uint32_t newLocationSharingInterval(uint16_t distance, float speed)
   {
-    if(distance < loRaPerimiter1)
+    uint32_t newInterval = 0;
+    if(speed == 0)
     {
-      return locationSendInterval1;
+      if(distance < loRaPerimiter1)
+      {
+        newInterval = locationSendInterval1;
+      }
+      else if(distance < loRaPerimiter2)
+      {
+        newInterval = locationSendInterval2;
+      }
+      else if(distance < loRaPerimiter3)
+      {
+        newInterval = locationSendInterval3;
+      }
+      else
+      {
+        newInterval = defaultLocationSendInterval;
+      }
+      return newInterval;
     }
-    else if(distance < loRaPerimiter2)
+    newInterval = newLocationSharingInterval(distance, 0);  //Get the interval as if not moving
+    int16_t worstCaseDistance = (int16_t)distance - (speed * (newInterval/1000)); //Estimate worst case new distance after this interval
+    if(worstCaseDistance > 0)
     {
-      return locationSendInterval2;
-    }
-    else if(distance < loRaPerimiter3)
-    {
-      return locationSendInterval3;
+      newInterval = newLocationSharingInterval(worstCaseDistance, 0); //Assess new interval based on worst case distance
     }
     else
     {
-      return defaultLocationSendInterval;
+      newInterval = locationSendInterval1;  //Return the shortest interval
     }
+    return newInterval;
   }
   void shareLocation()
   {
@@ -320,7 +336,7 @@
       packer.pack(minorVersion);
       packer.pack(patchVersion);
       packer.pack(millis());
-      packer.pack(batteryVoltage);
+      packer.pack(device[0].supplyVoltage);
       packer.pack(device[0].name);
       #ifdef ACT_AS_SENSOR
         packer.pack(numberOfStartingHits);
@@ -353,7 +369,7 @@
                 patchVersion,
                 device[0].name,
                 printableUptime(millis()/1000).c_str(),
-                batteryVoltage,
+                device[0].supplyVoltage,
                 currentNumberOfHits,
                 numberOfStartingHits,
                 currentNumberOfStunHits,
@@ -367,7 +383,7 @@
                 patchVersion,
                 device[0].name,
                 printableUptime(millis()/1000).c_str(),
-                batteryVoltage,
+                device[0].supplyVoltage,
                 defaultLocationSendInterval/1000,
                 loRaPerimiter1,
                 locationSendInterval1/1000,
