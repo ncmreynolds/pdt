@@ -88,7 +88,7 @@
   }
   void manageBeeper(void * parameter)
   {
-    while(true)
+    while(otaInProgress == false)
     {
       if(beeperEnabled == true)
       {

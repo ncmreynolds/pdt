@@ -200,7 +200,7 @@
   void processGpsSentences(void * parameter)
   {
     char character;
-    while(true)
+    while(otaInProgress == false)
     {
       if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
       {
@@ -214,6 +214,7 @@
       }
       vTaskDelay(gpsYieldTime / portTICK_PERIOD_MS); //Hand back for 100ms
     }
+    vTaskDelete(NULL);  //Kill this task
   }
   void setTimeFromGps()
   {

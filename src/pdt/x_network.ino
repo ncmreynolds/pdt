@@ -60,16 +60,6 @@
       {
         dnsServer->processNextRequest();
       }
-      #ifdef SUPPORT_OTA
-        if(otaEnabled == true)
-        {
-          ArduinoOTA.handle();  //Handle software updates
-          if(otaInProgress == true)
-          {
-            return; //Pause the usual behaviour
-          }
-        }
-      #endif
     #endif
     #if defined(SUPPORT_WIFI)
       if(wifiClientConnected == true && wiFiClientInactivityTimer > 0 && millis() - lastWifiActivity > wiFiClientInactivityTimer)

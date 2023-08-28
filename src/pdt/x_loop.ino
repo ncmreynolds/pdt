@@ -5,6 +5,16 @@
  */
 void loop()
 {
+  #ifdef SUPPORT_OTA
+    if(otaEnabled == true)
+    {
+      ArduinoOTA.handle();  //Handle software updates
+      if(otaInProgress == true)
+      {
+        return; //Pause the usual loop behaviour
+      }
+    }
+  #endif
   #if defined(SUPPORT_WIFI)
     manageNetwork();
   #endif

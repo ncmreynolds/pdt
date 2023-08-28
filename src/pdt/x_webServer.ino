@@ -61,7 +61,7 @@ void setupWebServer()
         response->printf_P(PSTR("<li>PDT tracker firmware: v%u.%u.%u</li>"), majorVersion, minorVersion, patchVersion);
       #elif defined(ACT_AS_BEACON)
         //response->printf_P(PSTR("<li>PDT beacon firmware: %s %u.%u.%u</li>"), __BASE_FILE__, majorVersion, minorVersion, patchVersion);
-        response->printf_P(PSTR("<li>PDT beacon firmware: %s v%u.%u.%u</li>"), majorVersion, minorVersion, patchVersion);
+        response->printf_P(PSTR("<li>PDT beacon firmware: v%u.%u.%u</li>"), majorVersion, minorVersion, patchVersion);
       #endif
       response->print(F("<li>Features: "));
       response->print(deviceFeatures(device[0].typeOfDevice));
@@ -1033,9 +1033,12 @@ void setupWebServer()
             }
           #endif
           bool updateSuccesful = !Update.hasError();
+          otaInProgress = false;
           if(updateSuccesful == true)
           {
-            //localLogLn(F("Web UI software update complete, restarting shortly"));
+            #if defined(SERIAL_DEBUG)
+              SERIAL_DEBUG_PORT.println(F("Web UI software update complete, restarting shortly"));
+            #endif
             restartTimer = millis();
           }
           if(updateSuccesful == true)
@@ -1044,6 +1047,9 @@ void setupWebServer()
           }
           else
           {
+            #if defined(SERIAL_DEBUG)
+              SERIAL_DEBUG_PORT.println(F("Web UI software update failed"));
+            #endif
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 0, nullptr);
             response->print(F("<h2>Update failed</h2>"));
@@ -1056,38 +1062,64 @@ void setupWebServer()
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){ //This lambda function is called when the update starts/continues/fails
           if(!index)
           {
-            localLog(F("Web UI software update \""));
-            localLog(filename);
-            localLog(F("\" uploaded by "));
-            localLogLn(request->client()->remoteIP().toString());
-            flushLog();
+            otaInProgress = true;
+            #if defined(SERIAL_DEBUG)
+              SERIAL_DEBUG_PORT.print(F("Web UI software update \""));
+              SERIAL_DEBUG_PORT.print(filename);
+              SERIAL_DEBUG_PORT.print(F("\" uploaded by "));
+              SERIAL_DEBUG_PORT.println(request->client()->remoteIP().toString());
+            #endif
+            vTaskDelay(100 / portTICK_PERIOD_MS); //Allow all the tasks to exit if still active
+            killAllTasks(); //Hard kill all tasks if they didn't exit in 100ms
             if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000))
             {
-              localLog(F("Update error: "));
-              localLogLn(Update.getError());
+              #if defined(SERIAL_DEBUG)
+                SERIAL_DEBUG_PORT.print(F("Update error: "));
+                SERIAL_DEBUG_PORT.println(Update.getError());
+              #endif
             }
           }
           if(!Update.hasError())
           {
+            otaInProgress = false;
             if(Update.write(data, len) != len)
             {
-              localLog(F("Update error: "));
-              localLogLn(Update.getError());
+              #if defined(SERIAL_DEBUG)
+                SERIAL_DEBUG_PORT.print(F("Update error: "));
+                SERIAL_DEBUG_PORT.println(Update.getError());
+              #endif
             }
+            restartAllTasks();
           }
           if(final)
           {
+            #if defined(SERIAL_DEBUG)
+              SERIAL_DEBUG_PORT.println(F("Done"));
+            #endif
+            otaInProgress = false;
             if(Update.end(true))
             {
-              localLog(F("Update Success, flashed: "));
-              localLog((index+len)/1024);
-              localLogLn(F("KB"));
+              #if defined(SERIAL_DEBUG)
+                SERIAL_DEBUG_PORT.print(F("Update Success, flashed: "));
+                SERIAL_DEBUG_PORT.print((index+len)/1024);
+                SERIAL_DEBUG_PORT.println(F("KB"));
+              #endif
             }
             else
             {
-              localLog(F("Update error: "));
-              localLogLn(Update.getError());
+              #if defined(SERIAL_DEBUG)
+                SERIAL_DEBUG_PORT.print(F("Update error: "));
+                SERIAL_DEBUG_PORT.println(Update.getError());
+              #endif
             }
+            restartAllTasks();
+          }
+          else
+          {
+            otaInProgress = true;
+            #if defined(SERIAL_DEBUG)
+              SERIAL_DEBUG_PORT.print('.');
+            #endif
           }
         });
       webServer.on("/postUpdateRestart", HTTP_GET, [](AsyncWebServerRequest *request){

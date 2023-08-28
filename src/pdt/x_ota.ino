@@ -77,4 +77,65 @@
       localLogLn(F("OK"));
     }
   #endif
+  void killAllTasks()
+  {
+    #ifdef SUPPORT_LORA
+      LoRa.end();
+    #endif
+    if(loggingManagementTask)
+    {
+      vTaskDelete(loggingManagementTask);
+    }
+    #ifdef SUPPORT_GPS
+      if(gpsManagementTask)
+      {
+        vTaskDelete(gpsManagementTask);
+      }
+    #endif
+    #ifdef SUPPORT_BEEPER
+      if(beeperManagementTask)
+      {
+        vTaskDelete(beeperManagementTask);
+      }
+    #endif
+    #ifdef SUPPORT_LED
+      if(ledManagementTask)
+      {
+        vTaskDelete(ledManagementTask);
+      }
+    #endif
+    #if defined(USE_LITTLEFS)
+      LittleFS.end(); //Must stop littleFS to start OTA update
+      filesystemMounted = false;
+    #endif
+  }
+  void restartAllTasks()
+  {
+    mountFilesystem(false);
+    if(!loggingManagementTask)
+    {
+      xTaskCreate(manageLogging, "manageLogging", 10000, NULL, configMAX_PRIORITIES - 1, &loggingManagementTask);
+    }
+    #ifdef SUPPORT_GPS
+      if(!gpsManagementTask)
+      {
+        xTaskCreate(processGpsSentences, "processGpsSentences", 10000, NULL, 1, &gpsManagementTask );
+      }
+    #endif
+    #ifdef SUPPORT_BEEPER
+      if(!beeperManagementTask)
+      {
+        xTaskCreate(manageBeeper, "manageBeeper", 1000, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
+      }
+    #endif
+    #ifdef SUPPORT_LED
+      if(!ledManagementTask)
+      {
+        xTaskCreate(manageLed, "manageLed", 1000, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
+      }
+    #endif
+    #ifdef SUPPORT_LORA
+      //LoRa.sleep();
+    #endif
+  }
 #endif

@@ -618,8 +618,8 @@ const uint16_t loggingSemaphoreTimeout = 5;
   bool beeperEnabled = true;
 #endif
 #ifdef SUPPORT_LED
-  SemaphoreHandle_t ledSemaphore = NULL;
   TaskHandle_t ledManagementTask = NULL;
+  SemaphoreHandle_t ledSemaphore = NULL;
   const uint16_t ledYieldTime = 10;
   const uint16_t ledSemaphoreTimeout = 5;
   uint32_t ledOnTime = 20;

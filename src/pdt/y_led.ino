@@ -33,7 +33,7 @@
   }
   void manageLed(void * parameter)
   {
-    while(true)
+    while(otaInProgress == false)
     {
       if(ledEnabled == true)
       {
