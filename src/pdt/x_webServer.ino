@@ -1203,30 +1203,39 @@ void setupWebServer()
       AsyncResponseStream *response = request->beginResponseStream("text/html");
       addPageHeader(response, 90, "/devices");
       response->print(F("<h2>Devices</h2>"));
-      response->print(F("<p>Tracking mode: "));
-      if(currentTrackingMode == trackingMode::nearest)
-      {
-        response->print(F("nearest"));
-      }
-      else if(currentTrackingMode == trackingMode::furthest)
-      {
-        response->print(F("furthest, waiting to select"));
-      }
-      else if(currentTrackingMode == trackingMode::fixed)
-      {
-        response->print(F("specific device"));
-      }
-      if(currentTrackingMode == trackingMode::nearest || currentTrackingMode == trackingMode::fixed)
-      {
-        if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].name != nullptr)
+      #ifdef ACT_AS_TRACKER
+        response->print(F("<p>Tracking mode: "));
+        if(currentTrackingMode == trackingMode::nearest)
         {
-          response->print(F(" - "));
-          response->print(device[index].name);
+          response->print(F("nearest"));
         }
-      }
-      response->print(F("</p>"));
-      response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\"></a> "));
-      response->print(F("<a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\"></a>"));
+        else if(currentTrackingMode == trackingMode::furthest)
+        {
+          response->print(F("furthest, waiting to select"));
+        }
+        else if(currentTrackingMode == trackingMode::fixed)
+        {
+          response->print(F("specific device"));
+        }
+        if(currentTrackingMode == trackingMode::nearest || currentTrackingMode == trackingMode::fixed)
+        {
+          if(currentBeacon != maximumNumberOfDevices)
+          {
+            if(device[currentBeacon].name != nullptr)
+            {
+              response->print(F(" - "));
+              response->print(device[currentBeacon].name);
+            }
+            else
+            {
+              response->printf_P(PSTR(" - device %u"),currentBeacon);
+            }
+          }
+        }
+        response->print(F("</p>"));
+        response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\"></a> "));
+        response->print(F("<a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\"></a>"));
+      #endif
       response->print(F("<table class=\"u-full-width\"><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th></th></tr></thead><tbody>"));
       for(uint8_t index = 0; index < numberOfDevices; index++)
       {
@@ -1268,74 +1277,76 @@ void setupWebServer()
       addPageFooter(response);
       request->send(response);
     });
-    webServer.on("/nearest", HTTP_GET, [](AsyncWebServerRequest *request){
-      lastWifiActivity = millis();
-      #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-        if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+    #ifdef ACT_AS_TRACKER
+      webServer.on("/nearest", HTTP_GET, [](AsyncWebServerRequest *request){
+        lastWifiActivity = millis();
+        #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+          if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+          {
+              return request->requestAuthentication();  //Force basic authentication
+          }
+        #endif
+        #if defined(SERIAL_DEBUG)
+          if(waitForBufferSpace(75))
+          {
+            SERIAL_DEBUG_PORT.print(F("Web UI chose track nearest\r\n"));
+          }
+        #endif
+        currentTrackingMode = trackingMode::nearest;
+        request->redirect("/devices");
+      });
+      webServer.on("/furthest", HTTP_GET, [](AsyncWebServerRequest *request){
+        lastWifiActivity = millis();
+        #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+          if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+          {
+              return request->requestAuthentication();  //Force basic authentication
+          }
+        #endif
+        #if defined(SERIAL_DEBUG)
+          if(waitForBufferSpace(75))
+          {
+            SERIAL_DEBUG_PORT.print(F("Web UI chose track furthest\r\n"));
+          }
+        #endif
+        currentTrackingMode = trackingMode::furthest;
+        request->redirect("/devices");
+      });
+      webServer.on("/track", HTTP_GET, [](AsyncWebServerRequest *request){
+        lastWifiActivity = millis();
+        #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+          if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+          {
+              return request->requestAuthentication();  //Force basic authentication
+          }
+        #endif
+        if(request->hasParam("index"))
         {
-            return request->requestAuthentication();  //Force basic authentication
+          uint8_t selectedBeacon = request->getParam("index")->value().toInt();;
+          if(selectedBeacon > 0 && selectedBeacon < maximumNumberOfDevices)
+          {
+            currentBeacon = selectedBeacon;
+            currentTrackingMode = trackingMode::fixed;
+            #if defined(SERIAL_DEBUG)
+              if(waitForBufferSpace(75))
+              {
+                SERIAL_DEBUG_PORT.printf_P(PSTR("Web UI chose device %u to track\r\n"),currentBeacon);
+              }
+            #endif
+          }
+          else
+          {
+            #if defined(SERIAL_DEBUG)
+              if(waitForBufferSpace(75))
+              {
+                SERIAL_DEBUG_PORT.printf_P(PSTR("Web UI chose invalid beacon\r\n"),selectedBeacon);
+              }
+            #endif
+          }
         }
-      #endif
-      #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(75))
-        {
-          SERIAL_DEBUG_PORT.print(F("Web UI chose track nearest\r\n"));
-        }
-      #endif
-      currentTrackingMode = trackingMode::nearest;
-      request->redirect("/devices");
-    });
-    webServer.on("/furthest", HTTP_GET, [](AsyncWebServerRequest *request){
-      lastWifiActivity = millis();
-      #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-        if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-        {
-            return request->requestAuthentication();  //Force basic authentication
-        }
-      #endif
-      #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(75))
-        {
-          SERIAL_DEBUG_PORT.print(F("Web UI chose track furthest\r\n"));
-        }
-      #endif
-      currentTrackingMode = trackingMode::furthest;
-      request->redirect("/devices");
-    });
-    webServer.on("/track", HTTP_GET, [](AsyncWebServerRequest *request){
-      lastWifiActivity = millis();
-      #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-        if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-        {
-            return request->requestAuthentication();  //Force basic authentication
-        }
-      #endif
-      if(request->hasParam("index"))
-      {
-        uint8_t selectedBeacon = request->getParam("index")->value().toInt();;
-        if(selectedBeacon > 0 && selectedBeacon < maximumNumberOfDevices)
-        {
-          currentBeacon = selectedBeacon;
-          currentTrackingMode = trackingMode::fixed;
-          #if defined(SERIAL_DEBUG)
-            if(waitForBufferSpace(75))
-            {
-              SERIAL_DEBUG_PORT.printf_P(PSTR("Web UI chose device %u to track\r\n"),currentBeacon);
-            }
-          #endif
-        }
-        else
-        {
-          #if defined(SERIAL_DEBUG)
-            if(waitForBufferSpace(75))
-            {
-              SERIAL_DEBUG_PORT.printf_P(PSTR("Web UI chose invalid beacon\r\n"),selectedBeacon);
-            }
-          #endif
-        }
-      }
-      request->redirect("/devices");
-    });
+        request->redirect("/devices");
+      });
+    #endif
     webServer.on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request) {
       lastWifiActivity = millis();
       request->send_P(200, "text/css", normalize);

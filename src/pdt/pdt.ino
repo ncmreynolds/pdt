@@ -12,7 +12,7 @@
    The same sketch has the code for both devices, uncomment the '#define ACT_AS_TRACKER' below to build for the tracker, otherwise it is a beacon
 
 */
-#define ACT_AS_TRACKER
+//#define ACT_AS_TRACKER
 
 #define MAJOR_VERSION 0
 #define MINOR_VERSION 3
