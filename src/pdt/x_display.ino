@@ -435,7 +435,7 @@
     printTopLine((const char*)F("SOFTWARE"));
     printBottomLine((const char*)F("VERSION"));
     char displayText[10];
-    sprintf_P(displayText,PSTR("v%02u.%02u.%02u"),majorVersion,minorVersion,patchVersion);
+    sprintf_P(displayText,PSTR("v%02u.%02u.%02u"),device[0].majorVersion,device[0].minorVersion,device[0].patchVersion);
     printMiddleLine(displayText);
     #ifdef SERIAL_DEBUG
       if(waitForBufferSpace(32))

@@ -14,9 +14,9 @@
 */
 #define ACT_AS_TRACKER
 
-uint8_t majorVersion = 0;
-uint8_t minorVersion = 3;
-uint8_t patchVersion = 2;
+#define MAJOR_VERSION 0
+#define MINOR_VERSION 3
+#define PATCH_VERSION 3
 /*
 
    Various nominally optional features that can be switched off during testing/development

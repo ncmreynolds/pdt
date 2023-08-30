@@ -332,9 +332,9 @@
       packer.pack(device[0].id[5]);
       packer.pack(deviceStatusUpdateId);
       packer.pack(device[0].typeOfDevice);
-      packer.pack(majorVersion);
-      packer.pack(minorVersion);
-      packer.pack(patchVersion);
+      packer.pack(device[0].majorVersion);
+      packer.pack(device[0].minorVersion);
+      packer.pack(device[0].patchVersion);
       packer.pack(millis());
       packer.pack(device[0].supplyVoltage);
       packer.pack(device[0].name);
@@ -364,9 +364,9 @@
               #ifdef ACT_AS_SENSOR
               SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
                 device[0].typeOfDevice,
-                majorVersion,
-                minorVersion,
-                patchVersion,
+                device[0].majorVersion,
+                device[0].minorVersion,
+                device[0].patchVersion,
                 device[0].name,
                 printableUptime(millis()/1000).c_str(),
                 device[0].supplyVoltage,
@@ -378,9 +378,9 @@
               #else
                 SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv\r\n\tIntervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
                 device[0].typeOfDevice,
-                majorVersion,
-                minorVersion,
-                patchVersion,
+                device[0].majorVersion,
+                device[0].minorVersion,
+                device[0].patchVersion,
                 device[0].name,
                 printableUptime(millis()/1000).c_str(),
                 device[0].supplyVoltage,

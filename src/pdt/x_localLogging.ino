@@ -434,7 +434,7 @@ void showStartupInfo()
   #elif defined(ACT_AS_BEACON)
     localLogLn(F("============================ Booting beacon ============================="));
   #endif
-  localLog(F("Firmware: ")); localLog(majorVersion); localLog('.'); localLog(minorVersion); localLog('.'); localLogLn(patchVersion);
+  localLog(F("Firmware: ")); localLog(device[0].majorVersion); localLog('.'); localLog(device[0].minorVersion); localLog('.'); localLogLn(device[0].patchVersion);
   localLog(F("Built: ")); localLog(__TIME__); localLog(' '); localLogLn(__DATE__);
   #ifdef ESP_IDF_VERSION_MAJOR
     localLog(F("IDF version: "));      

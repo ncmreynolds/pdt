@@ -57,11 +57,11 @@ void setupWebServer()
       response->print(F("<h2>General</h2>"));
       response->print(F("<ul>"));
       #if defined(ACT_AS_TRACKER)
-        //response->printf_P(PSTR("<li>PDT tracker firmware: %s %u.%u.%u</li>"), __BASE_FILE__, majorVersion, minorVersion, patchVersion);
-        response->printf_P(PSTR("<li>PDT tracker firmware: v%u.%u.%u</li>"), majorVersion, minorVersion, patchVersion);
+        //response->printf_P(PSTR("<li>PDT tracker firmware: %s %u.%u.%u</li>"), __BASE_FILE__, device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+        response->printf_P(PSTR("<li>PDT tracker firmware: v%u.%u.%u</li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
       #elif defined(ACT_AS_BEACON)
-        //response->printf_P(PSTR("<li>PDT beacon firmware: %s %u.%u.%u</li>"), __BASE_FILE__, majorVersion, minorVersion, patchVersion);
-        response->printf_P(PSTR("<li>PDT beacon firmware: v%u.%u.%u</li>"), majorVersion, minorVersion, patchVersion);
+        //response->printf_P(PSTR("<li>PDT beacon firmware: %s %u.%u.%u</li>"), __BASE_FILE__, device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+        response->printf_P(PSTR("<li>PDT beacon firmware: v%u.%u.%u</li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
       #endif
       response->print(F("<li>Features: "));
       response->print(deviceFeatures(device[0].typeOfDevice));
@@ -1003,7 +1003,7 @@ void setupWebServer()
         addPageHeader(response, 0, nullptr);
         response->print(F("<h2>Software update</h2>"));
         response->print(F("<ul>"));
-        response->printf_P(PSTR("<li>Current firmware: %u.%u.%u</li>"), majorVersion, minorVersion, patchVersion);
+        response->printf_P(PSTR("<li>Current firmware: %u.%u.%u</li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
         response->printf_P(PSTR("<li>Built: %s %s</li>"), __TIME__, __DATE__);
         response->printf_P(PSTR("<li>Board: %s</li>"), ARDUINO_BOARD);
         #ifdef ESP_IDF_VERSION_MAJOR
@@ -1033,16 +1033,13 @@ void setupWebServer()
             }
           #endif
           bool updateSuccesful = !Update.hasError();
-          otaInProgress = false;
           if(updateSuccesful == true)
           {
             #if defined(SERIAL_DEBUG)
               SERIAL_DEBUG_PORT.println(F("Web UI software update complete, restarting shortly"));
             #endif
             restartTimer = millis();
-          }
-          if(updateSuccesful == true)
-          {
+            otaInProgress = false;
             request->redirect("/postUpdateRestart");
           }
           else
@@ -1057,18 +1054,19 @@ void setupWebServer()
             response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
             addPageFooter(response);
             request->send(response);
+            otaInProgress = false;
           }
         },
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){ //This lambda function is called when the update starts/continues/fails
-          if(!index)
+          if(!index)  //Start of upload process
           {
-            otaInProgress = true;
             #if defined(SERIAL_DEBUG)
               SERIAL_DEBUG_PORT.print(F("Web UI software update \""));
               SERIAL_DEBUG_PORT.print(filename);
-              SERIAL_DEBUG_PORT.print(F("\" uploaded by "));
+              SERIAL_DEBUG_PORT.print(F("\" uploading from "));
               SERIAL_DEBUG_PORT.println(request->client()->remoteIP().toString());
             #endif
+            otaInProgress = true;
             vTaskDelay(100 / portTICK_PERIOD_MS); //Allow all the tasks to exit if still active
             killAllTasks(); //Hard kill all tasks if they didn't exit in 100ms
             if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000))
@@ -1079,24 +1077,28 @@ void setupWebServer()
               #endif
             }
           }
-          if(!Update.hasError())
+          if(Update.hasError() == false)  //Received a chunk
           {
-            otaInProgress = false;
-            if(Update.write(data, len) != len)
+            if(Update.write(data, len) != len)  //Write to flash failed
             {
               #if defined(SERIAL_DEBUG)
                 SERIAL_DEBUG_PORT.print(F("Update error: "));
                 SERIAL_DEBUG_PORT.println(Update.getError());
               #endif
             }
-            restartAllTasks();
+            else  //Write OK
+            {
+              otaInProgress = true;
+              #if defined(SERIAL_DEBUG)
+                SERIAL_DEBUG_PORT.print('.');
+              #endif
+            }
           }
-          if(final)
+          if(final) //Upload complete
           {
             #if defined(SERIAL_DEBUG)
               SERIAL_DEBUG_PORT.println(F("Done"));
             #endif
-            otaInProgress = false;
             if(Update.end(true))
             {
               #if defined(SERIAL_DEBUG)
@@ -1112,8 +1114,10 @@ void setupWebServer()
                 SERIAL_DEBUG_PORT.println(Update.getError());
               #endif
             }
+            otaInProgress = false;
             restartAllTasks();
           }
+          /*
           else
           {
             otaInProgress = true;
@@ -1121,6 +1125,7 @@ void setupWebServer()
               SERIAL_DEBUG_PORT.print('.');
             #endif
           }
+          */
         });
       webServer.on("/postUpdateRestart", HTTP_GET, [](AsyncWebServerRequest *request){
         lastWifiActivity = millis();
@@ -1196,14 +1201,39 @@ void setupWebServer()
         }
       #endif
       AsyncResponseStream *response = request->beginResponseStream("text/html");
-      addPageHeader(response, 90, nullptr);
+      addPageHeader(response, 90, "/devices");
       response->print(F("<h2>Devices</h2>"));
-      response->print(F("<table class=\"u-full-width\"><thead><tr><th>Name</th><th>Type</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th></th></tr></thead><tbody>"));
+      response->print(F("<p>Tracking mode: "));
+      if(currentTrackingMode == trackingMode::nearest)
+      {
+        response->print(F("nearest"));
+      }
+      else if(currentTrackingMode == trackingMode::furthest)
+      {
+        response->print(F("furthest, waiting to select"));
+      }
+      else if(currentTrackingMode == trackingMode::fixed)
+      {
+        response->print(F("specific device"));
+      }
+      if(currentTrackingMode == trackingMode::nearest || currentTrackingMode == trackingMode::fixed)
+      {
+        if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].name != nullptr)
+        {
+          response->print(F(" - "));
+          response->print(device[index].name);
+        }
+      }
+      response->print(F("</p>"));
+      response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\"></a> "));
+      response->print(F("<a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\"></a>"));
+      response->print(F("<table class=\"u-full-width\"><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th></th></tr></thead><tbody>"));
       for(uint8_t index = 0; index < numberOfDevices; index++)
       {
-        response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
+        response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
           (device[index].name == nullptr) ? "n/a" : device[index].name,
           deviceFeatures(device[index].typeOfDevice).c_str(),
+          device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
           (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
           device[index].supplyVoltage,
           (device[index].hasFix == true) ? PSTR("Yes") : PSTR("No"),
@@ -1237,6 +1267,74 @@ void setupWebServer()
       response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
       addPageFooter(response);
       request->send(response);
+    });
+    webServer.on("/nearest", HTTP_GET, [](AsyncWebServerRequest *request){
+      lastWifiActivity = millis();
+      #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+        if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+        {
+            return request->requestAuthentication();  //Force basic authentication
+        }
+      #endif
+      #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(75))
+        {
+          SERIAL_DEBUG_PORT.print(F("Web UI chose track nearest\r\n"));
+        }
+      #endif
+      currentTrackingMode = trackingMode::nearest;
+      request->redirect("/devices");
+    });
+    webServer.on("/furthest", HTTP_GET, [](AsyncWebServerRequest *request){
+      lastWifiActivity = millis();
+      #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+        if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+        {
+            return request->requestAuthentication();  //Force basic authentication
+        }
+      #endif
+      #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(75))
+        {
+          SERIAL_DEBUG_PORT.print(F("Web UI chose track furthest\r\n"));
+        }
+      #endif
+      currentTrackingMode = trackingMode::furthest;
+      request->redirect("/devices");
+    });
+    webServer.on("/track", HTTP_GET, [](AsyncWebServerRequest *request){
+      lastWifiActivity = millis();
+      #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+        if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+        {
+            return request->requestAuthentication();  //Force basic authentication
+        }
+      #endif
+      if(request->hasParam("index"))
+      {
+        uint8_t selectedBeacon = request->getParam("index")->value().toInt();;
+        if(selectedBeacon > 0 && selectedBeacon < maximumNumberOfDevices)
+        {
+          currentBeacon = selectedBeacon;
+          currentTrackingMode = trackingMode::fixed;
+          #if defined(SERIAL_DEBUG)
+            if(waitForBufferSpace(75))
+            {
+              SERIAL_DEBUG_PORT.printf_P(PSTR("Web UI chose device %u to track\r\n"),currentBeacon);
+            }
+          #endif
+        }
+        else
+        {
+          #if defined(SERIAL_DEBUG)
+            if(waitForBufferSpace(75))
+            {
+              SERIAL_DEBUG_PORT.printf_P(PSTR("Web UI chose invalid beacon\r\n"),selectedBeacon);
+            }
+          #endif
+        }
+      }
+      request->redirect("/devices");
     });
     webServer.on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request) {
       lastWifiActivity = millis();
