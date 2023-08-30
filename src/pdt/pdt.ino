@@ -12,11 +12,11 @@
    The same sketch has the code for both devices, uncomment the '#define ACT_AS_TRACKER' below to build for the tracker, otherwise it is a beacon
 
 */
-//#define ACT_AS_TRACKER
+#define ACT_AS_TRACKER
 
-#define MAJOR_VERSION 0
-#define MINOR_VERSION 3
-#define PATCH_VERSION 3
+#define PDT_MAJOR_VERSION 0
+#define PDT_MINOR_VERSION 4
+#define PDT_PATCH_VERSION 0
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -38,6 +38,7 @@
 #define SUPPORT_OTA
 #define USE_LITTLEFS
 #define ENABLE_LOCAL_WEBSERVER
+#define ENABLE_LOCAL_WEBSERVER_SEMAPHORE
 #define DEBUG_LOCAL_WEBSERVER
 #define ENABLE_REMOTE_RESTART
 #define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
@@ -146,6 +147,10 @@
     ;
   void addPageHeader(AsyncResponseStream *response, uint8_t refresh, const char* refreshTo);
   void addPageFooter(AsyncResponseStream *response);
+  #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+    SemaphoreHandle_t webserverSemaphore = NULL;
+    const uint16_t webserverSemaphoreTimeout = 250;
+  #endif
 #endif
 /*
 
@@ -441,9 +446,9 @@ bool flushLogNow = false;
 uint32_t logFlushInterval = 57600; //Frequency in seconds of log flush, this is 16h
 uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
 SemaphoreHandle_t loggingSemaphore = NULL;
+const uint16_t loggingSemaphoreTimeout = 50;
 TaskHandle_t loggingManagementTask = NULL;
 const uint16_t loggingYieldTime = 10;
-const uint16_t loggingSemaphoreTimeout = 5;
 
 
 #if defined(SUPPORT_LORA)
