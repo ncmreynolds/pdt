@@ -326,6 +326,9 @@
     uint32_t buttonLongPressTime = 1500;
     bool buttonHeld = false;
     bool buttonLongPress = false;
+    #ifdef SUPPORT_BEEPER
+      bool beepOnPress = false;
+    #endif
   #endif
 #else
   #ifdef SUPPORT_LORA

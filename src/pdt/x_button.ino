@@ -72,7 +72,7 @@
             else if(currentDisplayState == displayState::distance)
             {
               #ifdef SUPPORT_BEEPER
-                if(beeperEnabled == true)
+                if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
@@ -82,7 +82,7 @@
             else if(currentDisplayState == displayState::course)
             {
               #ifdef SUPPORT_BEEPER
-                if(beeperEnabled == true)
+                if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
@@ -92,7 +92,7 @@
             else if(currentDisplayState == displayState::status)
             {
               #ifdef SUPPORT_BEEPER
-                if(beeperEnabled == true)
+                if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
@@ -102,7 +102,7 @@
             else if(currentDisplayState == displayState::accuracy)
             {
               #ifdef SUPPORT_BEEPER
-                if(beeperEnabled == true)
+                if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
@@ -112,7 +112,7 @@
             else if(currentDisplayState == displayState::trackingMode)
             {
               #ifdef SUPPORT_BEEPER
-                if(beeperEnabled == true)
+                if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
@@ -122,7 +122,7 @@
             else if(currentDisplayState == displayState::signal)
             {
               #ifdef SUPPORT_BEEPER
-                if(beeperEnabled == true)
+                if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
@@ -132,7 +132,7 @@
             else if(currentDisplayState == displayState::battery)
             {
               #ifdef SUPPORT_BEEPER
-                if(beeperEnabled == true)
+                if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
@@ -144,7 +144,7 @@
             #ifdef SUPPORT_BEEPER
               else if(currentDisplayState == displayState::beeper)
               {
-                if(beeperEnabled == true)
+                if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
@@ -153,7 +153,7 @@
             #endif
             else if(currentDisplayState == displayState::version)
             {
-              if(beeperEnabled == true)
+              if(beeperEnabled == true && beepOnPress == true)
               {
                 makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
               }
