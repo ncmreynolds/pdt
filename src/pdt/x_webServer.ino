@@ -50,7 +50,7 @@ void setupWebServer()
     localLog(F("Configuring web server callbacks: "));
     webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
           lastWifiActivity = millis();
@@ -63,21 +63,35 @@ void setupWebServer()
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 90, nullptr);
           response->print(F("<h2>General</h2>"));
+          //Top of page buttons
+          #if defined(ACT_AS_SENSOR)
+            response->print(F("<a href =\"/sensorConfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Configure sensor\"></a> "));
+            response->print(F("<a href =\"/sensorReset\"><input class=\"button-primary\" type=\"button\" value=\"Reset sensor\"></a> "));
+          #endif
+          response->print(F("<a href =\"/devices\"><input class=\"button-primary\" type=\"button\" value=\"Devices\"></a> "));
+          response->print(F("<a href =\"/listLogs\"><input class=\"button-primary\" type=\"button\" value=\"Logs\"></a> "));
+          response->print(F("<a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Configuration\"></a> "));
+          #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
+            response->print(F("<a href =\"/update\"><input class=\"button-primary\" type=\"button\" value=\"Software Update\"></a> "));
+          #endif
+          #if defined(ENABLE_REMOTE_RESTART)
+            response->print(F("<a href =\"/restart\"><input class=\"button-primary\" type=\"button\" value=\"Restart\"></a> "));
+          #endif
+          //Status information
           response->print(F("<ul>"));
           #if defined(ACT_AS_TRACKER)
-            //response->printf_P(PSTR("<li>PDT tracker firmware: %s %u.%u.%u</li>"), __BASE_FILE__, device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
-            response->printf_P(PSTR("<li>PDT tracker firmware: v%u.%u.%u</li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+            //response->printf_P(PSTR("<li>PDT tracker firmware: <b>%s %u.%u.%u</b>"), __BASE_FILE__, device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+            response->printf_P(PSTR("<li>PDT tracker firmware: <b>v%u.%u.%u</b>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
           #elif defined(ACT_AS_BEACON)
-            //response->printf_P(PSTR("<li>PDT beacon firmware: %s %u.%u.%u</li>"), __BASE_FILE__, device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
-            response->printf_P(PSTR("<li>PDT beacon firmware: v%u.%u.%u</li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+            //response->printf_P(PSTR("<li>PDT beacon firmware: <b>%s %u.%u.%u</b>"), __BASE_FILE__, device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+            response->printf_P(PSTR("<li>PDT beacon firmware: <b>v%u.%u.%u</b>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
           #endif
-          response->print(F("<li>Features: "));
+          response->print(F(" Features: <b>"));
           response->print(deviceFeatures(device[0].typeOfDevice));
-          response->print(F("</li>"));
-          response->printf_P(PSTR("<li>Built: %s %s</li>"), __TIME__, __DATE__);
-          response->printf_P(PSTR("<li>Board: %s</li>"), ARDUINO_BOARD);
+          response->printf_P(PSTR("</b><li>Built: <b>%s %s</b>"), __TIME__, __DATE__);
+          response->printf_P(PSTR(" Board: <b>%s</b> "), ARDUINO_BOARD);
           #ifdef ESP_IDF_VERSION_MAJOR
-            response->print(F("<li>ESP-IDF: v"));
+            response->print(F("ESP-IDF: <b>v"));
             #ifdef ESP_IDF_VERSION_MINOR
               response->print(ESP_IDF_VERSION_MAJOR);
               response->print('.');
@@ -86,70 +100,70 @@ void setupWebServer()
               response->print(ESP_IDF_VERSION_MAJOR);
             #endif
           #endif
-          response->print(F("</li>"));
+          response->print(F("</b></li>"));
           if(filesystemMounted == true)
           {
             #if defined(USE_SPIFFS)
               FSInfo fsInfo;
               SPIFFS.info(fsInfo);
-              response->printf_P(PSTR("<li>Filesystem: SPIFFS %u/%uKB used"), fsInfo.usedBytes/1024, fsInfo.totalBytes/1024);
+              response->printf_P(PSTR("<li>Filesystem: <b>SPIFFS %u/%uKB used"), fsInfo.usedBytes/1024, fsInfo.totalBytes/1024);
               if(fsInfo.usedBytes > 0 && fsInfo.totalBytes > 0)
               {
-                response->printf_P(PSTR(" %.1f%%</li>"),float(fsInfo.usedBytes) * 100/float(fsInfo.totalBytes));
+                response->printf_P(PSTR(" %.1f%% "),float(fsInfo.usedBytes) * 100/float(fsInfo.totalBytes));
               }
               else
               {
-                response->print(F("</li>"));
+                response->print(F("</b> "));
               }
             #elif defined(USE_LITTLEFS)
               #if defined(ESP32)
-                response->printf_P(PSTR("<li>Filesystem: LittleFS %u/%uKB used"), LittleFS.usedBytes()/1024, LittleFS.totalBytes()/1024);
+                response->printf_P(PSTR("<li>Filesystem: <b>LittleFS %u/%uKB used"), LittleFS.usedBytes()/1024, LittleFS.totalBytes()/1024);
                 if(LittleFS.usedBytes() > 0 && LittleFS.totalBytes() > 0)
                 {
-                  response->printf_P(PSTR(" %.1f%%</li>"),float(LittleFS.usedBytes()) * 100/float(LittleFS.totalBytes()));
+                  response->printf_P(PSTR(" %.1f%%</b> "),float(LittleFS.usedBytes()) * 100/float(LittleFS.totalBytes()));
                 }
                 else
                 {
-                  response->print(F("</li>"));
+                  response->print(F("</b> "));
                 }
               #endif
             #endif
           }
           else
           {
-            response->print(F("<li>Filesystem: not mounted</li>"));
+            response->print(F("<li>Filesystem: <b>not mounted</b> "));
           }
           //#if defined(ESP32)
-            response->print(F("<li>Free heap: "));
+            response->print(F(" Free heap: <b>"));
             response->print(ESP.getFreeHeap()/1024);
-            response->print(F("KB</li>"));
+            response->print(F("KB</b></li>"));
           //#endif
           response->print(F("<li>USB serial logging: "));
           #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
             if(debugPortAvailable)
             {
-              response->print(F("enabled - connected</li>"));
+              response->print(F("<b>enabled - connected</b></li>"));
             }
             else
             {
-              response->print(F("enabled - disconnected</li>"));
+              response->print(F("<b>enabled - disconnected</b></li>"));
             }
           #else
-            response->print(F("disabled</li>"));
+            response->print(F("<b>disabled</b></li>"));
           #endif
           response->print(F("<li>Over-the-air software update (Arduino IDE): "));
           #if defined(ENABLE_OTA_UPDATE)
-            response->print(F("enabled</li>"));
+            response->print(F("<b>enabled</b> "));
           #else
-            response->print(F("disabled</li>"));
+            response->print(F("<b>disabled</b> "));
           #endif
-          response->print(F("<li>Web UI software update: "));
+          response->print(F("web UI software update: "));
           #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
-            response->print(F("enabled</li>"));
+            response->print(F("<b>enabled</b></li>"));
           #else
-            response->print(F("disabled</li>"));
+            response->print(F("<b>disabled</b></li>"));
           #endif
-          response->print(F("<li>Time: "));
+          response->print(F("<li>Time: <b>"));
           if(timeIsValid())
           {
             updateTimestamp();
@@ -159,34 +173,33 @@ void setupWebServer()
           {
             response->print(F("Not set"));
           }
-          response->print(F("</li>"));
-          response->print(F("<li>Uptime: "));
+          response->print(F("</b> uptime: <b>"));
           response->print(printableUptime(millis()/1000));
-          response->print(F("</li>"));
+          response->print(F("</b></li>"));
           #if defined(ESP32)
             #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
               #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-                response->print(F("Restart reason core 0: "));
+                response->print(F("Restart reason core 0: <b>"));
                 response->print(es32ResetReason(0));
-                response->print(F("Restart reason core 1: "));
+                response->print(F("</b> Restart reason core 1: <b>"));
                 response->print(es32ResetReason(1));
               #elif CONFIG_IDF_TARGET_ESP32S2
-                response->print(F("<li>Restart reason: "));
+                response->print(F("<li>Restart reason: <b>"));
                 response->print(es32ResetReason(0));
               #elif CONFIG_IDF_TARGET_ESP32C3
-                response->print(F("<li>Restart reason: "));
+                response->print(F("<li>Restart reason: <b>"));
                 response->print(es32ResetReason(0));
               #else 
                 #error Target CONFIG_IDF_TARGET is not supported
               #endif
             #else // ESP32 Before IDF 4.0
-              response->print(F("Restart reason core 0: "));
+              response->print(F("Restart reason core 0: <b>"));
               response->print(es32ResetReason(0));
-              response->print(F("Restart reason core 1: "));
+              response->print(F("</b> Restart reason core 1: <b>"));
               response->print(es32ResetReason(1));
             #endif
           #endif
-          response->print(F("</li>"));
+          response->print(F("</b></li>"));
           #if defined(SUPPORT_WIFI)
             if(wiFiClientInactivityTimer > 0)
             {
@@ -208,12 +221,15 @@ void setupWebServer()
           #endif
           if(configurationComment != nullptr)
           {
-            response->print(F("<li>Configuration comment: "));
-            response->print(configurationComment);
-            response->print(F("</li>"));
+            if(strlen(configurationComment) > 0)
+            {
+              response->print(F("<li>Configuration comment: <b>"));
+              response->print(configurationComment);
+              response->print(F("</b></li>"));
+            }
           }
           #if defined(SUPPORT_LORA)
-          response->print(F("<li>LoRa radio: "));
+          response->print(F("<li>LoRa radio: <b>"));
           if(loRaConnected == true)
           {
             response->print(loRaRxPackets);
@@ -226,33 +242,33 @@ void setupWebServer()
           {
             response->print(F("not connected"));
           }
-          response->print(F("</li>"));
+          response->print(F("</b></li>"));
           #endif
           #ifdef SUPPORT_BATTERY_METER
             if(device[0].supplyVoltage > chargingVoltage)
             {
-              response->print(F("<li>Battery voltage: USB power ("));
+              response->print(F("<li>Battery voltage: <b>USB power ("));
               response->print(device[0].supplyVoltage);
-              response->print(F("v)</li>"));
+              response->print(F("v)</b></li>"));
             }
             else
             {
-              response->print(F("<li>Battery voltage: "));
+              response->print(F("<li>Battery voltage: <b>"));
               response->print(device[0].supplyVoltage);
               response->print(F("v ("));
               response->print(batteryPercentage);
-              response->print(F("% charge)</li>"));
+              response->print(F("% charge)</b></li>"));
             }
           #endif
           #ifdef SUPPORT_GPS
             if(device[0].hasFix)
             {          
-              response->print(F("<li>Latitude: "));
+              response->print(F("<li>Latitude: <b>"));
               response->print(device[0].latitude);
-              response->print(F("</li>"));
-              response->print(F("<li>Longitude: "));
+              response->print(F("</b> "));
+              response->print(F("Longitude: <b>"));
               response->print(device[0].longitude);
-              response->print(F("</li>"));
+              response->print(F("</b>"));
               /*
               response->print(F("<li>Altitude: "));
               response->print(gps.altitude.meters());
@@ -264,11 +280,11 @@ void setupWebServer()
                 response->print(F("%</li>"));
               }
               */
-              response->print(F("<li>HDOP: "));
+              response->print(F(" HDOP: <b>"));
               response->print(device[0].hdop);
               response->print('(');
               response->print(hdopDescription(device[0].hdop));
-              response->print(F(")</li>"));
+              response->print(F(")</b></li>"));
               /*
               if(device[0].hdop < 1)
               {
@@ -292,14 +308,14 @@ void setupWebServer()
               }
               */
               #if defined(ACT_AS_TRACKER)
-                response->print(F("<li>Distance to beacon: "));
+                response->print(F("<li>Distance to beacon: <b>"));
                 if(currentBeacon < maximumNumberOfDevices)
                 {
                   if(device[currentBeacon].hasFix)
                   {
                     response->print(device[currentBeacon].distanceTo);
-                    response->print(F("m</li>"));
-                    response->print(F("<li>Course to beacon: "));
+                    response->print(F("m</b> "));
+                    response->print(F("Course to beacon: <b>"));
                     response->print(device[currentBeacon].courseTo);
                   }
                   else
@@ -312,14 +328,14 @@ void setupWebServer()
                   response->print(F("no beacons"));
                 }
               #elif defined(ACT_AS_BEACON)
-                response->print(F("<li>Distance to tracker: "));
+                response->print(F("<li>Distance to tracker: <b>"));
                 if(closestTracker < maximumNumberOfDevices)
                 {
                   if(device[closestTracker].hasFix)
                   {
                     response->print(device[closestTracker].distanceTo);
-                    response->print(F("m</li>"));
-                    response->print(F("<li>Course to tracker: "));
+                    response->print(F("m</b>"));
+                    response->print(F(" Course to tracker: <b>"));
                     response->print(device[closestTracker].courseTo);
                   }
                   else
@@ -332,24 +348,16 @@ void setupWebServer()
                   response->print(F("no trackers"));
                 }
               #endif
-              response->print(F("</li>"));
+              response->print(F("</b></li>"));
             }
             else
             {
-              response->print(F("<li>GPS: No fix</li>"));
+              response->print(F("<li>GPS: <b>No fix</b></li>"));
             }
           #endif
-          response->print(F("</ul>"));
-          response->print(F("<a href =\"/devices\"><input class=\"button-primary\" type=\"button\" value=\"Devices\"></a> "));
-          response->print(F("<a href =\"/listLogs\"><input class=\"button-primary\" type=\"button\" value=\"Logs\"></a> "));
-          response->print(F("<a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Configuration\"></a> "));
-          #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
-            response->print(F("<a href =\"/update\"><input class=\"button-primary\" type=\"button\" value=\"Software Update\"></a> "));
-          #endif
-          #if defined(ENABLE_REMOTE_RESTART)
-            response->print(F("<a href =\"/restart\"><input class=\"button-primary\" type=\"button\" value=\"Restart\"></a> "));
-          #endif
+          response->print(F("</b></ul>"));
           addPageFooter(response);
+          //Send response
           request->send(response);
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           xSemaphoreGive(webserverSemaphore);
@@ -358,13 +366,14 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
     });
     webServer.on("/listLogs", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows a list of all the log files
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
           lastWifiActivity = millis();
@@ -419,6 +428,7 @@ void setupWebServer()
           #endif
           response->print(F("</tbody></table>"));
           addPageFooter(response);
+          //Send response
           request->send(response);
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           xSemaphoreGive(webserverSemaphore);
@@ -427,6 +437,7 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
@@ -434,7 +445,7 @@ void setupWebServer()
     #if defined(ENABLE_LOG_DELETION)
       webServer.on("/deleteLog", HTTP_GET, [](AsyncWebServerRequest *request){
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
@@ -453,6 +464,7 @@ void setupWebServer()
               response->printf_P(PSTR("<p>Are you sure you want to delete the log file %s?</p>"),file->value().c_str());
               response->printf_P(PSTR("<p><a href =\"/deleteLogConfirmed?file=%s\"><input class=\"button-primary\" type=\"button\" value=\"Yes\"></a> <a href=\"/\"><input class=\"button-primary\" type=\"button\" value=\"No\"></a></p>"),file->value().c_str());
               addPageFooter(response);
+              //Send response
               request->send(response);
             }
             else
@@ -466,13 +478,14 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
       });
       webServer.on("/deleteLogConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
@@ -514,6 +527,7 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
@@ -521,7 +535,7 @@ void setupWebServer()
     #endif
     webServer.on("/configuration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
           lastWifiActivity = millis();
@@ -534,7 +548,9 @@ void setupWebServer()
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 0, nullptr);
           response->print(F("<h2>Configuration</h2>"));
+          //Start of form
           response->print(F("<form method=\"POST\">"));
+          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\">"));
           response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"deviceName\">Node name</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"deviceName\" name=\"deviceName\"></div></div>"), device[0].name);
           response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Networking</h3></div></div>"));
           #if defined(SUPPORT_WIFI)
@@ -707,8 +723,10 @@ void setupWebServer()
           //Comment
           response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Configuration</h3></div></div>"));
           response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"configurationComment\">Comment (optional)</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"configurationComment\" name=\"configurationComment\"></div></div>"), configurationComment);
-          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\"></form>"));
+          //End of form
+          response->print(F("</form>"));
           addPageFooter(response);
+          //Send response
           request->send(response);
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           xSemaphoreGive(webserverSemaphore);
@@ -717,13 +735,14 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
       });
       webServer.on("/configuration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
           lastWifiActivity = millis();
@@ -733,25 +752,25 @@ void setupWebServer()
                 return request->requestAuthentication();  //Force basic authentication
             }
           #endif
-          int params = request->params();
-          /*
-          localLog(F("Submitted Configuration parameters: "));
-          localLogLn(params);
-          for(int i=0;i<params;i++){
-            AsyncWebParameter* p = request->getParam(i);
-            if(p->isFile()){ //p->isPost() is also true
-              //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-            } else if(p->isPost()){
-              //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-              localLog(F("POST["));
-              localLog(p->name().c_str());
-              localLog(F("]: "));
-              localLogLn(p->value().c_str());
-            } else {
-              //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
+          #ifdef DEBUG_FORM_SUBMISSION
+            int params = request->params();
+            localLog(F("Submitted Configuration parameters: "));
+            localLogLn(params);
+            for(int i=0;i<params;i++){
+              AsyncWebParameter* p = request->getParam(i);
+              if(p->isFile()){ //p->isPost() is also true
+                //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
+              } else if(p->isPost()){
+                //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
+                localLog(F("POST["));
+                localLog(p->name().c_str());
+                localLog(F("]: "));
+                localLogLn(p->value().c_str());
+              } else {
+                //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
+              }
             }
-          }
-          */
+          #endif
           //Read the submitted configuration
           if(request->hasParam("deviceName", true))
           {
@@ -1074,6 +1093,7 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
@@ -1081,7 +1101,7 @@ void setupWebServer()
     #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
       webServer.on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
@@ -1113,6 +1133,7 @@ void setupWebServer()
             response->print(F("<form method=\"POST\" action=\"/update\" enctype=\"multipart/form-data\">"));
             response->print(F("<input class=\"button-primary\" type=\"file\" name=\"update\"><br /><a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Update\"></form>"));
             addPageFooter(response);
+            //Send response
             request->send(response);
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           xSemaphoreGive(webserverSemaphore);
@@ -1121,6 +1142,7 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
@@ -1128,7 +1150,7 @@ void setupWebServer()
       webServer.on("/update", HTTP_POST,[](AsyncWebServerRequest *request)
         { //This lambda function is called when the update is complete
           #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
               lastWifiActivity = millis();
@@ -1159,6 +1181,7 @@ void setupWebServer()
                 response->print(F("<p>The software update failed!</p>"));
                 response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
                 addPageFooter(response);
+                //Send response
                 request->send(response);
                 otaInProgress = false;
               }
@@ -1169,6 +1192,7 @@ void setupWebServer()
           {
             AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
             response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
             request->send(response);
           }
         }
@@ -1246,7 +1270,7 @@ void setupWebServer()
         });
       webServer.on("/postUpdateRestart", HTTP_GET, [](AsyncWebServerRequest *request){
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
           lastWifiActivity = millis();
@@ -1262,6 +1286,7 @@ void setupWebServer()
           response->print(F("<p>The software update was successful and this node will restart in roughly 10 seconds.</p>"));
           response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
           addPageFooter(response);
+          //Send response
           request->send(response);
           restartTimer = millis();
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
@@ -1271,6 +1296,282 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
+          request->send(response);
+        }
+      #endif
+      });
+    #endif
+    #if defined(ACT_AS_SENSOR)
+      webServer.on("/sensorConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            lastWifiActivity = millis();
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 0, nullptr);
+            response->print(F("<h2>Sensor configuration</h2>"));
+            //Start of form
+            response->print(F("<form method=\"POST\">"));
+            response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\">"));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Starting values</h3></div></div>"));
+            //Starting hits
+            response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"numberOfStartingHits\">Starting hits</label><input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingHits\" name=\"numberOfStartingHits\"></div></div>"), numberOfStartingHits);
+            response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"numberOfStartingStunHits\">Starting stun hits</label><input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingStunHits\" name=\"numberOfStartingStunHits\"></div></div>"), numberOfStartingStunHits);
+            response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"armourValue\">Armour value</label><input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"99\" step=\"1\" value=\"%u\" id=\"armourValue\" name=\"armourValue\"></div></div>"), armourValue);
+            //Flags
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Sensor flags</h3></div></div>"));
+            //Require EP
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"EP_flag\">Require EP to hit</label><select class=\"u-full-width\" id=\"EP_flag\" name=\"EP_flag\">"));
+            response->print(F("<option value=\"true\""));response->print(EP_flag == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(EP_flag == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            //Ignore healing
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ig_healing_flag\">Ignore healing</label><select class=\"u-full-width\" id=\"ig_healing_flag\" name=\"ig_healing_flag\">"));
+            response->print(F("<option value=\"true\""));response->print(ig_healing_flag == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(ig_healing_flag == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            //Ignore stun
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ig_stun_flag\">Ignore stun</label><select class=\"u-full-width\" id=\"ig_stun_flag\" name=\"ig_stun_flag\">"));
+            response->print(F("<option value=\"true\""));response->print(ig_stun_flag == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(ig_stun_flag == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            //Ignore ongoing
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ig_ongoing_flag\">Ignore ongoing</label><select class=\"u-full-width\" id=\"ig_ongoing_flag\" name=\"ig_ongoing_flag\">"));
+            response->print(F("<option value=\"true\""));response->print(ig_ongoing_flag == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(ig_ongoing_flag == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            //Regen while zero
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"regen_while_zero\">Regen while zero</label><select class=\"u-full-width\" id=\"regen_while_zero\" name=\"regen_while_zero\">"));
+            response->print(F("<option value=\"true\""));response->print(regen_while_zero == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(regen_while_zero == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            //Treat damage as one
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"treat_as_one\">Treat damage as one hit</label><select class=\"u-full-width\" id=\"treat_as_one\" name=\"treat_as_one\">"));
+            response->print(F("<option value=\"true\""));response->print(treat_as_one == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(treat_as_one == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            //Treat stun damage as one
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"treat_stun_as_one\">Treat stun as one hit</label><select class=\"u-full-width\" id=\"treat_stun_as_one\" name=\"treat_stun_as_one\">"));
+            response->print(F("<option value=\"true\""));response->print(treat_stun_as_one == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(treat_stun_as_one == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            //Ongoing is cumulative
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ongoing_is_cumulative\">Ongoing is cumulative</label><select class=\"u-full-width\" id=\"ongoing_is_cumulative\" name=\"ongoing_is_cumulative\">"));
+            response->print(F("<option value=\"true\""));response->print(ongoing_is_cumulative == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(ongoing_is_cumulative == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            //Ignore non-DOT
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ig_non_dot\">Ignore non-DOT signals</label><select class=\"u-full-width\" id=\"ig_non_dot\" name=\"ig_non_dot\">"));
+            response->print(F("<option value=\"true\""));response->print(ig_non_dot == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(ig_non_dot == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            //End of form
+            response->print(F("</form>"));
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+        });
+      webServer.on("/sensorConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+          lastWifiActivity = millis();
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            {
+                return request->requestAuthentication();  //Force basic authentication
+            }
+          #endif
+          #ifdef DEBUG_FORM_SUBMISSION
+            int params = request->params();
+            localLog(F("Submitted Configuration parameters: "));
+            localLogLn(params);
+            for(int i=0;i<params;i++){
+              AsyncWebParameter* p = request->getParam(i);
+              if(p->isFile()){ //p->isPost() is also true
+                //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
+              } else if(p->isPost()){
+                //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
+                localLog(F("POST["));
+                localLog(p->name().c_str());
+                localLog(F("]: "));
+                localLogLn(p->value().c_str());
+              } else {
+                //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
+              }
+            }
+          #endif
+          //Read the submitted configuration
+          //Starting values
+          if(request->hasParam("numberOfStartingHits", true))
+          {
+            numberOfStartingHits = request->getParam("numberOfStartingHits", true)->value().toInt();
+          }
+          if(request->hasParam("numberOfStartingStunHits", true))
+          {
+            numberOfStartingStunHits = request->getParam("numberOfStartingStunHits", true)->value().toInt();
+          }
+          if(request->hasParam("armourValue", true))
+          {
+            armourValue = request->getParam("armourValue", true)->value().toInt();
+          }
+          //Sensor flags
+          if(request->hasParam("EP_flag", true))
+          {
+            if(request->getParam("EP_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              EP_flag = true;
+            }
+            else
+            {
+              EP_flag = false;
+            }
+          }
+          if(request->hasParam("ig_healing_flag", true))
+          {
+            if(request->getParam("ig_healing_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ig_healing_flag = true;
+            }
+            else
+            {
+              ig_healing_flag = false;
+            }
+          }
+          if(request->hasParam("EP_flag", true))
+          {
+            if(request->getParam("ig_stun_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ig_stun_flag = true;
+            }
+            else
+            {
+              ig_stun_flag = false;
+            }
+          }
+          if(request->hasParam("ig_ongoing_flag", true))
+          {
+            if(request->getParam("ig_ongoing_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ig_ongoing_flag = true;
+            }
+            else
+            {
+              ig_ongoing_flag = false;
+            }
+          }
+          if(request->hasParam("regen_while_zero", true))
+          {
+            if(request->getParam("regen_while_zero", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              regen_while_zero = true;
+            }
+            else
+            {
+              regen_while_zero = false;
+            }
+          }
+          if(request->hasParam("treat_as_one", true))
+          {
+            if(request->getParam("treat_as_one", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              treat_as_one = true;
+            }
+            else
+            {
+              treat_as_one = false;
+            }
+          }
+          if(request->hasParam("treat_stun_as_one", true))
+          {
+            if(request->getParam("treat_stun_as_one", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              treat_stun_as_one = true;
+            }
+            else
+            {
+              treat_stun_as_one = false;
+            }
+          }
+          if(request->hasParam("ongoing_is_cumulative", true))
+          {
+            if(request->getParam("ongoing_is_cumulative", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ongoing_is_cumulative = true;
+            }
+            else
+            {
+              ongoing_is_cumulative = false;
+            }
+          }
+          if(request->hasParam("ig_non_dot", true))
+          {
+            if(request->getParam("ig_non_dot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ig_non_dot = true;
+            }
+            else
+            {
+              ig_non_dot = false;
+            }
+          }
+          saveSensorConfigurationSoon = millis();
+          request->redirect("/");
+      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          xSemaphoreGive(webserverSemaphore);
+        }
+        else
+        {
+          AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+          response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
+          request->send(response);
+        }
+      #endif
+    });
+      webServer.on("/sensorReset", HTTP_GET, [](AsyncWebServerRequest *request){
+      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+        {
+      #endif
+          lastWifiActivity = millis();
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            {
+                return request->requestAuthentication();  //Force basic authentication
+            }
+          #endif
+          lastSensorStateChange = millis();
+          currentSensorState = sensorState::resetting;
+          request->redirect("/");
+      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          xSemaphoreGive(webserverSemaphore);
+        }
+        else
+        {
+          AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+          response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
@@ -1279,7 +1580,7 @@ void setupWebServer()
     #if defined ENABLE_REMOTE_RESTART
       webServer.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request){
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
           lastWifiActivity = millis();
@@ -1302,6 +1603,7 @@ void setupWebServer()
           response->print(F("<a href =\"/restartConfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\"></a> "));
           response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"No\"></a> "));
           addPageFooter(response);
+          //Send response
           request->send(response);
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           xSemaphoreGive(webserverSemaphore);
@@ -1310,15 +1612,14 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
       });
-      #endif
-      #if defined(ENABLE_REMOTE_RESTART)
       webServer.on("/restartConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
           lastWifiActivity = millis();
@@ -1333,10 +1634,12 @@ void setupWebServer()
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 5, "/");
           response->print(F("<h2>Restart</h2>"));
-          response->print(F("<p>This node is restarting in 10s</p>"));
+          //Top of page buttons
           response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
           //response->print(F("<p>[<a href=\"/\">Back</a>]</p>"));
+          response->print(F("<p>This node is restarting in 10s</p>"));
           addPageFooter(response);
+          //Send response
           request->send(response);
           restartTimer = millis();
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
@@ -1353,7 +1656,7 @@ void setupWebServer()
     #endif
     webServer.on("/devices", HTTP_GET, [](AsyncWebServerRequest *request){
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
         lastWifiActivity = millis();
@@ -1366,7 +1669,11 @@ void setupWebServer()
         AsyncResponseStream *response = request->beginResponseStream("text/html");
         addPageHeader(response, 90, "/devices");
         response->print(F("<h2>Devices</h2>"));
+        //Top of page buttons
+        response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
         #ifdef ACT_AS_TRACKER
+          response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\"></a> "));
+          response->print(F("<a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\"></a>"));
           response->print(F("<p>Tracking mode: "));
           if(currentTrackingMode == trackingMode::nearest)
           {
@@ -1396,8 +1703,6 @@ void setupWebServer()
             }
           }
           response->print(F("</p>"));
-          response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\"></a> "));
-          response->print(F("<a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\"></a>"));
         #endif
         response->print(F("<table class=\"u-full-width\"><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th></th></tr></thead><tbody>"));
         for(uint8_t index = 0; index < numberOfDevices; index++)
@@ -1436,8 +1741,8 @@ void setupWebServer()
             response->print(F("</td></tr>"));
         }
         response->print(F("</tbody></table>"));
-        response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
         addPageFooter(response);
+        //Send response
         request->send(response);
     #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         xSemaphoreGive(webserverSemaphore);
@@ -1446,6 +1751,7 @@ void setupWebServer()
       {
         AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
         response->addHeader("Retry-After","5"); //Ask it to wait 5s
+        //Send response
         request->send(response);
       }
     #endif
@@ -1453,7 +1759,7 @@ void setupWebServer()
     #ifdef ACT_AS_TRACKER
       webServer.on("/nearest", HTTP_GET, [](AsyncWebServerRequest *request){
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
@@ -1478,13 +1784,14 @@ void setupWebServer()
           {
             AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
             response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
             request->send(response);
           }
         #endif
       });
       webServer.on("/furthest", HTTP_GET, [](AsyncWebServerRequest *request){
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
@@ -1509,13 +1816,14 @@ void setupWebServer()
           {
             AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
             response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
             request->send(response);
           }
         #endif
       });
       webServer.on("/track", HTTP_GET, [](AsyncWebServerRequest *request){
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
@@ -1557,6 +1865,7 @@ void setupWebServer()
           {
             AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
             response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
             request->send(response);
           }
         #endif
@@ -1564,7 +1873,7 @@ void setupWebServer()
     #endif
     webServer.on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request) {
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
           lastWifiActivity = millis();
@@ -1576,13 +1885,14 @@ void setupWebServer()
         {
           AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
           response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
           request->send(response);
         }
       #endif
     });
     webServer.on("/css/skeleton.css", HTTP_GET, [](AsyncWebServerRequest *request) {
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout))
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
           lastWifiActivity = millis();

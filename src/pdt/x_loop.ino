@@ -38,6 +38,16 @@ void loop()
       localLogLn(F("Time synced"));
     }
   }
+  #ifdef ACT_AS_TRACKER
+    if(currentBeaconStateChanged == true)  //Ideally show the status to the tracker, but not if asleep
+    {
+      currentBeaconStateChanged = false;
+      //if(currentDisplayState == displayState::distance|| currentDisplayState == displayState::status)
+      {
+        displayStatus();
+      }
+    }
+  #endif
   if(saveConfigurationSoon != 0 && millis() - saveConfigurationSoon > 5000) //Save configuration after a delay to avoid AsyncWebserver doing it in a callback
   {
     saveConfigurationSoon = 0;
@@ -48,6 +58,9 @@ void loop()
     {
       localLogLn(F("Restarting now"));
       flushLog();
+      #if defined(ACT_AS_SENSOR)
+        sensorPersitentData.end(); 
+      #endif
       delay(3000);
       #ifdef ESP32
         ESP.restart();
@@ -68,8 +81,11 @@ void loop()
   #endif
   #if defined(ACT_AS_SENSOR)
     manageLasertag();
+    if(saveSensorConfigurationSoon != 0 && millis() - saveSensorConfigurationSoon > 5000) //Save configuration after a delay to avoid AsyncWebserver doing it in a callback 
+    {
+      saveSensorConfigurationSoon = 0;
+      saveSensorConfiguration();
+    }
   #endif
-  #ifdef SUPPORT_LED
-    //manageLed();
-  #endif
+  vTaskDelay(10 / portTICK_PERIOD_MS);
 }

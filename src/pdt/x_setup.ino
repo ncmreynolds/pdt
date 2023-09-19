@@ -61,30 +61,13 @@ void setup() {
     if(digitalRead(buttonPin) == false)
     {
       localLogLn(F("Resetting sensor due to button press"));
-      currentNumberOfHits = numberOfStartingHits;
-      currentNumberOfStunHits = numberOfStartingStunHits;
-      previousSensorState = sensorState::starting;
-      bleedOutCounter = 0;
-      sensorPersitentData.putUChar(currentNumberOfHitsKey, currentNumberOfHits);
-      sensorPersitentData.putUChar(currentNumberOfStunHitsKey, currentNumberOfStunHits);
-      sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
-      //sensorPersitentData.putUChar(currentSensorStateKey, (uint8_t)currentSensorState);
+      resetSensor();
     }
     else
     #endif
     {
-      currentNumberOfHits = sensorPersitentData.getUChar(currentNumberOfHitsKey, numberOfStartingHits);
-      currentNumberOfStunHits = sensorPersitentData.getUChar(currentNumberOfStunHitsKey, numberOfStartingStunHits);
-      //previousSensorState = (sensorState)sensorPersitentData.getUChar(currentSensorStateKey, (uint8_t)sensorState::playStartupAnimation);
-      bleedOutCounter = sensorPersitentData.getUChar(bleedOutCounterKey, 0);
+      loadSensorConfiguration();
     }
-    localLog(F("Starting hits: "));
-    localLogLn(currentNumberOfHits);
-    localLog(F("Starting stun hits: "));
-    localLogLn(currentNumberOfStunHits);
-    localLog(F("Previous sensor state: "));
-    localLogLn((uint8_t)currentSensorState);
-    localLog(F("Starting bleed out counter: "));
-    localLogLn(bleedOutCounter);
+    showSensorConfiguration();
   #endif
 }

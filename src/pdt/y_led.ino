@@ -5,11 +5,11 @@
     digitalWrite(ledPin,LOW);
     ledSemaphore = xSemaphoreCreateBinary();
     xSemaphoreGive(ledSemaphore);
-    xTaskCreate(manageLed, "manageLed", 1000, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
+    xTaskCreate(manageLed, "manageLed", 512, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
   }
   void ledOn(uint32_t ontime, uint32_t offtime)
   {
-    if(xSemaphoreTake(ledSemaphore, ledSemaphoreTimeout))
+    if(xSemaphoreTake(ledSemaphore, ledSemaphoreTimeout) == pdTRUE)
     {
       if(ledState == false)
       {
@@ -23,7 +23,7 @@
   }
   void ledOff()
   {
-    if(xSemaphoreTake(ledSemaphore, ledSemaphoreTimeout))
+    if(xSemaphoreTake(ledSemaphore, ledSemaphoreTimeout) == pdTRUE)
     {
       digitalWrite(ledPin, LOW);
       ledState = false;
@@ -39,7 +39,7 @@
       {
         if(ledState == true)
         {
-          if(millis() - ledLastStateChange > ledOnTime)
+          if(ledOnTime > 0 && millis() - ledLastStateChange > ledOnTime)
           {
             ledOff();
           }

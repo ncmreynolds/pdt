@@ -192,11 +192,16 @@
           #if defined(ACT_AS_SENSOR)
             if(currentSensorState == sensorState::active)
             {
-                    xTaskCreate(playCurrentHitsAnimation, "playCurrentHitsAnimation", 1000, NULL, 2, NULL);
+              localLogLn(F("Sensor: playCurrentHits"));
+              currentSensorState = sensorState::playCurrentHits;
+              xTaskCreate(playCurrentHitsAnimation, "playCurrentHitsAnimation", 512, NULL, 2, NULL);
             }
             else if(currentSensorState == sensorState::dead)
             {
               localLogLn(F("Sensor: bleedOut"));
+              #ifdef SUPPORT_LED
+                ledOn(0, 0);  //Hard put the LED on
+              #endif
               currentSensorState = sensorState::bleedOut;
             }
           #endif

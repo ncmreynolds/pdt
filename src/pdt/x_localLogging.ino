@@ -30,7 +30,7 @@ void manageLogging(void * parameter)
 {
   while(otaInProgress == false)
   {
-    if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout))
+    if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
     {
       if(flushLogNow == true || ((millis() - logLastFlushed) >= (logFlushInterval * 1000)))
       {
@@ -64,9 +64,9 @@ void manageLogging(void * parameter)
 }
 
 template<typename typeToLog>
-void localLog(typeToLog message)  //Add a partial line to the local log, starting with a timestampt
+void localLog(typeToLog message)  //Add a partial line to the local log, starting with a timestamp
 {
-  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout))
+  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
   {
     if(logfileYear == 0)  //If a log file is not chose, try and choose one
     {
@@ -102,6 +102,7 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
         }
       }
       updateTimestamp();
+      /*
       #ifdef SERIAL_LOG
         if(waitForBufferSpace(20))
         {
@@ -109,6 +110,7 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
           SERIAL_DEBUG_PORT.print(' ');
         }
       #endif
+      */
       logToFile(timestamp);
       logToFile(' ');
     }
@@ -123,9 +125,9 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
   }
 }
 template<typename typeToLog>
-void localLog(typeToLog message, uint8_t base)  //Add a partial line to the local log, starting with a timestampt
+void localLog(typeToLog message, uint8_t base)  //Add a partial line to the local log, starting with a timestamp
 {
-  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout))
+  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
   {
     if(logfileYear == 0)  //If a log file is not chose, try and choose one
     {
@@ -161,6 +163,7 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
         }
       }
       updateTimestamp();
+      /*
       #ifdef SERIAL_LOG
         if(waitForBufferSpace(21))
         {
@@ -168,6 +171,7 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
           SERIAL_DEBUG_PORT.print(' ');
         }
       #endif
+      */
       logToFile(timestamp);
       logToFile(' ');
     }
@@ -182,9 +186,9 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
   }
 }
 template<typename typeToLog>
-void localLogLn(typeToLog message) //Add to the local log, starting with a timestampt
+void localLogLn(typeToLog message) //Add to the local log, starting with a timestamp
 {
-  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout))
+  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
   {
     if(logfileYear == 0)  //If a log file is not chose, try and choose one
     {
@@ -220,6 +224,7 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
         }
       }
       updateTimestamp();
+      /*
       #ifdef SERIAL_LOG
         if(waitForBufferSpace(21))
         {
@@ -227,6 +232,7 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
           SERIAL_DEBUG_PORT.print(' ');
         }
       #endif
+      */
       logToFile(timestamp);
       logToFile(' ');
     }

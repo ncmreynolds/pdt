@@ -125,13 +125,13 @@
     #ifdef SUPPORT_BEEPER
       if(!beeperManagementTask)
       {
-        xTaskCreate(manageBeeper, "manageBeeper", 1000, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
+        xTaskCreate(manageBeeper, "manageBeeper", 512, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
       }
     #endif
     #ifdef SUPPORT_LED
       if(!ledManagementTask)
       {
-        xTaskCreate(manageLed, "manageLed", 1000, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
+        xTaskCreate(manageLed, "manageLed", 512, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
       }
     #endif
     #ifdef SUPPORT_LORA

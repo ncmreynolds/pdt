@@ -16,7 +16,7 @@
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
-#define PDT_PATCH_VERSION 0
+#define PDT_PATCH_VERSION 3
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -40,6 +40,7 @@
 #define ENABLE_LOCAL_WEBSERVER
 #define ENABLE_LOCAL_WEBSERVER_SEMAPHORE
 #define DEBUG_LOCAL_WEBSERVER
+//#define DEBUG_FORM_SUBMISSION
 #define ENABLE_REMOTE_RESTART
 #define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
 #define ENABLE_OTA_UPDATE
@@ -101,6 +102,15 @@
   uint8_t armourValue = 0;
   uint8_t bleedOutCounter = 0;
   uint8_t bleedOutTime = 5;
+  bool EP_flag = false; //Sensor requires EP set in signal to be hit
+  bool ig_healing_flag = false; //Sensor ignores healing
+  bool ig_stun_flag = false; //Sensor ignores stun hits
+  bool ig_ongoing_flag = false; //Sensor ignores ongoing hits
+  bool regen_while_zero = false; //Sensor can regenerate from zero
+  bool treat_as_one = false; //Sensor treats all hits as one damage
+  bool treat_stun_as_one = false; //Sensor treats all stun as one
+  bool ongoing_is_cumulative = false; //Sensor adds ongoing damage to current ongoing value
+  bool ig_non_dot = false; //Sensor ignores non-DOT signals
   enum class sensorState : uint8_t {
     starting = 0,
     playStartupAnimation = 1,
@@ -111,7 +121,8 @@
     takenHit = 6,
     dead = 7,
     bleedOut = 8,
-    stunned = 9
+    stunned = 9,
+    resetting = 10
   };
   sensorState currentSensorState = sensorState::starting;
   sensorState previousSensorState = sensorState::starting;
@@ -120,10 +131,22 @@
   uint32_t sensorTones[4] = {3777, 800, 1200, 1000};
   uint32_t sensorToneOnTimes[4] = {200, 250, 500, 199};
   uint32_t sensorToneOffTimes[4] = {0, 250, 500, 1};
-  const char* currentNumberOfHitsKey = "currentHits";
-  const char* currentNumberOfStunHitsKey = "currentStunHits";
+  const char* startingHitsKey = "startingHits";
+  const char* currentHitsKey = "currentHits";
+  const char* startingStunKey = "startingStun";
+  const char* currentStunKey = "currentStun";
+  const char* EP_flag_key = "EP_flag";
+  const char* ig_healing_flag_key = "ig_healing_flag";
+  const char* ig_stun_flag_key = "ig_stun_flag";
+  const char* ig_ongoing_flag_key = "ig_ongoing_flag";
+  const char* regen_from_zero_key = "regen_from_zero";
+  const char* hit_as_one_key = "hit_as_one";
+  const char* stun_as_one_key = "stun_as_one";
+  const char* ongoing_adds_key = "ongoing_adds";
+  const char* ig_non_dot_key = "ig_non_dot";
   //const char* currentSensorStateKey = "currentSensorState";
   const char* bleedOutCounterKey = "bleedOutCounter";
+  uint32_t saveSensorConfigurationSoon = 0;
 #endif
 
 /*
@@ -149,7 +172,7 @@
   void addPageFooter(AsyncResponseStream *response);
   #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
     SemaphoreHandle_t webserverSemaphore = NULL;
-    const uint16_t webserverSemaphoreTimeout = 250;
+    const uint16_t webserverSemaphoreTimeout = 50;
   #endif
 #endif
 /*
@@ -171,7 +194,7 @@
   #include "CRC16.h" //A CRC16 is used to check the packet is LIKELY to be sent in a known format
   #include "CRC.h"
   #define LORA_CRC_POLYNOME 0xac9a  //Taken from https://users.ece.cmu.edu/~koopman/crc/
-  #define LORA_NON_BLOCKING //Uncomment to use callbacks, rather than polling for LoRa events
+  //#define LORA_ASYNC_METHODS //Uncomment to use callbacks, rather than polling for LoRa events
   uint8_t defaultLoRaTxPower = 17;
   uint8_t defaultLoRaSpreadingFactor = 7;
   uint32_t defaultLoRaSignalBandwidth = 250E3; //125E3; //Supported values are 7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3(default), 250E3, and 500E3.
@@ -448,19 +471,20 @@ uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
 SemaphoreHandle_t loggingSemaphore = NULL;
 const uint16_t loggingSemaphoreTimeout = 50;
 TaskHandle_t loggingManagementTask = NULL;
-const uint16_t loggingYieldTime = 10;
+const uint16_t loggingYieldTime = 100;
 
 
 #if defined(SUPPORT_LORA)
   #define MAX_LORA_BUFFER_SIZE 255
   bool loRaConnected = false;   // Has the radio initialised OK
-  #if defined(LORA_NON_BLOCKING)
+  #if defined(LORA_ASYNC_METHODS)
     #ifdef ESP32
       portMUX_TYPE loRaRxSynch = portMUX_INITIALIZER_UNLOCKED;  //Mutex for multi-core ESP32s
       portMUX_TYPE loRaTxSynch = portMUX_INITIALIZER_UNLOCKED;  //Mutex for multi-core ESP32s
     #endif
     volatile uint32_t loRaTxStartTime = 0; //Used to calculate TX time for each packet
     volatile bool loRaTxBusy = false;
+    volatile bool loRaTxComplete = false;
     volatile bool loRaRxBusy = false;
     volatile uint8_t loRaSendBufferSize = 0;
     volatile uint8_t loRaReceiveBufferSize = 0;
@@ -468,6 +492,7 @@ const uint16_t loggingYieldTime = 10;
     volatile uint32_t loRaTxPackets = 0;
     volatile uint32_t loRaRxPackets = 0;
   #else
+    volatile uint32_t loRaTxStartTime = 0; //Used to calculate TX time for each packet
     volatile bool loRaTxBusy = false;
     volatile bool loRaRxBusy = false;
     volatile uint8_t loRaSendBufferSize = 0;
@@ -501,6 +526,7 @@ const uint16_t loggingYieldTime = 10;
 
 */
 #ifdef SUPPORT_DISPLAY
+  void displayStatus();
   enum class displayState : std::int8_t {
     blank,
     welcome,
@@ -578,7 +604,8 @@ const uint16_t loggingYieldTime = 10;
     double maximumEffectiveRange = 99;
     uint32_t distanceToCurrentBeacon = BEACONUNREACHABLE;
     bool distanceToCurrentBeaconChanged = false;
-    uint8_t currentBeacon = maximumNumberOfDevices;
+    uint8_t currentBeacon = maximumNumberOfDevices; //max implies none found
+    bool currentBeaconStateChanged = false; //Note when it has been show
     enum class trackingMode : std::int8_t {
       nearest,
       furthest,
@@ -609,7 +636,7 @@ const uint16_t loggingYieldTime = 10;
 #ifdef SUPPORT_BEEPER
   SemaphoreHandle_t beeperSemaphore = NULL;
   TaskHandle_t beeperManagementTask = NULL;
-  const uint16_t beeperYieldTime = 10;
+  const uint16_t beeperYieldTime = 50;
   const uint16_t beeperSemaphoreTimeout = 5;
   uint32_t singleBeepOnTime = 25; //One shot beeps have their own on time
   uint32_t singleBeepLastStateChange = 0;
@@ -625,7 +652,7 @@ const uint16_t loggingYieldTime = 10;
 #ifdef SUPPORT_LED
   TaskHandle_t ledManagementTask = NULL;
   SemaphoreHandle_t ledSemaphore = NULL;
-  const uint16_t ledYieldTime = 10;
+  const uint16_t ledYieldTime = 50;
   const uint16_t ledSemaphoreTimeout = 5;
   uint32_t ledOnTime = 20;
   uint32_t ledOffTime = 0;

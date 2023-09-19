@@ -18,7 +18,7 @@
   }
   void manageGps()
   {
-    if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout)) //Take the semaphore to exclude the sentence processing task and udate the data structures
+    if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout) == pdTRUE) //Take the semaphore to exclude the sentence processing task and udate the data structures
     {
       for(uint8_t index = 0; index < numberOfDevices; index++)  //Degrade quality if location updates missed, this INCLUDES this device!
       {
@@ -128,9 +128,6 @@
             }
           }
         #endif
-        #ifdef SUPPORT_LED
-          //manageLed();
-        #endif
       }
       if(millis() - lastGpsTimeCheck > gpsTimeCheckInterval)  //Maintain system time using GPS which may be possible even without a full fix
       {
@@ -202,7 +199,7 @@
     char character;
     while(otaInProgress == false)
     {
-      if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
+      if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout) == pdTRUE)
       {
         while(GPS_PORT.available()) //Check for incoming GPS data
         {
@@ -485,7 +482,7 @@
   #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
     void showGPSstatus()
     {
-      //if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout))
+      //if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout) == pdTRUE)
       {
         //SERIAL_DEBUG_PORT.print(F("GPS - Chars:"));
         //SERIAL_DEBUG_PORT.print(gps.charsProcessed());

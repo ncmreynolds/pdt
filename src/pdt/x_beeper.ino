@@ -13,12 +13,12 @@
     ledcWriteTone(beeperChannel, 0);  //Set an initial tone of nothing
     ledcAttachPin(beeperPin, beeperChannel);
     xSemaphoreGive(beeperSemaphore);
-    xTaskCreate(manageBeeper, "manageBeeper", 1000, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
+    xTaskCreate(manageBeeper, "manageBeeper", 512, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
     localLogLn(F("OK"));
   }
   void makeAsingleBeep(uint16_t frequency, uint16_t duration) //A single beep can override a repeating one
   {
-    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
+    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
     {
       if(beeperState == false)
       {
@@ -35,7 +35,7 @@
   {
     if(beeperState == false)
     {
-      if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
+      if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
       {
         ledcAttachPin(beeperPin, beeperChannel);
         ledcWriteTone(beeperChannel, frequency);
@@ -50,7 +50,7 @@
   }
   void stopSingleBeep()
   {
-    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
+    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
     {
       ledcWriteTone(beeperChannel, 0);  //Write no tone
       //ledcDetachPin(beeperPin); //Detach because beeper is active low
@@ -63,7 +63,7 @@
   }
   void pauseRepeatingBeep()
   {
-    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
+    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
     {
       ledcWriteTone(beeperChannel, 0);  //Write no tone
       //ledcDetachPin(beeperPin); //Detach because beeper is active low
@@ -75,7 +75,7 @@
   }
   void endRepeatingBeep()
   {
-    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout))
+    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
     {
       repeatingBeepOffTime = 0;
       ledcWriteTone(beeperChannel, 0);  //Write no tone

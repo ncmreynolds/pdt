@@ -11,11 +11,130 @@
     localLog(calculatedLoRaDutyCycle);
     localLogLn('%');
   }
-  #ifdef LORA_NON_BLOCKING
+  #ifdef LORA_ASYNC_METHODS
+    #if defined(ESP32)
+      void IRAM_ATTR copyLoRaPacketIntoBuffer(int packetSize)
+    #elif defined(ESP8266)
+      void ICACHE_RAM_ATTR copyLoRaPacketIntoBuffer(int packetSize)
+    #endif
+  #else
+    void copyLoRaPacketIntoBuffer(int packetSize)
+  #endif
+  {
+    //This block of code is to handle multiprocessor ESP32s
+    #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
+      #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+        portENTER_CRITICAL(&loRaRxSynch); //
+      #elif CONFIG_IDF_TARGET_ESP32S3
+        portENTER_CRITICAL(&loRaRxSynch);
+      #endif
+    #endif
+    if(loRaRxBusy == true || loRaReceiveBufferSize > 0)  //Already dealing with a LoRa packet
+    {
+      //This block of code is to handle multiprocessor ESP32s
+      #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
+        #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+          portEXIT_CRITICAL(&loRaRxSynch);
+        #elif CONFIG_IDF_TARGET_ESP32S3
+          portEXIT_CRITICAL(&loRaRxSynch);
+        #endif
+      #endif
+      if(loRaRxBusy == true)  //Already dealing with a LoRa packet
+      {
+        #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(40))
+        {
+          SERIAL_DEBUG_PORT.println(F("Packet received but busy, discarding"));
+        }
+        #endif
+      }
+      if(loRaReceiveBufferSize > 0)  //Already dealing with a LoRa packet
+      {
+        #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(50))
+        {
+          SERIAL_DEBUG_PORT.println(F("Packet received but buffer full, discarding"));
+        }
+        #endif
+      }
+      return;
+    }
+    loRaRxBusy = true;
+    loRaRxPackets++;
+    if(packetSize == 0)
+    {
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+        if(waitForBufferSpace(30))
+        {
+          SERIAL_DEBUG_PORT.println(F("Empty packet received"));
+        }
+      #endif
+      return;
+    }
+    else if(packetSize <= MAX_LORA_BUFFER_SIZE)
+    {
+      /*
+      #if defined(SERIAL_DEBUG)
+      if(waitForBufferSpace(48))
+      {
+        SERIAL_DEBUG_PORT.print(F("Packet received, length: "));
+        SERIAL_DEBUG_PORT.println(packetSize);
+        SERIAL_DEBUG_PORT.print(F("Packet: "));
+      }
+      #endif
+      */
+      for(uint8_t index = 0; index < packetSize; index++)
+      {
+        loRaReceiveBuffer[index] = LoRa.read();
+        /*
+        #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(3))
+        {
+          SERIAL_DEBUG_PORT.printf_P("%02x ",loRaReceiveBuffer[index]);
+        }
+        #endif
+        */
+      }
+      /*
+      #if defined(SERIAL_DEBUG)
+      if(waitForBufferSpace(1))
+      {
+        SERIAL_DEBUG_PORT.println();
+      }
+      #endif
+      */
+      lastRssi = LoRa.packetRssi();
+      loRaReceiveBufferSize = packetSize;
+    }
+    else
+    {
+      #if defined(SERIAL_DEBUG)
+      if(waitForBufferSpace(45))
+      {
+        SERIAL_DEBUG_PORT.print(F("Oversize packet received, length: "));
+        SERIAL_DEBUG_PORT.println(packetSize);
+      }
+      #endif
+    }
+    loRaRxBusy = false;
+    //This block of code is to handle multiprocessor ESP32s
+    #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
+      #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+        portEXIT_CRITICAL(&loRaRxSynch);
+      #elif CONFIG_IDF_TARGET_ESP32S3
+        portEXIT_CRITICAL(&loRaRxSynch);
+      #endif
+    #endif
+  }
+  #ifdef LORA_ASYNC_METHODS
     /*
      * Interrupt service routines for LoRa, which need some care when there are other async things in use
      */
-    void ICACHE_RAM_ATTR onSend()
+    #if defined(ESP32)
+      void IRAM_ATTR onSend()
+    #elif defined(ESP8266)
+      void ICACHE_RAM_ATTR onSend()
+    #endif
     {
       //This block of code is to handle multiprocessor ESP32s
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
@@ -27,8 +146,7 @@
       #endif
       loRaTxTime += millis() - loRaTxStartTime; //Calculate the time spent sending for duty cycle
       loRaTxPackets++;
-      LoRa.receive();
-      loRaTxBusy = false;
+      loRaTxComplete = true;
       //This block of code is to handle multiprocessor ESP32s
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
         #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
@@ -44,110 +162,7 @@
       void ICACHE_RAM_ATTR onReceive(int packetSize)
     #endif
     {
-      //This block of code is to handle multiprocessor ESP32s
-      #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-        #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portENTER_CRITICAL(&loRaRxSynch); //
-        #elif CONFIG_IDF_TARGET_ESP32S3
-          portENTER_CRITICAL(&loRaRxSynch);
-        #endif
-      #endif
-      if(loRaRxBusy == true || loRaReceiveBufferSize > 0)  //Already dealing with a LoRa packet
-      {
-        //This block of code is to handle multiprocessor ESP32s
-        #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-          #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-            portEXIT_CRITICAL(&loRaRxSynch);
-          #elif CONFIG_IDF_TARGET_ESP32S3
-            portEXIT_CRITICAL(&loRaRxSynch);
-          #endif
-        #endif
-        if(loRaRxBusy == true)  //Already dealing with a LoRa packet
-        {
-          #if defined(SERIAL_DEBUG)
-          if(waitForBufferSpace(40))
-          {
-            SERIAL_DEBUG_PORT.println(F("Packet received but busy, discarding"));
-          }
-          #endif
-        }
-        if(loRaReceiveBufferSize > 0)  //Already dealing with a LoRa packet
-        {
-          #if defined(SERIAL_DEBUG)
-          if(waitForBufferSpace(50))
-          {
-            SERIAL_DEBUG_PORT.println(F("Packet received but buffer full, discarding"));
-          }
-          #endif
-        }
-        return;
-      }
-      loRaRxBusy = true;
-      loRaRxPackets++;
-      if(packetSize == 0)
-      {
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-          if(waitForBufferSpace(30))
-          {
-            SERIAL_DEBUG_PORT.println(F("Empty packet received"));
-          }
-        #endif
-        return;
-      }
-      else if(packetSize <= MAX_LORA_BUFFER_SIZE)
-      {
-        /*
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(48))
-        {
-          SERIAL_DEBUG_PORT.print(F("Packet received, length: "));
-          SERIAL_DEBUG_PORT.println(packetSize);
-          SERIAL_DEBUG_PORT.print(F("Packet: "));
-        }
-        #endif
-        */
-        for(uint8_t index = 0; index < packetSize; index++)
-        {
-          loRaReceiveBuffer[index] = LoRa.read();
-          /*
-          #if defined(SERIAL_DEBUG)
-          if(waitForBufferSpace(3))
-          {
-            SERIAL_DEBUG_PORT.printf_P("%02x ",loRaReceiveBuffer[index]);
-          }
-          #endif
-          */
-        }
-        /*
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(1))
-        {
-          SERIAL_DEBUG_PORT.println();
-        }
-        #endif
-        */
-        lastRssi = LoRa.packetRssi();
-        loRaReceiveBufferSize = packetSize;
-      }
-      else
-      {
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(45))
-        {
-          SERIAL_DEBUG_PORT.print(F("Oversize packet received, length: "));
-          SERIAL_DEBUG_PORT.println(packetSize);
-        }
-        #endif
-      }
-      loRaRxBusy = false;
-      //This block of code is to handle multiprocessor ESP32s
-      #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-        #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portEXIT_CRITICAL(&loRaRxSynch);
-        #elif CONFIG_IDF_TARGET_ESP32S3
-          portEXIT_CRITICAL(&loRaRxSynch);
-        #endif
-      #endif
+      copyLoRaPacketIntoBuffer(packetSize); //This keeps the code the same across sync/async methods
     }
   #endif
   void setupLoRa()
@@ -163,8 +178,8 @@
       localLogLn(F("OK"));
       loRaConnected = true;
       LoRa.enableCrc();
-      LoRa.onReceive(onReceive);
-      #if defined(LORA_NON_BLOCKING)
+      #if defined(LORA_ASYNC_METHODS)
+        LoRa.onReceive(onReceive);
         LoRa.onTxDone(onSend);
       #endif
       LoRa.receive();
@@ -177,6 +192,20 @@
   }
   void manageLoRa()
   {
+    #ifdef LORA_ASYNC_METHODS
+      if(loRaTxComplete == true && loRaTxBusy == true)
+      {
+        loRaTxComplete = false;
+        loRaTxBusy = false;
+        LoRa.receive();
+      }
+    #else
+      int packetSize = LoRa.parsePacket();
+      if(packetSize > 0)
+      {
+        copyLoRaPacketIntoBuffer(packetSize);
+      }
+    #endif
     if(loRaReceiveBufferSize > 0) //There's something in the buffer to process
     {
       if(validateLoRaChecksum())
@@ -230,6 +259,10 @@
       #endif
     }
     #endif
+  }
+  void scheduleDeviceInfoShareSoon()
+  {
+    lastDeviceInfoSendTime = millis() - (deviceInfoSendInterval + 5000);  //Force the sensor to update any trackers soon, 5s is a good time to allow for more hits before sending
   }
   uint32_t newLocationSharingInterval(uint16_t distance, float speed)
   {
@@ -376,7 +409,7 @@
                 numberOfStartingStunHits
                 );
               #else
-                SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv\r\n\tIntervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+                SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv intervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
                 device[0].typeOfDevice,
                 device[0].majorVersion,
                 device[0].minorVersion,
@@ -402,7 +435,7 @@
   bool transmitLoRaBuffer()
   {
     if(appendLoRaChecksum()) //Add the checksum, if there is space
-    {  
+    {
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
         #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
           portENTER_CRITICAL(&loRaTxSynch);
@@ -412,15 +445,15 @@
       #endif
       LoRa.beginPacket(); //Start a new packet
       LoRa.write(loRaSendBuffer, loRaSendBufferSize);
-      #if defined(LORA_NON_BLOCKING)
-        loRaTxStartTime = millis() ; //Time the send
-        LoRa.endPacket(true); //Send the packet
+      loRaTxStartTime = millis() ; //Time the send
+      #if defined(LORA_ASYNC_METHODS)
+        LoRa.endPacket(true); //Send the packet asynchronously
       #else
-        LoRa.endPacket(); //Send the packet
-        LoRa.receive(); //Start receiving again
-      #endif
-      #if not defined(LORA_NON_BLOCKING)
+        LoRa.endPacket(); //Send the packet and wait
+        loRaTxTime += millis() - loRaTxStartTime; //Calculate the time spent sending for duty cycle
+        loRaTxPackets++;
         loRaTxBusy = false;
+        LoRa.receive(); //Start receiving again
       #endif
       //This block of code is to handle multiprocessor ESP32s
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
@@ -624,32 +657,61 @@
                                     #endif
                                     if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
                                     {
+                                      uint8_t unpackerTemp = 0;
                                       if(unpacker.isUInt7() || unpacker.isUInt8())  //Starting hits
                                       {
-                                        unpacker.unpack(device[deviceIndex].numberOfStartingHits);
+                                        unpacker.unpack(unpackerTemp);
+                                        if(device[deviceIndex].numberOfStartingHits != unpackerTemp)
+                                        {
+                                          device[deviceIndex].numberOfStartingHits = unpackerTemp;
+                                          #if defined(ACT_AS_TRACKER)
+                                            currentBeaconStateChanged = true;
+                                          #endif
+                                        }
                                         if(unpacker.isUInt7() || unpacker.isUInt8())  //Starting stun
                                         {
-                                          unpacker.unpack(device[deviceIndex].numberOfStartingStunHits);
+                                          unpacker.unpack(unpackerTemp);
+                                          if(device[deviceIndex].numberOfStartingStunHits != unpackerTemp)
+                                          {
+                                            device[deviceIndex].numberOfStartingStunHits = unpackerTemp;
+                                            #if defined(ACT_AS_TRACKER)
+                                              currentBeaconStateChanged = true;
+                                            #endif
+                                          }
                                           if(unpacker.isUInt7() || unpacker.isUInt8())  //Current hits
                                           {
-                                              unpacker.unpack(device[deviceIndex].currentNumberOfHits);
+                                              unpacker.unpack(unpackerTemp);
+                                              if(device[deviceIndex].currentNumberOfHits != unpackerTemp)
+                                              {
+                                                device[deviceIndex].currentNumberOfHits = unpackerTemp;
+                                                #if defined(ACT_AS_TRACKER)
+                                                  currentBeaconStateChanged = true;
+                                                #endif
+                                              }
                                               if(unpacker.isUInt7() || unpacker.isUInt8())  //Current hits
                                               {
-                                                  unpacker.unpack(device[deviceIndex].currentNumberOfStunHits);
-                                                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-                                                    if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
-                                                    {
-                                                      if(waitForBufferSpace(60))
-                                                      {
-                                                        SERIAL_DEBUG_PORT.printf_P(" hits %u/%u Stun %u/%u\r\n",
-                                                          device[deviceIndex].currentNumberOfHits,
-                                                          device[deviceIndex].numberOfStartingHits,
-                                                          device[deviceIndex].currentNumberOfStunHits,
-                                                          device[deviceIndex].numberOfStartingStunHits
-                                                          );
-                                                      }
-                                                    }
+                                                unpacker.unpack(unpackerTemp);
+                                                if(device[deviceIndex].currentNumberOfStunHits != unpackerTemp)
+                                                {
+                                                  device[deviceIndex].currentNumberOfStunHits = unpackerTemp;
+                                                  #if defined(ACT_AS_TRACKER)
+                                                    currentBeaconStateChanged = true;
                                                   #endif
+                                                }
+                                                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                                  if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
+                                                  {
+                                                    if(waitForBufferSpace(60))
+                                                    {
+                                                      SERIAL_DEBUG_PORT.printf_P(" hits %u/%u Stun %u/%u\r\n",
+                                                        device[deviceIndex].currentNumberOfHits,
+                                                        device[deviceIndex].numberOfStartingHits,
+                                                        device[deviceIndex].currentNumberOfStunHits,
+                                                        device[deviceIndex].numberOfStartingStunHits
+                                                        );
+                                                    }
+                                                  }
+                                                #endif
                                               }
                                               else
                                               {
@@ -714,7 +776,7 @@
                                       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                         if(waitForBufferSpace(75))
                                         {
-                                          SERIAL_DEBUG_PORT.printf_P(PSTR("\r\n\tIntervals: default %us, %um %us, %um %us, %um %us"),
+                                          SERIAL_DEBUG_PORT.printf_P(PSTR(" intervals: default %us, %um %us, %um %us, %um %us"),
                                             receivedDefaultLocationSendInterval/1000,
                                             receivedLoRaPerimiter1,
                                             receivedLocationSendInterval1/1000,
