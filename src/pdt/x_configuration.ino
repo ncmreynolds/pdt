@@ -39,6 +39,9 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   #endif
   #ifdef SUPPORT_BEEPER
     configuration["beeperEnabled"] = beeperEnabled;
+    #ifdef SUPPORT_BUTTON
+      configuration["beepOnPress"] = beepOnPress;
+    #endif
   #endif
   #if defined(ACT_AS_TRACKER)
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
@@ -272,6 +275,9 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     }
     #ifdef SUPPORT_BEEPER
       beeperEnabled = configuration["beeperEnabled"] | true;
+      #ifdef SUPPORT_BUTTON
+        beepOnPress = configuration["beepOnPress"] | true;
+      #endif
     #endif
     localLogLn(F("OK"));
     return true;
@@ -499,6 +505,10 @@ void printConfiguration()
   #ifdef SUPPORT_BEEPER
     localLog(F("beeperEnabled: "));
     localLogLn(beeperEnabled);
+    #ifdef SUPPORT_BUTTON
+      localLog(F("beepOnPress: "));
+      localLogLn(beepOnPress);
+    #endif
   #endif
   localLog(F("loggingBufferSize: "));
   localLogLn(loggingBufferSize);

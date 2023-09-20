@@ -625,7 +625,7 @@ void setupWebServer()
           #endif
           #if defined(ACT_AS_TRACKER)
             response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Tracker</h3></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"maximumEffectiveRange\">Maximum effective range</label><select class=\"u-full-width\" id=\"maximumEffectiveRange\" name=\"maximumEffectiveRange\">"));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"maximumEffectiveRange\">Maximum effective range</label><select class=\"u-full-width\" id=\"maximumEffectiveRange\" name=\"maximumEffectiveRange\">"));
             response->print(F("<option value=\"50\""));response->print(maximumEffectiveRange == 50 ? " selected>":">");response->print(F("50m</option>"));
             response->print(F("<option value=\"75\""));response->print(maximumEffectiveRange == 75 ? " selected>":">");response->print(F("75m</option>"));
             response->print(F("<option value=\"99\""));response->print(maximumEffectiveRange == 99 ? " selected>":">");response->print(F("99m</option>"));
@@ -634,11 +634,28 @@ void setupWebServer()
             response->print(F("<option value=\"750\""));response->print(maximumEffectiveRange == 750 ? " selected>":">");response->print(F("750m</option>"));
             response->print(F("<option value=\"1000\""));response->print(maximumEffectiveRange == 1000 ? " selected>":">");response->print(F("1000m</option>"));
             response->print(F("<option value=\"9999\""));response->print(maximumEffectiveRange == 9999 ? " selected>":">");response->print(F("9999m</option>"));
-            response->print(F("</select></div>"));
-            response->print(F("<div class=\"six columns\"><label for=\"beeperEnabled\">Beeper</label><select class=\"u-full-width\" id=\"beeperEnabled\" name=\"beeperEnabled\">"));
-            response->print(F("<option value=\"true\""));response->print(beeperEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-            response->print(F("<option value=\"false\""));response->print(beeperEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
             response->print(F("</select></div></div>"));
+          #endif
+          #ifdef SUPPORT_BEEPER
+            #if defined(ACT_AS_TRACKER)
+              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Beeper</h3></div></div>"));
+              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"beeperEnabled\">Beeper enabled</label><select class=\"u-full-width\" id=\"beeperEnabled\" name=\"beeperEnabled\">"));
+              response->print(F("<option value=\"true\""));response->print(beeperEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
+              response->print(F("<option value=\"false\""));response->print(beeperEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
+              response->print(F("</select></div>"));
+              #ifdef SUPPORT_BUTTON
+                response->print(F("<div class=\"six columns\"><label for=\"beepOnPress\">Button beep</label><select class=\"u-full-width\" id=\"beepOnPress\" name=\"beepOnPress\">"));
+                response->print(F("<option value=\"true\""));response->print(beepOnPress == true ? " selected>":">");response->print(F("Enabled</option>"));
+                response->print(F("<option value=\"false\""));response->print(beepOnPress == false ? " selected>":">");response->print(F("Disabled</option>"));
+                response->print(F("</select></div></div>"));
+              #endif
+            #else
+              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Beeper</h3></div></div>"));
+              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"beeperEnabled\">Beeper enabled</label><select class=\"u-full-width\" id=\"beeperEnabled\" name=\"beeperEnabled\">"));
+              response->print(F("<option value=\"true\""));response->print(beeperEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
+              response->print(F("<option value=\"false\""));response->print(beeperEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
+              response->print(F("</select></div></div>"));
+            #endif
           #endif
           #if defined(SUPPORT_LORA)
             //LoRa
@@ -712,13 +729,6 @@ void setupWebServer()
             response->print(F("<option value=\"10\""));response->print(rssiAttenuationPerimeter == 10 ? " selected>":">");response->print(F("10m</option>"));
             response->print(F("<option value=\"15\""));response->print(rssiAttenuationPerimeter == 15 ? " selected>":">");response->print(F("15m</option>"));
             response->print(F("</select></div></div>"));
-          #endif
-          #ifdef SUPPORT_BEEPER
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Beeper</h3></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"beeperEnabled\">Beeper enabled</label><select class=\"u-full-width\" id=\"beeperEnabled\" name=\"beeperEnabled\">"));
-            response->print(F("<option value=\"true\""));response->print(beeperEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-            response->print(F("<option value=\"false\""));response->print(beeperEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-            response->print(F("</select></div>"));
           #endif
           //Comment
           response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Configuration</h3></div></div>"));
@@ -888,6 +898,19 @@ void setupWebServer()
                 //localLogLn(F("disabled"));
               }
             }
+            #ifdef SUPPORT_BEEPER
+              if(request->hasParam("beepOnPress", true))
+              {
+                if(request->getParam("beepOnPress", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                {
+                  beepOnPress = true;
+                }
+                else
+                {
+                  beepOnPress = false;
+                }
+              }
+            #endif
           #endif
           #if defined(SUPPORT_WIFI)
             if(request->hasParam("SSID", true))
