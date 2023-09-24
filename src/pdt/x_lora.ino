@@ -168,97 +168,107 @@
   void setupLoRa()
   {
     localLog(F("Configuring LoRa radio: "));
-    LoRa.setPins(loRaCSpin, loRaResetPin, loRaIrqPin);// set CS, reset, IRQ pin
-    if (LoRa.begin(868E6) == true)  //For EU, US is 915E6, Asia 433E6
+    if(loRaEnabled == true)
     {
-      LoRa.setTxPower(defaultLoRaTxPower);
-      LoRa.setSpreadingFactor(defaultLoRaSpreadingFactor);
-      LoRa.setSignalBandwidth(defaultLoRaSignalBandwidth);
-      LoRa.setSyncWord(loRaSyncWord);
-      localLogLn(F("OK"));
-      loRaConnected = true;
-      LoRa.enableCrc();
-      #if defined(LORA_ASYNC_METHODS)
-        LoRa.onReceive(onReceive);
-        LoRa.onTxDone(onSend);
-      #endif
-      LoRa.receive();
+      LoRa.setPins(loRaCSpin, loRaResetPin, loRaIrqPin);// set CS, reset, IRQ pin
+      if (LoRa.begin(868E6) == true)  //For EU, US is 915E6, Asia 433E6
+      {
+        LoRa.setTxPower(defaultLoRaTxPower);
+        LoRa.setSpreadingFactor(defaultLoRaSpreadingFactor);
+        LoRa.setSignalBandwidth(defaultLoRaSignalBandwidth);
+        LoRa.setSyncWord(loRaSyncWord);
+        localLogLn(F("OK"));
+        loRaConnected = true;
+        LoRa.enableCrc();
+        #if defined(LORA_ASYNC_METHODS)
+          LoRa.onReceive(onReceive);
+          LoRa.onTxDone(onSend);
+        #endif
+        LoRa.receive();
+      }
+      else
+      {
+        localLogLn(F("failed"));
+        loRaConnected = false;
+      }
     }
     else
     {
-      localLogLn(F("failed"));
-      loRaConnected = false;
+      localLogLn(F("disabled"));
     }
   }
   void manageLoRa()
   {
-    #ifdef LORA_ASYNC_METHODS
-      if(loRaTxComplete == true && loRaTxBusy == true)
-      {
-        loRaTxComplete = false;
-        loRaTxBusy = false;
-        LoRa.receive();
-      }
-    #else
-      int packetSize = LoRa.parsePacket();
-      if(packetSize > 0)
-      {
-        copyLoRaPacketIntoBuffer(packetSize);
-      }
-    #endif
-    if(loRaReceiveBufferSize > 0) //There's something in the buffer to process
+    if(loRaEnabled == true)
     {
-      if(validateLoRaChecksum())
-      {
-        processLoRaPacket();
-      }
-      loRaReceiveBufferSize = 0;
-    }
-    if(millis() - lastDeviceInfoSendTime > deviceInfoSendInterval)
-    {
-      lastDeviceInfoSendTime = millis();
-      shareDeviceInfo();
-      calculateLoRaDutyCycle();
-    }
-    #ifdef SUPPORT_GPS
-    if(millis() - lastLocationSendTime > device[0].nextLocationUpdate)
-    {
-      lastLocationSendTime = millis();
-      #if defined(ACT_AS_TRACKER)
-        if(loRaConnected)
+      #ifdef LORA_ASYNC_METHODS
+        if(loRaTxComplete == true && loRaTxBusy == true)
         {
-          if(numberOfBeacons() > 0)  //Only share ocation if there are some beacons
-          {
-            shareLocation();
-            if(currentBeacon != maximumNumberOfDevices) //There is a current beacon
-            {
-              device[0].nextLocationUpdate = newLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
-            }
-          }
-          else
-          {
-            device[0].nextLocationUpdate = newLocationSharingInterval(BEACONUNREACHABLE, 0);
-          }
+          loRaTxComplete = false;
+          loRaTxBusy = false;
+          LoRa.receive();
         }
-      #elif defined(ACT_AS_BEACON)
-        if(loRaConnected) //Always share location
+      #else
+        int packetSize = LoRa.parsePacket();
+        if(packetSize > 0)
         {
-          if(numberOfTrackers() > 0)
-          {
-            shareLocation();
-            if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
-            {
-              device[0].nextLocationUpdate = newLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
-            }
-          }
-          else
-          {
-            device[0].nextLocationUpdate = newLocationSharingInterval(TRACKERUNREACHABLE, 0);
-          }
+          copyLoRaPacketIntoBuffer(packetSize);
         }
       #endif
+      if(loRaReceiveBufferSize > 0) //There's something in the buffer to process
+      {
+        if(validateLoRaChecksum())
+        {
+          processLoRaPacket();
+        }
+        loRaReceiveBufferSize = 0;
+      }
+      if(millis() - lastDeviceInfoSendTime > deviceInfoSendInterval)
+      {
+        lastDeviceInfoSendTime = millis();
+        shareDeviceInfo();
+        calculateLoRaDutyCycle();
+      }
+      #ifdef SUPPORT_GPS
+      if(millis() - lastLocationSendTime > device[0].nextLocationUpdate)
+      {
+        lastLocationSendTime = millis();
+        #if defined(ACT_AS_TRACKER)
+          if(loRaConnected)
+          {
+            if(numberOfBeacons() > 0)  //Only share ocation if there are some beacons
+            {
+              shareLocation();
+              if(currentBeacon != maximumNumberOfDevices) //There is a current beacon
+              {
+                device[0].nextLocationUpdate = newLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
+              }
+            }
+            else
+            {
+              device[0].nextLocationUpdate = newLocationSharingInterval(BEACONUNREACHABLE, 0);
+            }
+          }
+        #elif defined(ACT_AS_BEACON)
+          if(loRaConnected) //Always share location
+          {
+            if(numberOfTrackers() > 0)
+            {
+              shareLocation();
+              if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
+              {
+                device[0].nextLocationUpdate = newLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
+              }
+            }
+            else
+            {
+              device[0].nextLocationUpdate = newLocationSharingInterval(TRACKERUNREACHABLE, 0);
+            }
+          }
+        #endif
+      }
+      #endif
     }
-    #endif
   }
   void scheduleDeviceInfoShareSoon()
   {

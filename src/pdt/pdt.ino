@@ -12,11 +12,11 @@
    The same sketch has the code for both devices, uncomment the '#define ACT_AS_TRACKER' below to build for the tracker, otherwise it is a beacon
 
 */
-#define ACT_AS_TRACKER
+//#define ACT_AS_TRACKER
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
-#define PDT_PATCH_VERSION 3
+#define PDT_PATCH_VERSION 4
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -305,22 +305,37 @@
     const uint8_t displayDCpin = 2;
   #endif
   #ifdef SUPPORT_BATTERY_METER
+    bool enableBatteryMonitor = true;
     int8_t voltageMonitorPin = A0;
-    float topLadderResistor = 330.0;
-    float bottomLadderResistor = 89; //Actually 100k, but the ESP itself has some resistance that effectively lowers it
+    #ifdef ACT_AS_TRACKER
+      float topLadderResistor = 330.0;
+      float bottomLadderResistor = 89; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
+    #else
+      float topLadderResistor = 330.0;
+      float bottomLadderResistor = 90; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
+    #endif
     float ADCpeakVoltage = 2.5;
     float chargingVoltage = 4.19;
   #endif
   #ifdef SUPPORT_BEEPER
     uint8_t beeperChannel = 0;
-    int8_t beeperPin = 21;
+    #ifdef ACT_AS_TRACKER
+      int8_t beeperPin = 21;
+    #else
+      int8_t beeperPin = 3;
+    #endif
   #endif
   #ifdef SUPPORT_LED
     int8_t ledPin = 2;
+    bool ledPinInverted = false;
     void ledOn(uint32_t ontime, uint32_t offtime);
   #endif
   #ifdef SUPPORT_BUTTON
-    int8_t buttonPin = 9;
+    #ifdef ACT_AS_TRACKER
+      int8_t buttonPin = 9;
+    #else
+      int8_t buttonPin = 21;
+    #endif
     uint32_t buttonPushTime = 0;
     uint32_t buttonDebounceTime = 50;
     uint32_t buttonLongPressTime = 1500;
@@ -479,6 +494,7 @@ const uint16_t loggingYieldTime = 100;
 
 #if defined(SUPPORT_LORA)
   #define MAX_LORA_BUFFER_SIZE 255
+  bool loRaEnabled = true;
   bool loRaConnected = false;   // Has the radio initialised OK
   #if defined(LORA_ASYNC_METHODS)
     #ifdef ESP32

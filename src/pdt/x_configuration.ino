@@ -37,6 +37,11 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   #ifdef SUPPORT_GPS
     configuration["useGpsForTimeSync"] = useGpsForTimeSync;
   #endif
+  #ifdef SUPPORT_BATTERY_METER
+    configuration["enableBatteryMonitor"] = enableBatteryMonitor;
+    configuration["topLadderResistor"] = topLadderResistor;
+    configuration["bottomLadderResistor"] = bottomLadderResistor;
+  #endif
   #ifdef SUPPORT_BEEPER
     configuration["beeperEnabled"] = beeperEnabled;
     #ifdef SUPPORT_BUTTON
@@ -47,6 +52,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
   #endif
   #if defined(SUPPORT_LORA)
+    configuration["loRaEnabled"] = loRaEnabled;
     configuration["deviceInfoSendInterval"] = deviceInfoSendInterval;
     configuration["defaultLocationSendInterval"] = defaultLocationSendInterval;
     configuration["locationSendInterval1"] = locationSendInterval1;
@@ -145,6 +151,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
     #endif
     #if defined(SUPPORT_LORA)
+      loRaEnabled = configuration["loRaEnabled"] | true;
       deviceInfoSendInterval = configuration["deviceInfoSendInterval"] | 60000;
       defaultLocationSendInterval = configuration["defaultLocationSendInterval"] | 60000;
       locationSendInterval1 = configuration["locationSendInterval1"] | 5000;
@@ -156,6 +163,11 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       rssiAttenuationPerimeter = configuration["rssiAttenuationPerimeter"];
       rssiAttenuation = configuration["rssiAttenuation"];
       rssiAttenuationBaseline = configuration["rssiAttenuationBaseline"];
+    #endif
+    #ifdef SUPPORT_BATTERY_METER
+      enableBatteryMonitor = configuration["enableBatteryMonitor"] | true;
+      topLadderResistor = configuration["topLadderResistor"] | 330;
+      bottomLadderResistor = configuration["bottomLadderResistor"] | 90;
     #endif
     loggingBufferSize = configuration["loggingBufferSize"] | 2048;
     logFlushThreshold = configuration["logFlushThreshold"] | 2000;
@@ -479,6 +491,8 @@ void printConfiguration()
     localLogLn(maximumEffectiveRange);
   #endif
   #if defined(SUPPORT_LORA)
+    localLog(F("loRaEnabled: "));
+    localLogLn(loRaEnabled);
     localLog(F("deviceInfoSendInterval: "));
     localLogLn(deviceInfoSendInterval);
     localLog(F("defaultLocationSendInterval: "));
@@ -501,6 +515,14 @@ void printConfiguration()
     localLogLn(rssiAttenuationBaseline);
     localLog(F("rssiAttenuationPerimeter: "));
     localLogLn(rssiAttenuationPerimeter);
+  #endif
+  #ifdef SUPPORT_BATTERY_METER
+    localLog(F("enableBatteryMonitor: "));
+    localLogLn(enableBatteryMonitor);
+    localLog(F("topLadderResistor: "));
+    localLogLn(topLadderResistor);
+    localLog(F("bottomLadderResistor: "));
+    localLogLn(bottomLadderResistor);
   #endif
   #ifdef SUPPORT_BEEPER
     localLog(F("beeperEnabled: "));

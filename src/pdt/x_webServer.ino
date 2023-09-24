@@ -230,34 +230,48 @@ void setupWebServer()
           }
           #if defined(SUPPORT_LORA)
           response->print(F("<li>LoRa radio: <b>"));
-          if(loRaConnected == true)
+          if(loRaEnabled == true)
           {
-            response->print(loRaRxPackets);
-            response->print(F(" RX / "));
-            response->print(loRaTxPackets);
-            response->print(F(" TX"));
-            response->printf_P(PSTR(" Duty cycle: %.02f%%"),calculatedLoRaDutyCycle);
+            if(loRaConnected == true)
+            {
+              response->print(loRaRxPackets);
+              response->print(F(" RX / "));
+              response->print(loRaTxPackets);
+              response->print(F(" TX"));
+              response->printf_P(PSTR(" Duty cycle: %.02f%%"),calculatedLoRaDutyCycle);
+            }
+            else
+            {
+              response->print(F("not connected"));
+            }
           }
           else
           {
-            response->print(F("not connected"));
+            response->print(F("disabled"));
           }
           response->print(F("</b></li>"));
           #endif
           #ifdef SUPPORT_BATTERY_METER
-            if(device[0].supplyVoltage > chargingVoltage)
+            if(enableBatteryMonitor == true)
             {
-              response->print(F("<li>Battery voltage: <b>USB power ("));
-              response->print(device[0].supplyVoltage);
-              response->print(F("v)</b></li>"));
+              if(device[0].supplyVoltage > chargingVoltage)
+              {
+                response->print(F("<li>Battery voltage: <b>USB power ("));
+                response->print(device[0].supplyVoltage);
+                response->print(F("v)</b></li>"));
+              }
+              else
+              {
+                response->print(F("<li>Battery voltage: <b>"));
+                response->print(device[0].supplyVoltage);
+                response->print(F("v ("));
+                response->print(batteryPercentage);
+                response->print(F("% charge)</b></li>"));
+              }
             }
             else
             {
-              response->print(F("<li>Battery voltage: <b>"));
-              response->print(device[0].supplyVoltage);
-              response->print(F("v ("));
-              response->print(batteryPercentage);
-              response->print(F("% charge)</b></li>"));
+              response->print(F("<li>Battery monitoring: <b>disabled</b>"));
             }
           #endif
           #ifdef SUPPORT_GPS
@@ -355,7 +369,51 @@ void setupWebServer()
               response->print(F("<li>GPS: <b>No fix</b></li>"));
             }
           #endif
-          response->print(F("</b></ul>"));
+          //response->print(F("</b>"));
+          #if defined(ACT_AS_SENSOR)
+            response->printf_P(PSTR("<li>Current hits: <b>%u/%u</b> stun: <b>%u/%u</b></li>"), currentNumberOfHits, numberOfStartingHits, currentNumberOfStunHits, numberOfStartingStunHits);
+            if(armourValue > 0)
+            {
+              response->printf_P(PSTR("<li>Armour value: <b>%u</b></li>"), armourValue);
+            }
+            if(EP_flag == true)
+            {
+              response->print(F("<li>Require powerup to hit: <b>true</b></li>"));
+            }
+            if(ig_healing_flag == true)
+            {
+              response->print(F("<li>Ignore healing: <b>true</b></li>"));
+            }
+            if(ig_stun_flag == true)
+            {
+              response->print(F("<li>Ignore stun: <b>true</b></li>"));
+            }
+            if(ig_ongoing_flag == true)
+            {
+              response->print(F("<li>Ignore ongoing: <b>true</b></li>"));
+            }
+            if(regen_while_zero == true)
+            {
+              response->print(F("<li>Regen from zero: <b>true</b></li>"));
+            }
+            if(treat_as_one == true)
+            {
+              response->print(F("<li>Treat hits as one: <b>true</b></li>"));
+            }
+            if(treat_stun_as_one == true)
+            {
+              response->print(F("<li>Treat stun as one: <b>true</b></li>"));
+            }
+            if(ongoing_is_cumulative == true)
+            {
+              response->print(F("<li>Ongoing is cumlative: <b>true</b></li>"));
+            }
+            if(ig_non_dot == true)
+            {
+              response->print(F("<li>Ignore non-DOT: <b>true</b></li>"));
+            }
+          #endif
+          response->print(F("</ul>"));
           addPageFooter(response);
           //Send response
           request->send(response);
@@ -615,6 +673,16 @@ void setupWebServer()
           response->print(F("<option value=\"57600\""));response->print(logFlushInterval == 57600 ? " selected>":">");response->print(F("16 hours</option>"));
           response->print(F("<option value=\"86400\""));response->print(logFlushInterval == 86400 ? " selected>":">");response->print(F("24 hours</option>"));
           response->print(F("</select></div></div>"));
+          //Battery
+          #ifdef SUPPORT_BATTERY_METER
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Battery monitor</h3></div></div>"));
+            response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"enableBatteryMonitor\">Enable battery monitor</label><select class=\"u-full-width\" id=\"enableBatteryMonitor\" name=\"enableBatteryMonitor\">"));
+            response->print(F("<option value=\"true\""));response->print(enableBatteryMonitor == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(enableBatteryMonitor == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div><div class=\"six columns\">Defaults 330/90kOhm</div></div>"));
+            response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"topLadderResistor\">Top ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"1\" value=\"%.2f\" id=\"topLadderResistor\" name=\"topLadderResistor\"></div>"), topLadderResistor);
+            response->printf_P(PSTR("<div class=\"six columns\"><label for=\"bottomLadderResistor\">Bottom ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"1\" value=\"%.2f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\"></div></div>"), bottomLadderResistor);
+          #endif
           //GPS
           #ifdef SUPPORT_GPS
             response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>GPS</h3></div></div>"));
@@ -660,6 +728,10 @@ void setupWebServer()
           #if defined(SUPPORT_LORA)
             //LoRa
             response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>LoRa</h3></div></div>"));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"loRaEnabled\">LoRa radio enabled</label><select class=\"u-full-width\" id=\"loRaEnabled\" name=\"loRaEnabled\">"));
+            response->print(F("<option value=\"true\""));response->print(loRaEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(loRaEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
             //LoRa beacon interval 1
             response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter1\">LoRa perimiter</label><select class=\"u-full-width\" id=\"loRaPerimiter1\" name=\"loRaPerimiter1\">"));
             response->print(F("<option value=\"10\""));response->print(loRaPerimiter1 == 10 ? " selected>":">");response->print(F("10m</option>"));
@@ -883,6 +955,27 @@ void setupWebServer()
               }
             }
           #endif
+          #ifdef SUPPORT_BATTERY_METER
+            if(request->hasParam("enableBatteryMonitor", true))
+            {
+              if(request->getParam("enableBatteryMonitor", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                enableBatteryMonitor = true;
+              }
+              else
+              {
+                enableBatteryMonitor = false;
+              }
+            }
+            if(request->hasParam("topLadderResistor", true))
+            {
+              topLadderResistor = request->getParam("topLadderResistor", true)->value().toFloat();
+            }
+            if(request->hasParam("bottomLadderResistor", true))
+            {
+              bottomLadderResistor = request->getParam("bottomLadderResistor", true)->value().toFloat();
+            }
+          #endif
           #if defined(SUPPORT_BEEPER)
             if(request->hasParam("beeperEnabled", true))
             {
@@ -1019,6 +1112,17 @@ void setupWebServer()
             }
           #endif
           #if defined(SUPPORT_LORA)
+            if(request->hasParam("loRaEnabled", true))
+            {
+              if(request->getParam("loRaEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                loRaEnabled = true;
+              }
+              else
+              {
+                loRaEnabled = false;
+              }
+            }
             if(request->hasParam("deviceInfoSendInterval", true))
             {
               deviceInfoSendInterval = request->getParam("deviceInfoSendInterval", true)->value().toInt();

@@ -13,7 +13,7 @@
         lastSensorStateChange = millis();
         currentSensorState = sensorState::playStartupAnimation;
         localLogLn(F("Sensor: playStartupAnimation"));
-        #ifdef SUPPORT_BEEPER
+        #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
           xTaskCreate(playStartupAnimation, "playStartupAnimation", 512, NULL, configMAX_PRIORITIES - 1, NULL);
         #endif
 
@@ -28,7 +28,7 @@
         {
           currentSensorState = sensorState::dead;
           localLogLn(F("Sensor: dead"));
-          #ifdef SUPPORT_BEEPER
+          #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
             xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, configMAX_PRIORITIES - 1, NULL);
           #endif
         }
@@ -81,11 +81,8 @@
               sensorPersitentData.putUChar(currentStunKey, currentNumberOfStunHits);
               currentSensorState = sensorState::takenHit;
               localLogLn(F("Sensor: takenHit"));
-              #ifdef SUPPORT_BEEPER
-                if(beeperEnabled == true)
-                {
-                    xTaskCreate(playHitAnimation, "playHitAnimation", 1000, (void*)&effectiveHits, configMAX_PRIORITIES - 1, NULL);
-                }
+              #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
+                xTaskCreate(playHitAnimation, "playHitAnimation", 1000, (void*)&effectiveHits, configMAX_PRIORITIES - 1, NULL);
               #endif
             }
             message += " " + String(effectiveHits) + " stun damage received, now " + String(currentNumberOfStunHits) + "/" + String(numberOfStartingStunHits) + " stun hits";
@@ -117,7 +114,7 @@
             {
               effectiveHits = 0;
               message += " no effect, blocked by armour";
-              #ifdef SUPPORT_BEEPER
+              #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
                 //xTaskCreate(playNearMissAnimation, "playNearMissAnimation", 512, NULL, 2, NULL);
               #endif
             }
@@ -136,7 +133,7 @@
               lastSensorStateChange = millis();
               localLogLn(F("Sensor: dead"));
               sensor.pause();
-              #ifdef SUPPORT_BEEPER
+              #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
                 xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, 2, NULL);
               #endif
               #ifdef SUPPORT_LORA
@@ -149,11 +146,8 @@
               sensorPersitentData.putUChar(currentHitsKey, currentNumberOfHits);
               currentSensorState = sensorState::takenHit;
               localLogLn(F("Sensor: takenHit"));
-              #ifdef SUPPORT_BEEPER
-                if(beeperEnabled == true)
-                {
-                    xTaskCreate(playHitAnimation, "playHitAnimation", 1000, (void*)&effectiveHits, 2, NULL);
-                }
+              #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
+                xTaskCreate(playHitAnimation, "playHitAnimation", 1000, (void*)&effectiveHits, 2, NULL);
               #endif
             }
             #ifdef SUPPORT_LORA
@@ -167,7 +161,7 @@
         {
           currentSensorState = sensorState::nearMiss;
           localLogLn(F("Sensor: nearMiss"));
-          #ifdef SUPPORT_BEEPER
+          #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
             //xTaskCreate(playNearMissAnimation, "playNearMissAnimation", 512, NULL, 2, NULL);
           #endif
         }
@@ -232,6 +226,7 @@
         sensor.resume();
       }
       */
+      /*
       if(millis() - lastSensorStateChange > 30000)
       {
         lastSensorStateChange = millis();
@@ -239,6 +234,7 @@
         localLogLn(F("Sensor: starting"));
         sensor.resume();
       }
+      */
     }
     else if(currentSensorState == sensorState::bleedOut)
     {
@@ -252,7 +248,7 @@
           currentSensorState = sensorState::dead;
           lastSensorStateChange = millis();
           localLogLn(F("Sensor: dead"));
-          #ifdef SUPPORT_BEEPER
+          #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
             xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, 2, NULL);
           #endif
         }
@@ -268,7 +264,7 @@
           {
             localLogLn(F(" minute"));
           }
-          #ifdef SUPPORT_BEEPER
+          #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
             xTaskCreate(playCountOutMinutesAnimation, "playCountOutMinutesAnimation", 1000, (void*)&bleedOutCounter, 2, NULL);
           #endif
         }
@@ -464,7 +460,10 @@
     for(uint8_t i = 0; i < numberOfMinutes; i++)
     {
       #ifdef SUPPORT_BEEPER
-        makeAsingleBeep(300, 250);
+        if(beeperEnabled == true)
+        {
+          makeAsingleBeep(300, 250);
+        }
       #endif
       #ifdef SUPPORT_LED
         ledOn(125, 0);
@@ -478,7 +477,10 @@
     for(uint8_t i = 0; i < currentNumberOfHits; i++)
     {
       #ifdef SUPPORT_BEEPER
-        makeAsingleBeep(sensorTones[2], 50);
+        if(beeperEnabled == true)
+        {
+          makeAsingleBeep(sensorTones[2], 50);
+        }
       #endif
       #ifdef SUPPORT_LED
         ledOn(25, 0);
@@ -500,7 +502,10 @@
     for(uint8_t i = 0; i < numberOfHits; i++)
     {
       #ifdef SUPPORT_BEEPER
-        makeAsingleBeep(sensorTones[2], 75);
+        if(beeperEnabled == true)
+        {
+          makeAsingleBeep(sensorTones[2], 75);
+        }
       #endif
       #ifdef SUPPORT_LED
         ledOn(100, 0);
@@ -508,14 +513,20 @@
       vTaskDelay(150 / portTICK_PERIOD_MS);
     }
     #ifdef SUPPORT_BEEPER
-      makeAsingleBeep(900, 250);
+      if(beeperEnabled == true)
+      {
+        makeAsingleBeep(900, 250);
+      }
     #endif
     #ifdef SUPPORT_LED
       ledOn(125, 0);
     #endif
     vTaskDelay(260 / portTICK_PERIOD_MS);
     #ifdef SUPPORT_BEEPER
-      makeAsingleBeep(500, 400);
+      if(beeperEnabled == true)
+      {
+        makeAsingleBeep(500, 400);
+      }
     #endif
     #ifdef SUPPORT_LED
       ledOn(200, 0);
@@ -526,7 +537,10 @@
   void playNearMissAnimation(void * parameter)
   {
     #ifdef SUPPORT_BEEPER
-      makeAsingleBeep(sensorTones[2], 100);
+      if(beeperEnabled == true)
+      {
+        makeAsingleBeep(sensorTones[2], 100);
+      }
     #endif
     #ifdef SUPPORT_LED
       ledOn(50, 0);
@@ -539,7 +553,10 @@
     while(currentSensorState == sensorState::dead)
     {
       #ifdef SUPPORT_BEEPER
-        makeAsingleBeep(1000, 199);
+        if(beeperEnabled == true)
+        {
+          makeAsingleBeep(1000, 199);
+        }
       #endif
       #ifdef SUPPORT_LED
         ledOn(100, 0);
@@ -553,14 +570,20 @@
     for(uint8_t i = 0; i < 3; i++)
     {
       #ifdef SUPPORT_BEEPER
-        makeAsingleBeep(900, 200);
+        if(beeperEnabled == true)
+        {
+          makeAsingleBeep(900, 200);
+        }
       #endif
       #ifdef SUPPORT_LED
         ledOn(100, 0);
       #endif
       vTaskDelay(210 / portTICK_PERIOD_MS);
       #ifdef SUPPORT_BEEPER
-        makeAsingleBeep(500, 200);
+        if(beeperEnabled == true)
+        {
+          makeAsingleBeep(500, 200);
+        }
       #endif
       #ifdef SUPPORT_LED
         ledOn(100, 0);

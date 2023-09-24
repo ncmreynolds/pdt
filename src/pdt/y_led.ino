@@ -2,7 +2,14 @@
   void setupLed()
   {
     pinMode(ledPin, OUTPUT);
-    digitalWrite(ledPin,LOW);
+    if(ledPinInverted == true)
+    {
+      digitalWrite(ledPin,HIGH);
+    }
+    else
+    {
+      digitalWrite(ledPin,LOW);
+    }
     ledSemaphore = xSemaphoreCreateBinary();
     xSemaphoreGive(ledSemaphore);
     xTaskCreate(manageLed, "manageLed", 512, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
@@ -13,7 +20,14 @@
     {
       if(ledState == false)
       {
-        digitalWrite(ledPin, HIGH);
+        if(ledPinInverted == true)
+        {
+          digitalWrite(ledPin, LOW);
+        }
+        else
+        {
+          digitalWrite(ledPin, HIGH);
+        }
         ledOnTime = ontime;
         ledLastStateChange = millis();
         ledState = true;
@@ -25,7 +39,14 @@
   {
     if(xSemaphoreTake(ledSemaphore, ledSemaphoreTimeout) == pdTRUE)
     {
-      digitalWrite(ledPin, LOW);
+      if(ledPinInverted == true)
+      {
+        digitalWrite(ledPin, HIGH);
+      }
+      else
+      {
+        digitalWrite(ledPin, LOW);
+      }
       ledState = false;
       ledLastStateChange = millis();
       xSemaphoreGive(ledSemaphore);
