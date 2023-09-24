@@ -48,6 +48,10 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
       configuration["beepOnPress"] = beepOnPress;
     #endif
   #endif
+  #ifdef SUPPORT_VIBRATION
+    configuration["vibrationEnabled"] = vibrationEnabled;
+    configuration["vibrationLevel"] = vibrationLevel;
+  #endif
   #if defined(ACT_AS_TRACKER)
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
   #endif
@@ -291,6 +295,10 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         beepOnPress = configuration["beepOnPress"] | true;
       #endif
     #endif
+    #ifdef SUPPORT_VIBRATION
+      vibrationEnabled = configuration["vibrationEnabled"] | true;
+      vibrationLevel = configuration["vibrationLevel"] | 100;
+    #endif
     localLogLn(F("OK"));
     return true;
   }
@@ -531,6 +539,12 @@ void printConfiguration()
       localLog(F("beepOnPress: "));
       localLogLn(beepOnPress);
     #endif
+  #endif
+  #ifdef SUPPORT_VIBRATION
+    localLog(F("vibrationEnabled: "));
+    localLogLn(vibrationEnabled);
+    localLog(F("vibrationLevel: "));
+    localLogLn(vibrationLevel);
   #endif
   localLog(F("loggingBufferSize: "));
   localLogLn(loggingBufferSize);

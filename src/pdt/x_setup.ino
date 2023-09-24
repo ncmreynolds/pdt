@@ -50,6 +50,9 @@ void setup() {
   #ifdef SUPPORT_LED
     setupLed();
   #endif
+  #ifdef SUPPORT_LED
+    setupVibration();
+  #endif
   #ifdef SUPPORT_BATTERY_METER
     setupBattery();
   #endif

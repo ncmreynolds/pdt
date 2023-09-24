@@ -55,6 +55,7 @@
   #define ACT_AS_SENSOR
   #if defined(ACT_AS_SENSOR)
     #define SUPPORT_BEEPER
+    #define SUPPORT_VIBRATION
     #define SUPPORT_LED
     #include <Preferences.h>
     Preferences sensorPersitentData;
@@ -328,7 +329,12 @@
   #ifdef SUPPORT_LED
     int8_t ledPin = 2;
     bool ledPinInverted = false;
-    void ledOn(uint32_t ontime, uint32_t offtime);
+    //void ledOn(uint32_t ontime, uint32_t offtime);
+  #endif
+  #ifdef SUPPORT_VIBRATION
+    int8_t vibrationPin = 9;
+    bool vibrationPinInverted = false;
+    //void vibrationOn(uint32_t ontime, uint32_t offtime);
   #endif
   #ifdef SUPPORT_BUTTON
     #ifdef ACT_AS_TRACKER
@@ -680,6 +686,18 @@ const uint16_t loggingYieldTime = 100;
   uint16_t ledTone = 1400;
   const uint16_t ledButtonTone = 900;
   bool ledEnabled = true;
+#endif
+#ifdef SUPPORT_VIBRATION
+  TaskHandle_t vibrationManagementTask = NULL;
+  SemaphoreHandle_t vibrationSemaphore = NULL;
+  const uint16_t vibrationYieldTime = 50;
+  const uint16_t vibrationSemaphoreTimeout = 5;
+  uint32_t vibrationOnTime = 20;
+  uint32_t vibrationOffTime = 0;
+  uint32_t vibrationLastStateChange = 0;
+  bool vibrationState = false;
+  bool vibrationEnabled = true;
+  uint8_t vibrationLevel = 100;
 #endif
 /*
 

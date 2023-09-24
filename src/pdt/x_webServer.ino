@@ -725,6 +725,20 @@ void setupWebServer()
               response->print(F("</select></div></div>"));
             #endif
           #endif
+          #ifdef SUPPORT_VIBRATION
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Vibration motor</h3></div></div>"));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"vibrationEnabled\">Haptic feedback enabled</label><select class=\"u-full-width\" id=\"vibrationEnabled\" name=\"vibrationEnabled\">"));
+            response->print(F("<option value=\"true\""));response->print(vibrationEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(vibrationEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"vibrationLevel\">Vibration level</label><select class=\"u-full-width\" id=\"vibrationLevel\" name=\"vibrationLevel\">"));
+            response->print(F("<option value=\"10\""));response->print(vibrationLevel == 10 ? " selected>":">");response->print(F("10%</option>"));
+            response->print(F("<option value=\"25\""));response->print(vibrationLevel == 25 ? " selected>":">");response->print(F("25%</option>"));
+            response->print(F("<option value=\"50\""));response->print(vibrationLevel == 50 ? " selected>":">");response->print(F("50%</option>"));
+            response->print(F("<option value=\"75\""));response->print(vibrationLevel == 75 ? " selected>":">");response->print(F("75%</option>"));
+            response->print(F("<option value=\"100\""));response->print(vibrationLevel == 100 ? " selected>":">");response->print(F("100%</option>"));
+            response->print(F("</select></div></div>"));
+          #endif
           #if defined(SUPPORT_LORA)
             //LoRa
             response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>LoRa</h3></div></div>"));
@@ -991,19 +1005,34 @@ void setupWebServer()
                 //localLogLn(F("disabled"));
               }
             }
-            #ifdef SUPPORT_BEEPER
-              if(request->hasParam("beepOnPress", true))
+            if(request->hasParam("beepOnPress", true))
+            {
+              if(request->getParam("beepOnPress", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
               {
-                if(request->getParam("beepOnPress", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  beepOnPress = true;
-                }
-                else
-                {
-                  beepOnPress = false;
-                }
+                beepOnPress = true;
               }
-            #endif
+              else
+              {
+                beepOnPress = false;
+              }
+            }
+          #endif
+          #ifdef SUPPORT_VIBRATION
+            if(request->hasParam("vibrationEnabled", true))
+            {
+              if(request->getParam("vibrationEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                vibrationEnabled = true;
+              }
+              else
+              {
+                vibrationEnabled = false;
+              }
+            }
+            if(request->hasParam("vibrationLevel", true))
+            {
+              vibrationLevel = request->getParam("vibrationLevel", true)->value().toInt();
+            }
           #endif
           #if defined(SUPPORT_WIFI)
             if(request->hasParam("SSID", true))
