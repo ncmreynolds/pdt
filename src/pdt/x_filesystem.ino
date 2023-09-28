@@ -177,7 +177,7 @@
     localLogLn(F("failed"));
     return false;
   }
-  bool deleteFile(const char* filename) //This only exists to improve code readibility by removing the SPIFFS/LittleFS conditional compilation
+  bool pdtDeleteFile(const char* filename) //This only exists to improve code readibility by removing the SPIFFS/LittleFS conditional compilation
   {
     localLog(F("Deleting file \""));
     localLog(filename);

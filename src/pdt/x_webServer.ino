@@ -32,7 +32,7 @@ void addPageHeader(AsyncResponseStream *response, uint8_t refresh, const char* r
   response->print(F("</head><body><div class=\"container\">"));
   if(device[0].name != nullptr)
   {
-    response->printf_P(PSTR("<h1>%s</h1>"),device[0].name);
+    response->printf_P(PSTR("<h1>%s</h1><hr>"),device[0].name);
   }
 }
 void addPageFooter(AsyncResponseStream *response)
@@ -47,8 +47,16 @@ void setupWebServer()
       webserverSemaphore = xSemaphoreCreateBinary();
       xSemaphoreGive(webserverSemaphore);
     #endif
+    #ifdef SUPPORT_HACKING
+      setupHacking(); //Must come before configuration server as ESPUI starts ESPAsyncWebserver then we use its pointer to it
+    #endif
+    
     localLog(F("Configuring web server callbacks: "));
+    #ifdef SUPPORT_HACKING  //ESPUI owns the root
+    ESPUI.server->on("/admin", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+    #else
     webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+    #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -62,21 +70,17 @@ void setupWebServer()
           #endif
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 90, nullptr);
-          response->print(F("<h2>General</h2>"));
           //Top of page buttons
-          #if defined(ACT_AS_SENSOR)
-            response->print(F("<a href =\"/sensorConfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Configure sensor\"></a> "));
-            response->print(F("<a href =\"/sensorReset\"><input class=\"button-primary\" type=\"button\" value=\"Reset sensor\"></a> "));
-          #endif
-          response->print(F("<a href =\"/devices\"><input class=\"button-primary\" type=\"button\" value=\"Devices\"></a> "));
-          response->print(F("<a href =\"/listLogs\"><input class=\"button-primary\" type=\"button\" value=\"Logs\"></a> "));
-          response->print(F("<a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Configuration\"></a> "));
+          response->print(F("<h2>General</h2>"));
+          response->print(F("<div class=\"row\"><div class=\"three columns\"><a href =\"/listLogs\"><input class=\"button-primary\" type=\"button\" value=\"Logs\" style=\"width: 100%;\"></a></div>"));
+          response->print(F("<div class=\"three columns\"><a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Configuration\" style=\"width: 100%;\"></a></div>"));
           #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
-            response->print(F("<a href =\"/update\"><input class=\"button-primary\" type=\"button\" value=\"Software Update\"></a> "));
+            response->print(F("<div class=\"three columns\"><a href =\"/update\"><input class=\"button-primary\" type=\"button\" value=\"Software Update\" style=\"width: 100%;\"></a></div>"));
           #endif
           #if defined(ENABLE_REMOTE_RESTART)
-            response->print(F("<a href =\"/restart\"><input class=\"button-primary\" type=\"button\" value=\"Restart\"></a> "));
+            response->print(F("<div class=\"three columns\"><a href =\"/restart\"><input class=\"button-primary\" type=\"button\" value=\"Restart\" style=\"width: 100%;\"></a></div>"));
           #endif
+          response->print(F("</div>"));
           //Status information
           response->print(F("<ul>"));
           #if defined(ACT_AS_TRACKER)
@@ -200,6 +204,31 @@ void setupWebServer()
             #endif
           #endif
           response->print(F("</b></li>"));
+          #ifdef SUPPORT_BATTERY_METER
+            if(enableBatteryMonitor == true)
+            {
+              /*
+              if(device[0].supplyVoltage > chargingVoltage)
+              {
+                response->print(F("<li>Battery voltage: <b>USB power ("));
+                response->print(device[0].supplyVoltage);
+                response->print(F("v)</b></li>"));
+              }
+              else
+              */
+              {
+                response->print(F("<li>Battery voltage: <b>"));
+                response->print(device[0].supplyVoltage);
+                response->print(F("v ("));
+                response->print(batteryPercentage);
+                response->print(F("% charge)</b></li>"));
+              }
+            }
+            else
+            {
+              response->print(F("<li>Battery monitoring: <b>disabled</b>"));
+            }
+          #endif
           #if defined(SUPPORT_WIFI)
             if(wiFiClientInactivityTimer > 0)
             {
@@ -229,6 +258,8 @@ void setupWebServer()
             }
           }
           #if defined(SUPPORT_LORA)
+          response->print(F("<h2>LoRa</h2>"));
+          response->print(F("<div class=\"row\"><div class=\"three columns\"><a href =\"/devices\"><input class=\"button-primary\" type=\"button\" value=\"Devices\" style=\"width: 100%;\"></a></div></div>"));
           response->print(F("<li>LoRa radio: <b>"));
           if(loRaEnabled == true)
           {
@@ -250,31 +281,6 @@ void setupWebServer()
             response->print(F("disabled"));
           }
           response->print(F("</b></li>"));
-          #endif
-          #ifdef SUPPORT_BATTERY_METER
-            if(enableBatteryMonitor == true)
-            {
-              /*
-              if(device[0].supplyVoltage > chargingVoltage)
-              {
-                response->print(F("<li>Battery voltage: <b>USB power ("));
-                response->print(device[0].supplyVoltage);
-                response->print(F("v)</b></li>"));
-              }
-              else
-              */
-              {
-                response->print(F("<li>Battery voltage: <b>"));
-                response->print(device[0].supplyVoltage);
-                response->print(F("v ("));
-                response->print(batteryPercentage);
-                response->print(F("% charge)</b></li>"));
-              }
-            }
-            else
-            {
-              response->print(F("<li>Battery monitoring: <b>disabled</b>"));
-            }
           #endif
           #ifdef SUPPORT_GPS
             if(device[0].hasFix)
@@ -373,6 +379,9 @@ void setupWebServer()
           #endif
           //response->print(F("</b>"));
           #if defined(ACT_AS_SENSOR)
+            response->print(F("<h2>Sensor</h2>"));
+            response->print(F("<div class=\"row\"><div class=\"three columns\"><a href =\"/sensorConfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Configure sensor\" style=\"width: 100%;\"></a></div>"));
+            response->print(F("<div class=\"three columns\"><a href =\"/sensorReset\"><input class=\"button-primary\" type=\"button\" value=\"Reset sensor\" style=\"width: 100%;\"></a></div></div>"));
             response->printf_P(PSTR("<li>Current hits: <b>%u/%u</b> stun: <b>%u/%u</b></li>"), currentNumberOfHits, numberOfStartingHits, currentNumberOfStunHits, numberOfStartingStunHits);
             if(armourValue > 0)
             {
@@ -431,7 +440,11 @@ void setupWebServer()
         }
       #endif
     });
+    #ifdef SUPPORT_HACKING  //ESPUI owns the root
+    ESPUI.server->on("/listLogs", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows a list of all the log files
+    #else
     webServer.on("/listLogs", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows a list of all the log files
+    #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -450,8 +463,11 @@ void setupWebServer()
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 0, nullptr);
           response->print(F("<h2>Log files</h2>"));
-          response->print(F("<table class=\"u-full-width\"><thead><tr><th>File</th><th>Size</th><th colspan=\"2\"><a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a></th></tr></thead><tbody>"));
-          //response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a> "));
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          response->print(F("<table class=\"u-full-width\"><thead><tr><th>File</th><th>Size</th><th colspan=\"2\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></th></tr></thead><tbody>"));
+          #else
+          response->print(F("<table class=\"u-full-width\"><thead><tr><th>File</th><th>Size</th><th colspan=\"2\"><a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></th></tr></thead><tbody>"));
+          #endif
           #if defined(USE_SPIFFS)
             Dir dir = SPIFFS.openDir(logDirectory);
             while (dir.next ())
@@ -477,9 +493,9 @@ void setupWebServer()
                 if(String(file.name()).startsWith("log"))
                 {
                   #if defined(ENABLE_LOG_DELETION)
-                    response->printf_P(PSTR("<tr><td>%s</td><td>%.1fKB</td><td><a href=\"/logs/%s\"><input class=\"button-primary\" type=\"button\" value=\"View\"></a></td><td><a href=\"/deleteLog?file=%s\"><input class=\"button-primary\" type=\"button\" value=\"Delete\"></a></td></tr>"), file.name(), float(file.size())/1024, file.name(), file.name());
+                    response->printf_P(PSTR("<tr><td>%s</td><td>%.1fKB</td><td><a href=\"/logs/%s\"><input class=\"button-primary\" type=\"button\" value=\"View\" style=\"width: 100%;\"></a></td><td><a href=\"/deleteLog?file=%s\"><input class=\"button-primary\" type=\"button\" value=\"Delete\" style=\"width: 100%;\"></a></td></tr>"), file.name(), float(file.size())/1024, file.name(), file.name());
                   #else
-                    response->printf_P(PSTR("<tr><td>%s</td><td>%.1fKB</td><td><a href=\"/logs/%s\"><input class=\"button-primary\" type=\"button\" value=\"View\"></a></td></tr>"), file.name(), float(file.size())/1024, file.name());
+                    response->printf_P(PSTR("<tr><td>%s</td><td>%.1fKB</td><td><a href=\"/logs/%s\"><input class=\"button-primary\" type=\"button\" value=\"View\" style=\"width: 100%;\"></a></td></tr>"), file.name(), float(file.size())/1024, file.name());
                   #endif
                 }
               }
@@ -503,7 +519,11 @@ void setupWebServer()
       #endif
     });
     #if defined(ENABLE_LOG_DELETION)
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/deleteLog", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/deleteLog", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -522,7 +542,11 @@ void setupWebServer()
               addPageHeader(response, 0, nullptr);
               response->print(F("<h2>Delete log file confirmation</h2>"));
               response->printf_P(PSTR("<p>Are you sure you want to delete the log file %s?</p>"),file->value().c_str());
-              response->printf_P(PSTR("<p><a href =\"/deleteLogConfirmed?file=%s\"><input class=\"button-primary\" type=\"button\" value=\"Yes\"></a> <a href=\"/\"><input class=\"button-primary\" type=\"button\" value=\"No\"></a></p>"),file->value().c_str());
+              #ifdef SUPPORT_HACKING  //ESPUI owns the root
+              response->printf_P(PSTR("<p><a href =\"/deleteLogConfirmed?file=%s\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a> <a href=\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a></p>"),file->value().c_str());
+              #else
+              response->printf_P(PSTR("<p><a href =\"/deleteLogConfirmed?file=%s\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a> <a href=\"/\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a></p>"),file->value().c_str());
+              #endif
               addPageFooter(response);
               //Send response
               request->send(response);
@@ -543,7 +567,11 @@ void setupWebServer()
         }
       #endif
       });
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/deleteLogConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/deleteLogConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -567,7 +595,7 @@ void setupWebServer()
               localLogLn(request->client()->remoteIP().toString());
               char fileToDelete[strlen(logDirectory) + strlen(file->value().c_str()) + 2];
               sprintf_P(fileToDelete, PSTR("%s/%s"), logDirectory, file->value().c_str());
-              if(deleteFile(fileToDelete))
+              if(pdtDeleteFile(fileToDelete))
               {
                   request->redirect("/listLogs");
               }
@@ -593,7 +621,11 @@ void setupWebServer()
       #endif
       });
     #endif
+    #ifdef SUPPORT_HACKING  //ESPUI owns the root
+    ESPUI.server->on("/configuration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+    #else
     webServer.on("/configuration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+    #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -610,7 +642,11 @@ void setupWebServer()
           response->print(F("<h2>Configuration</h2>"));
           //Start of form
           response->print(F("<form method=\"POST\">"));
-          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\">"));
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\">"));
+          #else
+          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\">"));
+          #endif
           response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"deviceName\">Node name</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"deviceName\" name=\"deviceName\"></div></div>"), device[0].name);
           response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Networking</h3></div></div>"));
           #if defined(SUPPORT_WIFI)
@@ -838,7 +874,11 @@ void setupWebServer()
         }
       #endif
       });
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/configuration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      #else
       webServer.on("/configuration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      #endif
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -1045,8 +1085,6 @@ void setupWebServer()
               }
               SSID = new char[request->getParam("SSID", true)->value().length() + 1];
               strlcpy(SSID,request->getParam("SSID", true)->value().c_str(),request->getParam("SSID", true)->value().length() + 1);
-              //localLog(F("SSID: "));
-              //localLogLn(SSID);
             }
             if(request->hasParam("PSK", true))
             {
@@ -1058,7 +1096,6 @@ void setupWebServer()
                 }
                 PSK = new char[request->getParam("PSK", true)->value().length() + 1];
                 strlcpy(PSK,request->getParam("PSK", true)->value().c_str(),request->getParam("PSK", true)->value().length() + 1);
-                //localLogLn(F("PSK: ********"));
               }
             }
             if(request->hasParam("startWiFiClientOnBoot", true))
@@ -1107,7 +1144,7 @@ void setupWebServer()
             {
               if(APSSID != nullptr)
               {
-                delete [] SSID;
+                delete [] APSSID;
               }
               APSSID = new char[request->getParam("APSSID", true)->value().length() + 1];
               strlcpy(APSSID,request->getParam("APSSID", true)->value().c_str(),request->getParam("APSSID", true)->value().length() + 1);
@@ -1275,7 +1312,11 @@ void setupWebServer()
           {
             saveConfigurationSoon = millis();
           }
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          request->redirect("/admin");
+          #else
           request->redirect("/");
+          #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           xSemaphoreGive(webserverSemaphore);
         }
@@ -1289,7 +1330,11 @@ void setupWebServer()
       #endif
     });
     #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -1321,7 +1366,11 @@ void setupWebServer()
             response->print(F("</ul>"));
             response->print(F("<p>Before uploading any pre-compiled binary software, please check it is the version you want and for the right board after checking the information above.</p>"));
             response->print(F("<form method=\"POST\" action=\"/update\" enctype=\"multipart/form-data\">"));
-            response->print(F("<input class=\"button-primary\" type=\"file\" name=\"update\"><br /><a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Update\"></form>"));
+            #ifdef SUPPORT_HACKING  //ESPUI owns the root
+            response->print(F("<input class=\"button-primary\" type=\"file\" name=\"update\"><br /><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Update\" style=\"width: 100%;\"></form>"));
+            #else
+            response->print(F("<input class=\"button-primary\" type=\"file\" name=\"update\"><br /><a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Update\" style=\"width: 100%;\"></form>"));
+            #endif
             addPageFooter(response);
             //Send response
             request->send(response);
@@ -1337,7 +1386,11 @@ void setupWebServer()
         }
       #endif
       });
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/update", HTTP_POST,[](AsyncWebServerRequest *request)
+      #else
       webServer.on("/update", HTTP_POST,[](AsyncWebServerRequest *request)
+      #endif
         { //This lambda function is called when the update is complete
           #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
@@ -1369,7 +1422,11 @@ void setupWebServer()
                 addPageHeader(response, 0, nullptr);
                 response->print(F("<h2>Update failed</h2>"));
                 response->print(F("<p>The software update failed!</p>"));
-                response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
+                #ifdef SUPPORT_HACKING  //ESPUI owns the root
+                response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+                #else
+                response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+                #endif
                 addPageFooter(response);
                 //Send response
                 request->send(response);
@@ -1458,7 +1515,11 @@ void setupWebServer()
           }
           */
         });
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/postUpdateRestart", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/postUpdateRestart", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -1471,10 +1532,18 @@ void setupWebServer()
             }
           #endif
           AsyncResponseStream *response = request->beginResponseStream("text/html");
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          addPageHeader(response, 20, "/admin"); //This sends the page to / after 20s
+          #else
           addPageHeader(response, 20, "/"); //This sends the page to / after 20s
+          #endif
           response->print(F("<h2>Software update successful</h2>"));
           response->print(F("<p>The software update was successful and this node will restart in roughly 10 seconds.</p>"));
-          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+          #else
+          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+          #endif
           addPageFooter(response);
           //Send response
           request->send(response);
@@ -1493,7 +1562,11 @@ void setupWebServer()
       });
     #endif
     #if defined(ACT_AS_SENSOR)
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/sensorConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      #else
       webServer.on("/sensorConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      #endif
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -1510,7 +1583,11 @@ void setupWebServer()
             response->print(F("<h2>Sensor configuration</h2>"));
             //Start of form
             response->print(F("<form method=\"POST\">"));
-            response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\">"));
+            #ifdef SUPPORT_HACKING  //ESPUI owns the root
+            response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\">"));
+            #else
+            response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\">"));
+            #endif
             response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Starting values</h3></div></div>"));
             //Starting hits
             response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"numberOfStartingHits\">Starting hits</label><input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingHits\" name=\"numberOfStartingHits\"></div></div>"), numberOfStartingHits);
@@ -1580,7 +1657,11 @@ void setupWebServer()
           }
         #endif
         });
-      webServer.on("/sensorConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #ifdef SUPPORT_HACKING  //ESPUI owns the root
+        ESPUI.server->on("/sensorConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #else
+        webServer.on("/sensorConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #endif
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -1726,7 +1807,11 @@ void setupWebServer()
             }
           }
           saveSensorConfigurationSoon = millis();
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          request->redirect("/admin");
+          #else
           request->redirect("/");
+          #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           xSemaphoreGive(webserverSemaphore);
         }
@@ -1739,7 +1824,11 @@ void setupWebServer()
         }
       #endif
     });
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/sensorReset", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/sensorReset", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -1753,7 +1842,11 @@ void setupWebServer()
           #endif
           lastSensorStateChange = millis();
           currentSensorState = sensorState::resetting;
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          request->redirect("/admin");
+          #else
           request->redirect("/");
+          #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           xSemaphoreGive(webserverSemaphore);
         }
@@ -1768,7 +1861,11 @@ void setupWebServer()
       });
     #endif
     #if defined ENABLE_REMOTE_RESTART
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/restart", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/restart", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -1790,8 +1887,12 @@ void setupWebServer()
           addPageHeader(response, 0, nullptr);
           response->print(F("<h2>Restart confirmation</h2>"));
           response->printf_P(PSTR("<p>Are you sure you want to restart \"%s\"?</p>"),device[0].name);
-          response->print(F("<a href =\"/restartConfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\"></a> "));
-          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"No\"></a> "));
+          response->print(F("<a href =\"/restartConfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a> "));
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a> "));
+          #else
+          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a> "));
+          #endif
           addPageFooter(response);
           //Send response
           request->send(response);
@@ -1807,7 +1908,11 @@ void setupWebServer()
         }
       #endif
       });
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/restartConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/restartConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -1822,11 +1927,18 @@ void setupWebServer()
           localLog(F("Web UI restart requested from "));
           localLogLn(request->client()->remoteIP().toString());
           AsyncResponseStream *response = request->beginResponseStream("text/html");
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          addPageHeader(response, 5, "/admin");
+          #else
           addPageHeader(response, 5, "/");
+          #endif
           response->print(F("<h2>Restart</h2>"));
           //Top of page buttons
-          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
-          //response->print(F("<p>[<a href=\"/\">Back</a>]</p>"));
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+          #else
+          response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+          #endif
           response->print(F("<p>This node is restarting in 10s</p>"));
           addPageFooter(response);
           //Send response
@@ -1844,7 +1956,11 @@ void setupWebServer()
       #endif
       });
     #endif
+    #ifdef SUPPORT_HACKING  //ESPUI owns the root
+    ESPUI.server->on("/devices", HTTP_GET, [](AsyncWebServerRequest *request){
+    #else
     webServer.on("/devices", HTTP_GET, [](AsyncWebServerRequest *request){
+    #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -1860,10 +1976,14 @@ void setupWebServer()
         addPageHeader(response, 90, "/devices");
         response->print(F("<h2>Devices</h2>"));
         //Top of page buttons
-        response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>"));
+        #ifdef SUPPORT_HACKING  //ESPUI owns the root
+        response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+        #else
+        response->print(F("<a href =\"/\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+        #endif
         #ifdef ACT_AS_TRACKER
-          response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\"></a> "));
-          response->print(F("<a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\"></a>"));
+          response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\" style=\"width: 100%;\"></a> "));
+          response->print(F("<a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\" style=\"width: 100%;\"></a>"));
           response->print(F("<p>Tracking mode: "));
           if(currentTrackingMode == trackingMode::nearest)
           {
@@ -1894,7 +2014,8 @@ void setupWebServer()
           }
           response->print(F("</p>"));
         #endif
-        response->print(F("<table class=\"u-full-width\"><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th></th></tr></thead><tbody>"));
+        // class=\"u-full-width\"
+        response->print(F("<table><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th></th></tr></thead><tbody>"));
         for(uint8_t index = 0; index < numberOfDevices; index++)
         {
           response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
@@ -1920,7 +2041,7 @@ void setupWebServer()
               }
               else
               {
-                response->printf_P(PSTR("<a href =\"/track?index=%u\"><input class=\"button-primary\" type=\"button\" value=\"Track\"></a>"),index);
+                response->printf_P(PSTR("<a href =\"/track?index=%u\"><input class=\"button-primary\" type=\"button\" value=\"Track\" style=\"width: 100%;\"></a>"),index);
               }
             #else
               else if(index == closestTracker)
@@ -1947,7 +2068,11 @@ void setupWebServer()
     #endif
     });
     #ifdef ACT_AS_TRACKER
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/nearest", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/nearest", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -1979,7 +2104,11 @@ void setupWebServer()
           }
         #endif
       });
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/furthest", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/furthest", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -2011,7 +2140,11 @@ void setupWebServer()
           }
         #endif
       });
+      #ifdef SUPPORT_HACKING  //ESPUI owns the root
+      ESPUI.server->on("/track", HTTP_GET, [](AsyncWebServerRequest *request){
+      #else
       webServer.on("/track", HTTP_GET, [](AsyncWebServerRequest *request){
+      #endif
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -2061,7 +2194,11 @@ void setupWebServer()
         #endif
       });
     #endif
+    #ifdef SUPPORT_HACKING  //ESPUI owns the root
+    ESPUI.server->on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+    #else
     webServer.on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+    #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -2080,7 +2217,11 @@ void setupWebServer()
         }
       #endif
     });
+    #ifdef SUPPORT_HACKING  //ESPUI owns the root
+    ESPUI.server->on("/css/skeleton.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+    #else
     webServer.on("/css/skeleton.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+    #endif
       #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -2149,7 +2290,9 @@ void setupWebServer()
         webServer.serveStatic("/logs/", LittleFS, logDirectory); //Serve the log files up statically
       #endif
     #endif
-    webServer.begin();
+    #ifndef SUPPORT_HACKING
+      webServer.begin();
+    #endif
     localLogLn(F("OK"));
   }
 }

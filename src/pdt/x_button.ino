@@ -15,6 +15,7 @@
       {
         buttonPushTime = millis();
         buttonLongPress = true;
+        localLogLn(F("Button: long press"));
         #ifdef SUPPORT_BEEPER
         if(currentDisplayState == displayState::beeper)
         {
@@ -58,6 +59,7 @@
       else if(digitalRead(buttonPin) == true && buttonHeld == true && millis() - buttonPushTime > buttonDebounceTime) //Handle button releases
       {
         buttonHeld = false;
+        localLogLn(F("Button: short press"));
         if(buttonLongPress == false) //Ignore release after a long press
         {
           #ifdef SUPPORT_DISPLAY
@@ -181,14 +183,14 @@
       {
         buttonPushTime = millis();
         buttonLongPress = true;
-        localLogLn(F("Long press button"));
+        localLogLn(F("Button: long press"));
       }
       else if(digitalRead(buttonPin) == true && buttonHeld == true && millis() - buttonPushTime > buttonDebounceTime) //Handle button releases
       {
         buttonHeld = false;
         if(buttonLongPress == false) //This is a short press
         {
-          localLogLn(F("Press button"));
+          localLogLn(F("Button: short press"));
           #if defined(ACT_AS_SENSOR)
             if(currentSensorState == sensorState::active)
             {

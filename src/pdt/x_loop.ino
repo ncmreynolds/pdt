@@ -86,6 +86,7 @@ void loop()
     {
       saveSensorConfigurationSoon = 0;
       saveSensorConfiguration();
+      resetSensor();
     }
   #endif
   vTaskDelay(10 / portTICK_PERIOD_MS);

@@ -57,7 +57,7 @@
     #define SUPPORT_BEEPER
     #define SUPPORT_VIBRATION
     #define SUPPORT_LED
-    #define SUPPORT_HACKING
+    //#define SUPPORT_HACKING
     #include <Preferences.h>
     Preferences sensorPersitentData;
   #endif
@@ -709,4 +709,12 @@ const uint16_t loggingYieldTime = 100;
   uint32_t lastDeviceStatus = 0;
   uint32_t deviceStatusInterval = 60000;
   uint8_t batteryPercentage = 100;
+#endif
+
+#ifdef SUPPORT_HACKING
+  #include <ESPUI.h>
+  #include <ESPUIgames.h>
+  bool gameEnabled = true;
+  bool gameLength = 8;
+  ESPUIgames::gameType gametype = ESPUIgames::gameType::simon;
 #endif
