@@ -35,16 +35,17 @@
 #define SUPPORT_WIFI
 #define SUPPORT_BATTERY_METER
 #define SUPPORT_BUTTON
-#define SUPPORT_OTA
 #define USE_LITTLEFS
-#define ENABLE_LOCAL_WEBSERVER
-#define ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-#define DEBUG_LOCAL_WEBSERVER
+//#define ENABLE_LOCAL_WEBSERVER
+//#define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
+//#define ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+//#define DEBUG_LOCAL_WEBSERVER
 //#define DEBUG_FORM_SUBMISSION
-#define ENABLE_REMOTE_RESTART
-#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
-#define ENABLE_OTA_UPDATE
-#define ENABLE_LOG_DELETION
+//#define SUPPORT_OTA
+//#define ENABLE_REMOTE_RESTART
+//#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
+//#define ENABLE_OTA_UPDATE
+//#define ENABLE_LOG_DELETION
 #if defined(ACT_AS_TRACKER)
   #define SUPPORT_DISPLAY
   #define SUPPORT_BEEPER
@@ -57,13 +58,12 @@
     #define SUPPORT_BEEPER
     #define SUPPORT_VIBRATION
     #define SUPPORT_LED
-    //#define SUPPORT_HACKING
+    #define SUPPORT_HACKING
     #include <Preferences.h>
     Preferences sensorPersitentData;
   #endif
   #pragma message "Acting as beacon"
 #endif
-#define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
 //#define SERVE_CONFIG_FILE
 /*
 
@@ -163,7 +163,9 @@
     #include <ESPAsyncTCP.h>
   #endif
   #include <ESPAsyncWebServer.h>
-  AsyncWebServer webServer(80);  //Web server instance
+  #ifndef SUPPORT_HACKING //ESPUI owns the webserver
+    AsyncWebServer webServer(80);  //Web server instance
+  #endif
   char normalize[] PROGMEM =
 #include "css/normalizecss.h"
     ;

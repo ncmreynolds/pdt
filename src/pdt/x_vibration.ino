@@ -54,7 +54,11 @@
   }
   void manageVibration(void * parameter)
   {
+    #if defined(ENABLE_OTA_UPDATE)
     while(otaInProgress == false)
+    #else
+    while(true)
+    #endif
     {
       if(vibrationEnabled == true)
       {

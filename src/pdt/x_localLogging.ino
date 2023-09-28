@@ -28,7 +28,11 @@ void setupLogging()
 
 void manageLogging(void * parameter)
 {
+  #if defined(ENABLE_OTA_UPDATE)
   while(otaInProgress == false)
+  #else
+  while(true)
+  #endif
   {
     if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
     {

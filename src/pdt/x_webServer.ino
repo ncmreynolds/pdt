@@ -47,10 +47,6 @@ void setupWebServer()
       webserverSemaphore = xSemaphoreCreateBinary();
       xSemaphoreGive(webserverSemaphore);
     #endif
-    #ifdef SUPPORT_HACKING
-      setupHacking(); //Must come before configuration server as ESPUI starts ESPAsyncWebserver then we use its pointer to it
-    #endif
-    
     localLog(F("Configuring web server callbacks: "));
     #ifdef SUPPORT_HACKING  //ESPUI owns the root
     ESPUI.server->on("/admin", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
@@ -2015,7 +2011,7 @@ void setupWebServer()
           response->print(F("</p>"));
         #endif
         // class=\"u-full-width\"
-        response->print(F("<table><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th></th></tr></thead><tbody>"));
+        response->print(F("<table><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th>Info</th></tr></thead><tbody>"));
         for(uint8_t index = 0; index < numberOfDevices; index++)
         {
           response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
@@ -2271,23 +2267,45 @@ void setupWebServer()
       #elif defined(USE_LITTLEFS)
         if(basicAuthEnabled == true)
         {
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          ESPUI.server
+                    ->serveStatic("/logs/", LittleFS, logDirectory); //Serve the log files up statically
+                    //->setAuthentication(http_user, http_password); //Add a username and password
+          #else
           webServer
                     .serveStatic("/logs/", LittleFS, logDirectory) //Serve the log files up statically
                     .setAuthentication(http_user, http_password); //Add a username and password
+          #endif
         }
         else
         {
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          ESPUI.server->serveStatic("/logs/", LittleFS, logDirectory); //Serve the log files up statically
+          #else
           webServer.serveStatic("/logs/", LittleFS, logDirectory); //Serve the log files up statically
+          #endif
         }
         #if defined(SERVE_CONFIG_FILE)
+          #ifdef SUPPORT_HACKING  //ESPUI owns the root
+          ESPUI.server->serveStatic("/configfile", LittleFS, configurationFile);
+          #else
           webServer.serveStatic("/configfile", LittleFS, configurationFile);
+          #endif
         #endif
       #endif
     #else
       #if defined(USE_SPIFFS)
+        #ifdef SUPPORT_HACKING  //ESPUI owns the root
+        ESPUI.server->serveStatic("/logs/", SPIFFS, logDirectory); //Serve the log files up statically
+        #else
         webServer.serveStatic("/logs/", SPIFFS, logDirectory); //Serve the log files up statically
+        #endif
       #elif defined(USE_LITTLEFS)
+        #ifdef SUPPORT_HACKING  //ESPUI owns the root
+        ESPUI.server->serveStatic("/logs/", LittleFS, logDirectory); //Serve the log files up statically
+        #else
         webServer.serveStatic("/logs/", LittleFS, logDirectory); //Serve the log files up statically
+        #endif
       #endif
     #endif
     #ifndef SUPPORT_HACKING

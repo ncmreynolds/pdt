@@ -197,7 +197,11 @@
   void processGpsSentences(void * parameter)
   {
     char character;
+    #if defined(ENABLE_OTA_UPDATE)
     while(otaInProgress == false)
+    #else
+    while(true)
+    #endif
     {
       if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout) == pdTRUE)
       {

@@ -1,14 +1,19 @@
 #ifdef SUPPORT_HACKING
   void setupHacking()
   {
+    localLogLn(F("Starting hacking game"));
     game.debug(Serial);
     game.type(ESPUIgames::gameType::simon);
     //Game tab
-    game.setTabTitle("This is the game");
-    game.setTitle("Simon says!");
-    game.enableStartSwitch("Start the game");
-    game.setWinContent("You have won!","Congratulations, you have won."); //Setting this makes a widget pop up if you win, not setting it relies on colours alone to show it
-    game.setLoseContent("Sorry, you lose!","Flick the switch to try again"); //Setting this makes a widget pop up if you lose, not setting it relies on colours alone to show it
+    game.setTitle(device[0].name);
+    game.setTabTitle("Onboard firewall");
+    game.enableStartSwitch("Hack!");
+    game.setWinContent("Security breached","See the power controls in the new tab."); //Setting this makes a widget pop up if you win, not setting it relies on colours alone to show it
+    game.setLoseContent("Hack failed!","Flick the switch to try again","No further hack attempts possible"); //Setting this makes a widget pop up if you lose, not setting it relies on colours alone to show it
+    game.addPlayButton("Core Operating system", "Hack", ControlColor::Peterriver);
+    game.addPlayButton("Secure storage", "Hack", ControlColor::Sunflower);
+    game.addPlayButton("System bus", "Hack", ControlColor::Turquoise);
+    game.addPlayButton("Watchdog Daemon", "Hack", ControlColor::Carrot);
     game.addGameTab(); //Builds all the game controls
     //Help tab
     game.setHelpTabTitle("This is the help");

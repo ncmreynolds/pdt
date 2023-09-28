@@ -11,6 +11,12 @@
       espBoilerplate.setOutputStream(Serial);
     #endif
     espBoilerplate.setRetries(wifiClientTimeout);
+    #ifdef SUPPORT_HACKING
+      if(startWiFiApOnBoot == true)
+      {
+        startWiFiClientOnBoot = false;
+      }
+    #endif
     if(startWiFiClientOnBoot == true || startWiFiApOnBoot == true)
     {
       if(startWiFiClientOnBoot == true)
@@ -21,22 +27,6 @@
       {
         wifiApStarted = espBoilerplate.beginAp(APSSID, APPSK);
       }
-      #ifdef ENABLE_LOCAL_WEBSERVER
-      if(wifiClientConnected == true)
-      {
-        configureTimeServer();  //Set up the time server
-      }
-      if(wifiApStarted == true || wifiClientConnected == true)
-      {
-        espBoilerplate.setHostname(device[0].name); //Set mDNS name
-        setupWebServer();
-        if(otaEnabled == true)
-        {
-          #ifdef SUPPORT_OTA
-            configureOTA();
-          #endif
-        }
-      }
       if(wifiApStarted == true && enableCaptivePortal == true)
       {
         localLog(F("Starting captive portal DNS server: "));
@@ -44,6 +34,30 @@
         dnsServer->start(53, "*", WiFi.softAPIP());  //DNS server is required for captive portal to work
         localLogLn(F("OK"));
       }
+      #ifdef ENABLE_LOCAL_WEBSERVER
+        if(wifiClientConnected == true)
+        {
+          configureTimeServer();  //Set up the time server
+        }
+        if(wifiApStarted == true || wifiClientConnected == true)
+        {
+          espBoilerplate.setHostname(device[0].name); //Set mDNS name
+          #ifdef SUPPORT_HACKING
+            setupHacking(); //Must come before configuration server as ESPUI starts ESPAsyncWebserver then we use its pointer to it
+          #else
+            //setupWebServer();
+            if(otaEnabled == true)
+            {
+              #ifdef SUPPORT_OTA
+                configureOTA();
+              #endif
+            }
+          #endif
+        }
+      #else
+        #ifdef SUPPORT_HACKING
+          setupHacking(); //Must come before configuration server as ESPUI starts ESPAsyncWebserver then we use its pointer to it
+        #endif
       #endif
     }
     else

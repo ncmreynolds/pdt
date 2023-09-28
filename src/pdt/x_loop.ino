@@ -18,6 +18,9 @@ void loop()
   #if defined(SUPPORT_WIFI)
     manageNetwork();
   #endif
+  #ifdef SUPPORT_HACKING
+      game.runFsm();  //Run the game finite state machine
+  #endif
   #if defined(SUPPORT_LORA) && defined(SUPPORT_GPS)
     manageLoRa();
   #endif
