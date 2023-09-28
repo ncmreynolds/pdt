@@ -29,6 +29,9 @@
       if(wifiApStarted == true || wifiClientConnected == true)
       {
         espBoilerplate.setHostname(device[0].name); //Set mDNS name
+        #ifdef SUPPORT_HACKING
+          setupHacking(); //Must come before configuration server as ESPUI starts ESPAsyncWebserver then we use its pointer to it
+        #endif
         setupWebServer();
         if(otaEnabled == true)
         {

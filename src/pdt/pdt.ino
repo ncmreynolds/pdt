@@ -57,6 +57,7 @@
     #define SUPPORT_BEEPER
     #define SUPPORT_VIBRATION
     #define SUPPORT_LED
+    #define SUPPORT_HACKING
     #include <Preferences.h>
     Preferences sensorPersitentData;
   #endif

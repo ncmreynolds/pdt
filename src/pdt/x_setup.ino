@@ -4,6 +4,19 @@
  * 
  */
 void setup() {
+  //The very first thing to do is set up GPIO, as some things need pulling up/down ASAP
+  #ifdef SUPPORT_VIBRATION
+    setupVibration();
+  #endif
+  #ifdef SUPPORT_LED
+    setupLed();
+  #endif
+  #ifdef SUPPORT_BEEPER
+    setupBeeper();
+  #endif
+  #ifdef SUPPORT_BUTTON
+    setupButton();
+  #endif
   WiFi.macAddress(device[0].id); //Copy in local MAC address as 'device 0'
   #ifdef ACT_AS_TRACKER
     device[0].typeOfDevice = device[0].typeOfDevice | 1;  //Mark it as a tracker
@@ -21,9 +34,6 @@ void setup() {
   #endif
   //Mount file system so configuration can be read
   setupFilesystem();
-  #ifdef SUPPORT_BUTTON
-    setupButton();
-  #endif
   //Use preferences storage for temporary 'persistent' values when running as a sensor
   #if defined(ACT_AS_SENSOR)
     sensorPersitentData.begin("sensor", false); 
@@ -31,10 +41,6 @@ void setup() {
   #ifdef SUPPORT_WIFI
     setupNetwork();
   #endif
-  if(wifiClientConnected == true)
-  {
-    //networkStateChanged = false; //Suppress normal handling of network state changes
-  }
   #ifdef SUPPORT_LORA
     setupLoRa();  //Needs to be before SPI display
   #endif
@@ -43,15 +49,6 @@ void setup() {
   #endif
   #ifdef SUPPORT_GPS
     setupGps();
-  #endif
-  #ifdef SUPPORT_BEEPER
-    setupBeeper();
-  #endif
-  #ifdef SUPPORT_LED
-    setupLed();
-  #endif
-  #ifdef SUPPORT_LED
-    setupVibration();
   #endif
   #ifdef SUPPORT_BATTERY_METER
     setupBattery();

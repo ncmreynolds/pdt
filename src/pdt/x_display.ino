@@ -332,7 +332,7 @@
   void displayTrackingMode()
   {
     ssd1306_clearScreen8();
-    printTopLine((const char*)F("BEACON"));
+    printTopLine((const char*)F("TRACKING"));
     printBottomLine((const char*)F("HOLD TO CHANGE"));
     #ifdef SERIAL_DEBUG
       if(waitForBufferSpace(28))

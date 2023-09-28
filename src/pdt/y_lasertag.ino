@@ -62,6 +62,9 @@
             if(effectiveHits >= currentNumberOfStunHits)
             {
               currentNumberOfStunHits = 0;
+              #ifdef SUPPORT_LORA
+                scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
+              #endif
               currentSensorState = sensorState::stunned;
               sensorPersitentData.putUChar(currentStunKey, currentNumberOfStunHits);
               //sensorPersitentData.putUChar(currentSensorStateKey, (uint8_t)currentSensorState);
@@ -127,6 +130,9 @@
               currentNumberOfHits = 0;
               bleedOutCounter = 0;
               currentSensorState = sensorState::dead;
+              #ifdef SUPPORT_LORA
+                scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
+              #endif
               sensorPersitentData.putUChar(currentHitsKey, currentNumberOfHits);
               sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
               //sensorPersitentData.putUChar(currentSensorStateKey, (uint8_t)currentSensorState);

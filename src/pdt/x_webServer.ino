@@ -254,6 +254,7 @@ void setupWebServer()
           #ifdef SUPPORT_BATTERY_METER
             if(enableBatteryMonitor == true)
             {
+              /*
               if(device[0].supplyVoltage > chargingVoltage)
               {
                 response->print(F("<li>Battery voltage: <b>USB power ("));
@@ -261,6 +262,7 @@ void setupWebServer()
                 response->print(F("v)</b></li>"));
               }
               else
+              */
               {
                 response->print(F("<li>Battery voltage: <b>"));
                 response->print(device[0].supplyVoltage);
@@ -680,8 +682,8 @@ void setupWebServer()
             response->print(F("<option value=\"true\""));response->print(enableBatteryMonitor == true ? " selected>":">");response->print(F("Enabled</option>"));
             response->print(F("<option value=\"false\""));response->print(enableBatteryMonitor == false ? " selected>":">");response->print(F("Disabled</option>"));
             response->print(F("</select></div><div class=\"six columns\">Defaults 330/90kOhm</div></div>"));
-            response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"topLadderResistor\">Top ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"1\" value=\"%.2f\" id=\"topLadderResistor\" name=\"topLadderResistor\"></div>"), topLadderResistor);
-            response->printf_P(PSTR("<div class=\"six columns\"><label for=\"bottomLadderResistor\">Bottom ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"1\" value=\"%.2f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\"></div></div>"), bottomLadderResistor);
+            response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"topLadderResistor\">Top ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"topLadderResistor\" name=\"topLadderResistor\"></div>"), topLadderResistor);
+            response->printf_P(PSTR("<div class=\"six columns\"><label for=\"bottomLadderResistor\">Bottom ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\"></div></div>"), bottomLadderResistor);
           #endif
           //GPS
           #ifdef SUPPORT_GPS
@@ -1100,6 +1102,38 @@ void setupWebServer()
               strlcpy(timeZone,request->getParam("timeZone", true)->value().c_str(),request->getParam("timeZone", true)->value().length() + 1);
               //localLog(F("timeZone: "));
               //localLogLn(timeZone);
+            }
+            if(request->hasParam("APSSID", true))
+            {
+              if(APSSID != nullptr)
+              {
+                delete [] SSID;
+              }
+              APSSID = new char[request->getParam("APSSID", true)->value().length() + 1];
+              strlcpy(APSSID,request->getParam("APSSID", true)->value().c_str(),request->getParam("APSSID", true)->value().length() + 1);
+            }
+            if(request->hasParam("APPSK", true))
+            {
+              if(request->getParam("APPSK", true)->value().length() > 0)
+              {
+                if(APPSK != nullptr)
+                {
+                  delete [] APPSK;
+                }
+                APPSK = new char[request->getParam("APPSK", true)->value().length() + 1];
+                strlcpy(APPSK,request->getParam("APPSK", true)->value().c_str(),request->getParam("APPSK", true)->value().length() + 1);
+              }
+            }
+            if(request->hasParam("startWiFiApOnBoot", true))
+            {
+              if(request->getParam("startWiFiApOnBoot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                startWiFiApOnBoot = true;
+              }
+              else
+              {
+                startWiFiApOnBoot = false;
+              }
             }
           #endif
           #ifdef SUPPORT_GPS
@@ -2062,20 +2096,22 @@ void setupWebServer()
         }
       #endif
     });
-    webServer.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(404); //There is no favicon!
-    });
-    webServer.onNotFound([](AsyncWebServerRequest *request){  //This lambda function is a minimal 404 handler
-      lastWifiActivity = millis();
-      if(enableCaptivePortal)
-      {
-        request->redirect("/"); //Needed for captive portal
-      }
-      else
-      {
-        request->send(404, "text/plain", request->url() + " not found");
-      }
-    });
+    #ifndef SUPPORT_HACKING //ESPUI does its own captive portal redirect
+      webServer.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(404); //There is no favicon!
+      });
+      webServer.onNotFound([](AsyncWebServerRequest *request){  //This lambda function is a minimal 404 handler
+        lastWifiActivity = millis();
+        if(enableCaptivePortal)
+        {
+          request->redirect("/"); //Needed for captive portal
+        }
+        else
+        {
+          request->send(404, "text/plain", request->url() + " not found");
+        }
+      });
+    #endif
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
       #if defined(USE_SPIFFS)
         if(basicAuthEnabled == true)

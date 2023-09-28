@@ -1,20 +1,17 @@
 #ifdef SUPPORT_BEEPER
   void setupBeeper()
   {
-    localLog(F("Configuring beeper: "));
-    pinMode(beeperPin, OUTPUT);
-    //Use a semaphore to control access to global variables
-    beeperSemaphore = xSemaphoreCreateBinary();
-    //pinMode(beeperPin, OUTPUT);
     pinMode(beeperPin, INPUT);
     digitalWrite(beeperPin, HIGH);
-    //digitalWrite(beeperPin, HIGH);
+    //localLog(F("Configuring beeper: "));
+    //Use a semaphore to control access to global variables
+    beeperSemaphore = xSemaphoreCreateBinary();
     ledcSetup(beeperChannel, beeperButtonTone, 8);  //Set up eight bit resolution
     ledcWriteTone(beeperChannel, 0);  //Set an initial tone of nothing
     ledcAttachPin(beeperPin, beeperChannel);
     xSemaphoreGive(beeperSemaphore);
     xTaskCreate(manageBeeper, "manageBeeper", 512, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
-    localLogLn(F("OK"));
+    //localLogLn(F("OK"));
   }
   void makeAsingleBeep(uint16_t frequency, uint16_t duration) //A single beep can override a repeating one
   {
