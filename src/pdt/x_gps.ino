@@ -82,19 +82,22 @@
         }
         #ifdef SUPPORT_BEEPER
           #ifdef ACT_AS_TRACKER
-            if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && distanceToCurrentBeaconChanged == true)  //Set beeper urgency based on current distance, if it has changed
+            if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && (distanceToCurrentBeaconChanged == true || millis() - lastDistanceChangeUpdate > 5000))  //Set beeper urgency based on current distance, if it has changed
             {
+              //distanceToCurrentBeaconChanged 
               setBeeperUrgency();
               #ifndef SUPPORT_DISPLAY
                 distanceToCurrentBeaconChanged = false; //If it's beeper only, acknowledge the change
+                lastDistanceChangeUpdate = millis();
               #endif
             }
           #endif
         #endif
         #ifdef SUPPORT_DISPLAY
-          if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && distanceToCurrentBeaconChanged == true) //Show distance if it changes
+          if(currentBeacon != maximumNumberOfDevices && device[currentBeacon].hasFix == true && (distanceToCurrentBeaconChanged == true || millis() - lastDistanceChangeUpdate > 5000)) //Show distance if it changes
           {
             distanceToCurrentBeaconChanged = false;
+            lastDistanceChangeUpdate = millis();
             if(currentDisplayState == displayState::distance && millis() - lastDisplayUpdate > 100)
             {
               displayDistanceToBeacon();

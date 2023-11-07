@@ -54,6 +54,10 @@
             displayTrackingMode();
           }
         }
+        if(currentDisplayState == displayState::version)
+        {
+          printConfiguration();
+        }
         #endif
       }
       else if(digitalRead(buttonPin) == true && buttonHeld == true && millis() - buttonPushTime > buttonDebounceTime) //Handle button releases
@@ -184,6 +188,8 @@
         buttonPushTime = millis();
         buttonLongPress = true;
         localLogLn(F("Button: long press"));
+        printConfiguration();
+        
       }
       else if(digitalRead(buttonPin) == true && buttonHeld == true && millis() - buttonPushTime > buttonDebounceTime) //Handle button releases
       {

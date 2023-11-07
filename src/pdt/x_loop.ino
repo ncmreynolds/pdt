@@ -19,7 +19,7 @@ void loop()
     manageNetwork();
   #endif
   #ifdef SUPPORT_HACKING
-      game.runFsm();  //Run the game finite state machine
+    manageGame();
   #endif
   #if defined(SUPPORT_LORA) && defined(SUPPORT_GPS)
     manageLoRa();
@@ -85,12 +85,6 @@ void loop()
   #endif
   #if defined(ACT_AS_SENSOR)
     manageLasertag();
-    if(saveSensorConfigurationSoon != 0 && millis() - saveSensorConfigurationSoon > 5000) //Save configuration after a delay to avoid AsyncWebserver doing it in a callback 
-    {
-      saveSensorConfigurationSoon = 0;
-      saveSensorConfiguration();
-      resetSensor();
-    }
   #endif
   vTaskDelay(10 / portTICK_PERIOD_MS);
 }

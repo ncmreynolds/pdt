@@ -244,11 +244,11 @@
       }
       else if(device[currentBeacon].currentNumberOfStunHits == 0)
       {
-        printMiddleLine((const char*)F("DISRUPTED"));
+        printMiddleLine((const char*)F("SHUTDOWN"));
         #ifdef SERIAL_DEBUG
           if(waitForBufferSpace(20))
           {
-            SERIAL_DEBUG_PORT.println(F("DISRUPTED"));
+            SERIAL_DEBUG_PORT.println(F("SHUTDOWN"));
           }
         #endif
       }
@@ -264,7 +264,7 @@
       }
       else
       {
-        if(device[currentBeacon].currentNumberOfHits <= device[currentBeacon].currentNumberOfStunHits) //Show damage status
+        //if(device[currentBeacon].currentNumberOfHits <= device[currentBeacon].currentNumberOfStunHits) //Show damage status
         {
           char displayText[14];
           //sprintf_P(displayText, PSTR("%02u%% DAMAGE"), (100*(uint16_t)(device[currentBeacon].numberOfStartingHits - device[currentBeacon].currentNumberOfHits))/(uint16_t)device[currentBeacon].numberOfStartingHits);
@@ -277,6 +277,7 @@
             }
           #endif
         }
+        /*
         else  //Show stun status
         {
           char displayText[16];
@@ -289,6 +290,7 @@
             }
           #endif
         }
+        */
       }
     }
     lastDisplayUpdate = millis();

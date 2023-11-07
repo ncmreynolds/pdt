@@ -16,6 +16,12 @@ void setup() {
   #endif
   #ifdef SUPPORT_BUTTON
     setupButton();
+    #if defined(ACT_AS_SENSOR)
+      if(digitalRead(buttonPin) == false)
+      {
+        sensorReset = true;
+      }
+    #endif
   #endif
   WiFi.macAddress(device[0].id); //Copy in local MAC address as 'device 0'
   #ifdef ACT_AS_TRACKER
@@ -37,6 +43,15 @@ void setup() {
   //Use preferences storage for temporary 'persistent' values when running as a sensor
   #if defined(ACT_AS_SENSOR)
     sensorPersitentData.begin("sensor", false); 
+    loadSensorConfiguration();
+    #ifdef SUPPORT_BUTTON
+      if(sensorReset == true)
+      {
+        localLogLn(F("Resetting sensor due to button press"));
+        resetSensor();
+      }
+    #endif
+    showSensorConfiguration();
   #endif
   #ifdef SUPPORT_WIFI
     setupNetwork();
@@ -55,19 +70,5 @@ void setup() {
   #endif
   #if defined(ACT_AS_SENSOR)
     setupLasertag();
-  #endif
-  #if defined(ACT_AS_SENSOR)
-    #ifdef SUPPORT_BUTTON
-    if(digitalRead(buttonPin) == false)
-    {
-      localLogLn(F("Resetting sensor due to button press"));
-      resetSensor();
-    }
-    else
-    #endif
-    {
-      loadSensorConfiguration();
-    }
-    showSensorConfiguration();
   #endif
 }

@@ -32,6 +32,11 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
       configuration["http_password"] = http_password;
     #endif
   #endif
+  #ifdef SUPPORT_HACKING
+    configuration["gameLength"] = gameLength;
+    configuration["gameRetries"] = gameRetries;
+    configuration["gameSpeedup"] = gameSpeedup;
+  #endif
   configuration["timeServer"] = timeServer;
   configuration["timeZone"] = timeZone;
   #ifdef SUPPORT_GPS
@@ -299,6 +304,11 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       vibrationEnabled = configuration["vibrationEnabled"] | true;
       vibrationLevel = configuration["vibrationLevel"] | 100;
     #endif
+    #ifdef SUPPORT_HACKING
+      gameLength = configuration["gameLength"] | 10 ;
+      gameRetries = configuration["gameRetries"] | 0;
+      gameSpeedup = configuration["gameSpeedup"] | 500;
+    #endif
     localLogLn(F("OK"));
     return true;
   }
@@ -552,7 +562,18 @@ void printConfiguration()
   localLogLn(logFlushThreshold);
   localLog(F("logFlushInterval: "));
   localLogLn(logFlushInterval);
+  #ifdef SUPPORT_HACKING
+    localLog(F("gameLength: "));
+    localLogLn(gameLength);
+    localLog(F("gameRetries: "));
+    localLogLn(gameRetries);
+    localLog(F("gameSpeedup: "));
+    localLogLn(gameSpeedup);
+  #endif
   localLogLn(F("========================="));
+  #ifdef ACT_AS_SENSOR
+  showSensorConfiguration();
+  #endif
 }
 
 String deviceFeatures(uint8_t featureFlags)

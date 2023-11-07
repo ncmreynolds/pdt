@@ -12,7 +12,7 @@
    The same sketch has the code for both devices, uncomment the '#define ACT_AS_TRACKER' below to build for the tracker, otherwise it is a beacon
 
 */
-//#define ACT_AS_TRACKER
+#define ACT_AS_TRACKER
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
@@ -36,16 +36,16 @@
 #define SUPPORT_BATTERY_METER
 #define SUPPORT_BUTTON
 #define USE_LITTLEFS
-//#define ENABLE_LOCAL_WEBSERVER
-//#define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
-//#define ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-//#define DEBUG_LOCAL_WEBSERVER
+#define ENABLE_LOCAL_WEBSERVER
+#define ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+#define DEBUG_LOCAL_WEBSERVER
 //#define DEBUG_FORM_SUBMISSION
-//#define SUPPORT_OTA
-//#define ENABLE_REMOTE_RESTART
+#define ENABLE_REMOTE_RESTART
+#define ENABLE_LOG_DELETION
 //#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
 //#define ENABLE_OTA_UPDATE
-//#define ENABLE_LOG_DELETION
+//#define SUPPORT_OTA
+//#define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
 #if defined(ACT_AS_TRACKER)
   #define SUPPORT_DISPLAY
   #define SUPPORT_BEEPER
@@ -97,10 +97,9 @@
   #include <lasertag.h>
   lasertag sensor;
   #define IR_RECEIVER_PIN 1
-  uint8_t numberOfStartingHits = 15;
-  uint8_t numberOfStartingStunHits = 15;
-  uint8_t currentNumberOfHits = 0;
-  uint8_t currentNumberOfStunHits = 0;
+  bool sensorReset = false;
+  uint8_t defaultNumberOfStartingHits = 6;
+  uint8_t defaultNumberOfStartingStunHits = 6;
   uint8_t armourValue = 0;
   uint8_t bleedOutCounter = 0;
   uint8_t bleedOutTime = 5;
@@ -133,10 +132,10 @@
   uint32_t sensorTones[4] = {3777, 800, 1200, 1000};
   uint32_t sensorToneOnTimes[4] = {200, 250, 500, 199};
   uint32_t sensorToneOffTimes[4] = {0, 250, 500, 1};
-  const char* startingHitsKey = "startingHits";
-  const char* currentHitsKey = "currentHits";
-  const char* startingStunKey = "startingStun";
-  const char* currentStunKey = "currentStun";
+  const char* startingHitsKey = "startHits";
+  const char* currentHitsKey =  "currHits";
+  const char* startingStunKey = "startStun";
+  const char* currentStunKey =  "currStun";
   const char* EP_flag_key = "EP_flag";
   const char* ig_healing_flag_key = "ig_healing_flag";
   const char* ig_stun_flag_key = "ig_stun_flag";
@@ -163,8 +162,11 @@
     #include <ESPAsyncTCP.h>
   #endif
   #include <ESPAsyncWebServer.h>
-  #ifndef SUPPORT_HACKING //ESPUI owns the webserver
-    AsyncWebServer webServer(80);  //Web server instance
+  AsyncWebServer* adminWebServer;
+  #ifdef SUPPORT_HACKING //ESPUI owns the main webserver on port 80
+    //AsyncWebServer adminWebServer(8080);  //Web server instance
+  #else
+    //AsyncWebServer adminWebServer(80);  //Web server instance
   #endif
   char normalize[] PROGMEM =
 #include "css/normalizecss.h"
@@ -316,7 +318,7 @@
       float bottomLadderResistor = 89; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
     #else
       float topLadderResistor = 330.0;
-      float bottomLadderResistor = 90; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
+      float bottomLadderResistor = 104; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
     #endif
     float ADCpeakVoltage = 2.5;
     float chargingVoltage = 4.19;
@@ -453,6 +455,7 @@ uint32_t restartTimer = 0;  //Used to schedule a restart
   const char* default_AP_PSK = "12345678";
   char* APSSID = nullptr;
   char* APPSK = nullptr;
+  uint8_t softApChannel = 11;
   uint8_t wifiClientTimeout = 30;
 #endif
 const int8_t networkTimeout = 30;  //Timeout in seconds for network connection
@@ -595,7 +598,7 @@ const uint16_t loggingYieldTime = 100;
   uint32_t lastGpsTimeCheck = 0;
   uint32_t gpsTimeCheckInterval = 30000;
   uint32_t lastDistanceCalculation = 0;
-  uint32_t distanceCalculationInterval = 5000;
+  uint32_t distanceCalculationInterval = 1000;
   //double trackerLatitude = 51.508131; //London
   //double trackerLongitude = -0.128002;
   struct deviceLocationInfo {
@@ -632,6 +635,7 @@ const uint16_t loggingYieldTime = 100;
     double maximumEffectiveRange = 99;
     uint32_t distanceToCurrentBeacon = BEACONUNREACHABLE;
     bool distanceToCurrentBeaconChanged = false;
+    uint32_t lastDistanceChangeUpdate = 0;
     uint8_t currentBeacon = maximumNumberOfDevices; //max implies none found
     bool currentBeaconStateChanged = false; //Note when it has been show
     enum class trackingMode : std::int8_t {
@@ -717,6 +721,95 @@ const uint16_t loggingYieldTime = 100;
   #include <ESPUI.h>
   #include <ESPUIgames.h>
   bool gameEnabled = true;
-  bool gameLength = 8;
+  uint8_t gameLength = 10;
+  uint8_t gameRetries = 0;
+  uint32_t gameSpeedup = 500;
   ESPUIgames::gameType gametype = ESPUIgames::gameType::simon;
+  bool filesTabVisible = false;
+  uint16_t filesTabID = 0;
+  uint16_t controlsTabID = 0;
+  uint16_t shutdownButtonID = 0;
+  uint16_t selfDestructButtonID = 0;
+  uint16_t statusWidgetID = 0;
+  //uint32_t shutdownNow = 0;
+  //uint8_t shutdownCountdown = 255;
+  uint32_t selfDestructNow = 0;
+  uint8_t selfDestructCountdown = 255;
+  /*
+  void shutdownButtonCallback(Control* sender, int value)
+  {
+    #ifdef ESP8266
+    { //HeapSelectIram doAllocationsInIRAM;
+    #endif
+      switch (value)
+      {
+      case B_DOWN:
+        if(shutdownNow == 0)
+        {
+          //buttonPushed = buttonIndexFromId(sender->id);
+          ESPUI.updateControlValue(statusWidgetID, "Shutdown down in 10s, hold to confirm");
+          ESPUI.getControl(statusWidgetID)->color = ControlColor::Carrot;
+          ESPUI.updateControl(statusWidgetID);
+          shutdownNow = millis();
+        }
+        break;
+  
+      case B_UP:
+        if(millis() - shutdownNow > 10000)
+        {
+          ESPUI.updateControlValue(statusWidgetID, "Shutdown");
+          ESPUI.getControl(statusWidgetID)->color = ControlColor::Alizarin;
+          ESPUI.updateControl(statusWidgetID);
+        }
+        else
+        {
+          ESPUI.updateControlValue(statusWidgetID, "Active" );
+          ESPUI.getControl(statusWidgetID)->color = ControlColor::Emerald;
+          ESPUI.updateControl(statusWidgetID);
+          shutdownNow = 0;
+        }
+        break;
+      }
+    #ifdef ESP8266
+    } // HeapSelectIram
+    #endif
+  }
+  */
+  void selfDestructButtonCallback(Control* sender, int value)
+  {
+    #ifdef ESP8266
+    { //HeapSelectIram doAllocationsInIRAM;
+    #endif
+      switch (value)
+      {
+      case B_DOWN:
+          if(selfDestructNow == 0)
+          {
+            ESPUI.updateControlValue(statusWidgetID, "Self destruct down in 10s, hold to confirm");
+            ESPUI.getControl(statusWidgetID)->color = ControlColor::Carrot;
+            ESPUI.updateControl(statusWidgetID);
+            selfDestructNow = millis();
+          }
+        break;
+  
+      case B_UP:
+          if(millis() - selfDestructNow > 10000)
+          {
+            ESPUI.updateControlValue(statusWidgetID, "Shutdown" );
+            ESPUI.getControl(statusWidgetID)->color = ControlColor::Alizarin;
+            ESPUI.updateControl(statusWidgetID);
+          }
+          else
+          {
+            ESPUI.updateControlValue(statusWidgetID, "Active" );
+            ESPUI.getControl(statusWidgetID)->color = ControlColor::Emerald;
+            ESPUI.updateControl(statusWidgetID);
+            selfDestructNow = 0;
+          }
+        break;
+      }
+    #ifdef ESP8266
+    } // HeapSelectIram
+    #endif
+  }
 #endif

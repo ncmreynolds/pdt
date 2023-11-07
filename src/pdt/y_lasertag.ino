@@ -6,7 +6,13 @@
   }
   void manageLasertag()
   {
-    if(currentSensorState == sensorState::starting)
+    if(saveSensorConfigurationSoon != 0 && millis() - saveSensorConfigurationSoon > 5000) //Save configuration after a delay to avoid AsyncWebserver doing it in a callback 
+    {
+      saveSensorConfigurationSoon = 0;
+      showSensorConfiguration();
+      saveSensorConfiguration();
+    }
+    else if(currentSensorState == sensorState::starting)
     {
       if(millis() - lastSensorStateChange > 500)
       {
@@ -24,7 +30,7 @@
       if(millis() - lastSensorStateChange > 5000)
       {
         lastSensorStateChange = millis();
-        if(currentNumberOfHits == 0)
+        if(device[0].currentNumberOfHits == 0)
         {
           currentSensorState = sensorState::dead;
           localLogLn(F("Sensor: dead"));
@@ -32,7 +38,7 @@
             xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, configMAX_PRIORITIES - 1, NULL);
           #endif
         }
-        else if(currentNumberOfStunHits == 0)
+        else if(device[0].currentNumberOfStunHits == 0)
         {
           currentSensorState = sensorState::stunned;
           localLogLn(F("Sensor: stunned"));
@@ -59,15 +65,14 @@
           uint8_t effectiveHits = sensor.hitsReceived();
           if(sensor.stunReceived())
           {
-            if(effectiveHits >= currentNumberOfStunHits)
+            if(effectiveHits >= device[0].currentNumberOfStunHits)
             {
-              currentNumberOfStunHits = 0;
+              device[0].currentNumberOfStunHits = 0;
               #ifdef SUPPORT_LORA
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
               currentSensorState = sensorState::stunned;
-              sensorPersitentData.putUChar(currentStunKey, currentNumberOfStunHits);
-              //sensorPersitentData.putUChar(currentSensorStateKey, (uint8_t)currentSensorState);
+              sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
               lastSensorStateChange = millis();
               #ifdef SUPPORT_LORA
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
@@ -77,38 +82,38 @@
             }
             else
             {
-              currentNumberOfStunHits -= effectiveHits;
+              device[0].currentNumberOfStunHits -= effectiveHits;
               #ifdef SUPPORT_LORA
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
-              sensorPersitentData.putUChar(currentStunKey, currentNumberOfStunHits);
+              sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
               currentSensorState = sensorState::takenHit;
               localLogLn(F("Sensor: takenHit"));
               #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
                 xTaskCreate(playHitAnimation, "playHitAnimation", 1000, (void*)&effectiveHits, configMAX_PRIORITIES - 1, NULL);
               #endif
             }
-            message += " " + String(effectiveHits) + " stun damage received, now " + String(currentNumberOfStunHits) + "/" + String(numberOfStartingStunHits) + " stun hits";
+            message += " " + String(effectiveHits) + " stun damage received, now " + String(device[0].currentNumberOfStunHits) + "/" + String(device[0].numberOfStartingStunHits) + " stun hits";
             localLogLn(message);
           }
           else if(sensor.healingReceived())
           {
-            currentNumberOfHits += effectiveHits;
-            currentNumberOfStunHits += effectiveHits;
-            if(currentNumberOfHits > numberOfStartingHits)
+            device[0].currentNumberOfHits += effectiveHits;
+            device[0].currentNumberOfStunHits += effectiveHits;
+            if(device[0].currentNumberOfHits > device[0].numberOfStartingHits)
             {
-              currentNumberOfHits = numberOfStartingHits;
+              device[0].currentNumberOfHits = device[0].numberOfStartingHits;
             }
-            if(currentNumberOfStunHits > numberOfStartingStunHits)
+            if(device[0].currentNumberOfStunHits > device[0].numberOfStartingStunHits)
             {
-              currentNumberOfStunHits = numberOfStartingStunHits;
+              device[0].currentNumberOfStunHits = device[0].numberOfStartingStunHits;
             }
             #ifdef SUPPORT_LORA
               scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
             #endif
-            sensorPersitentData.putUChar(currentHitsKey, currentNumberOfHits);
-            sensorPersitentData.putUChar(currentStunKey, currentNumberOfStunHits);
-            message += " " + String(effectiveHits) + " healing received, now " + String(currentNumberOfHits) + "/" + String(numberOfStartingHits) + " hits";
+            sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
+            sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
+            message += " " + String(effectiveHits) + " healing received, now " + String(device[0].currentNumberOfHits) + "/" + String(device[0].numberOfStartingHits) + " hits";
             localLogLn(message);
           }
           else  //Normal damage hit
@@ -125,15 +130,15 @@
             {
               effectiveHits -= armourValue;
             }
-            if(effectiveHits >= currentNumberOfHits)
+            if(effectiveHits >= device[0].currentNumberOfHits)
             {
-              currentNumberOfHits = 0;
+              device[0].currentNumberOfHits = 0;
               bleedOutCounter = 0;
               currentSensorState = sensorState::dead;
               #ifdef SUPPORT_LORA
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
-              sensorPersitentData.putUChar(currentHitsKey, currentNumberOfHits);
+              sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
               sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
               //sensorPersitentData.putUChar(currentSensorStateKey, (uint8_t)currentSensorState);
               lastSensorStateChange = millis();
@@ -148,8 +153,8 @@
             }
             else
             {
-              currentNumberOfHits -= effectiveHits;
-              sensorPersitentData.putUChar(currentHitsKey, currentNumberOfHits);
+              device[0].currentNumberOfHits -= effectiveHits;
+              sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
               currentSensorState = sensorState::takenHit;
               localLogLn(F("Sensor: takenHit"));
               #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
@@ -159,7 +164,7 @@
             #ifdef SUPPORT_LORA
               scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
             #endif
-            message += " " + String(effectiveHits) + " damage received, now " + String(currentNumberOfHits) + "/" + String(numberOfStartingHits) + " hits";
+            message += " " + String(effectiveHits) + " damage received, now " + String(device[0].currentNumberOfHits) + "/" + String(device[0].numberOfStartingHits) + " hits";
             localLogLn(message);
           }
         }
@@ -203,7 +208,7 @@
     }
     else if(currentSensorState == sensorState::playCurrentHits)
     {
-      if(millis() - lastSensorStateChange > 5000)
+      if(millis() - lastSensorStateChange > 3000)
       {
         lastSensorStateChange = millis();
         currentSensorState = sensorState::active;
@@ -285,10 +290,10 @@
   }
   void loadSensorConfiguration()
   {
-    numberOfStartingHits = sensorPersitentData.getUChar(startingHitsKey, numberOfStartingHits);
-    currentNumberOfHits = sensorPersitentData.getUChar(currentHitsKey, numberOfStartingHits);
-    numberOfStartingStunHits = sensorPersitentData.getUChar(startingStunKey, numberOfStartingHits);
-    currentNumberOfStunHits = sensorPersitentData.getUChar(currentStunKey, numberOfStartingStunHits);
+    device[0].numberOfStartingHits = sensorPersitentData.getUChar(startingHitsKey, defaultNumberOfStartingHits);
+    device[0].currentNumberOfHits = sensorPersitentData.getUChar(currentHitsKey, defaultNumberOfStartingHits);
+    device[0].numberOfStartingStunHits = sensorPersitentData.getUChar(startingStunKey, defaultNumberOfStartingStunHits);
+    device[0].currentNumberOfStunHits = sensorPersitentData.getUChar(currentStunKey, defaultNumberOfStartingStunHits);
     EP_flag = sensorPersitentData.getBool(EP_flag_key, false); //Sensor requires EP set in signal to be hit
     ig_healing_flag = sensorPersitentData.getBool(ig_healing_flag_key, false); //Sensor ignores healing
     ig_stun_flag = sensorPersitentData.getBool(ig_stun_flag_key, false); //Sensor ignores stun hits
@@ -304,7 +309,7 @@
   {
     uint8_t items_saved = 0;
     localLog(F("Saving sensor configuration: "));
-    if(sensorPersitentData.putUChar(startingHitsKey, numberOfStartingHits) == 0)
+    if(sensorPersitentData.putUChar(startingHitsKey, device[0].numberOfStartingHits) == 0)
     {
       localLog(startingHitsKey);
       localLog(F("-failed "));
@@ -313,7 +318,7 @@
     {
       items_saved++;
     }
-    if(sensorPersitentData.putUChar(currentHitsKey, currentNumberOfHits) == 0)
+    if(sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits) == 0)
     {
       localLog(currentHitsKey);
       localLog(F("-failed "));
@@ -322,7 +327,7 @@
     {
       items_saved++;
     }
-    if(sensorPersitentData.putUChar(startingStunKey, numberOfStartingStunHits) == 0)
+    if(sensorPersitentData.putUChar(startingStunKey, device[0].numberOfStartingStunHits) == 0)
     {
       localLog(startingStunKey);
       localLog(F("-failed "));
@@ -331,7 +336,7 @@
     {
       items_saved++;
     }
-    if(sensorPersitentData.putUChar(currentStunKey, currentNumberOfStunHits) == 0)
+    if(sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits) == 0)
     {
       localLog(currentStunKey);
       localLog(F("-failed "));
@@ -432,10 +437,10 @@
   }
   void showSensorConfiguration()
   {
-    localLog(F("Starting hits: "));localLogLn(numberOfStartingHits);
-    localLog(F("Current hits: "));localLogLn(currentNumberOfHits);
-    localLog(F("Starting stun hits: "));localLogLn(numberOfStartingStunHits);
-    localLog(F("Current stun hits: "));localLogLn(currentNumberOfStunHits);
+    localLog(F("Starting hits: "));localLogLn(device[0].numberOfStartingHits);
+    localLog(F("Current hits: "));localLogLn(device[0].currentNumberOfHits);
+    localLog(F("Starting stun hits: "));localLogLn(device[0].numberOfStartingStunHits);
+    localLog(F("Current stun hits: "));localLogLn(device[0].currentNumberOfStunHits);
     localLog(F("Starting bleed out counter: "));localLogLn(bleedOutCounter);
     localLog(F("Require EP to hit: "));localLogLn(EP_flag == true ? "Yes":"No");
     localLog(F("Ignore healing: "));localLogLn(ig_healing_flag == true ? "Yes":"No");
@@ -451,10 +456,10 @@
   void resetSensor()
   {
     //ledOff();
-    currentNumberOfHits = numberOfStartingHits;
-    currentNumberOfStunHits = numberOfStartingStunHits;
-    sensorPersitentData.putUChar(currentHitsKey, currentNumberOfHits);
-    sensorPersitentData.putUChar(currentStunKey, currentNumberOfStunHits);
+    device[0].currentNumberOfHits = device[0].numberOfStartingHits;
+    device[0].currentNumberOfStunHits = device[0].numberOfStartingStunHits;
+    sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
+    sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
     sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
     #ifdef SUPPORT_LORA
       scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
@@ -480,7 +485,7 @@
   }
   void playCurrentHitsAnimation(void * parameter)
   {
-    for(uint8_t i = 0; i < currentNumberOfHits; i++)
+    for(uint8_t i = 0; i < (device[0].currentNumberOfHits < 10 ? device[0].currentNumberOfHits : 10); i++)
     {
       #ifdef SUPPORT_BEEPER
         if(beeperEnabled == true)
@@ -604,7 +609,7 @@
   
   void DoTstart()
   {
-    pinMode(IR_RECEIVER_PIN, INPUT);
+    pinMode(IR_RECEIVER_PIN, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(IR_RECEIVER_PIN), DoTisrWrapper, CHANGE);
     //Need to do some internal setup in the lasertag library
     sensor.resume();

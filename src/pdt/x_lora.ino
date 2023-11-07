@@ -382,10 +382,10 @@
       packer.pack(device[0].supplyVoltage);
       packer.pack(device[0].name);
       #ifdef ACT_AS_SENSOR
-        packer.pack(numberOfStartingHits);
-        packer.pack(numberOfStartingStunHits);
-        packer.pack(currentNumberOfHits);
-        packer.pack(currentNumberOfStunHits);
+        packer.pack(device[0].numberOfStartingHits);
+        packer.pack(device[0].numberOfStartingStunHits);
+        packer.pack(device[0].currentNumberOfHits);
+        packer.pack(device[0].currentNumberOfStunHits);
       #else
         packer.pack(defaultLocationSendInterval);
         packer.pack(loRaPerimiter1);
@@ -413,10 +413,10 @@
                 device[0].name,
                 printableUptime(millis()/1000).c_str(),
                 device[0].supplyVoltage,
-                currentNumberOfHits,
-                numberOfStartingHits,
-                currentNumberOfStunHits,
-                numberOfStartingStunHits
+                device[0].currentNumberOfHits,
+                device[0].numberOfStartingHits,
+                device[0].currentNumberOfStunHits,
+                device[0].numberOfStartingStunHits
                 );
               #else
                 SERIAL_DEBUG_PORT.printf("TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv intervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
