@@ -29,13 +29,14 @@
           digitalWrite(ledPin, HIGH);
         }
         ledOnTime = ontime;
+        ledOffTime = offtime;
         ledLastStateChange = millis();
         ledState = true;
       }
       xSemaphoreGive(ledSemaphore);
     }
   }
-  void ledOff()
+  void ledOff(uint32_t offtime)
   {
     if(xSemaphoreTake(ledSemaphore, ledSemaphoreTimeout) == pdTRUE)
     {
@@ -49,6 +50,7 @@
       }
       ledState = false;
       ledLastStateChange = millis();
+      ledOffTime = offtime;
       xSemaphoreGive(ledSemaphore);
     }
   }
@@ -66,7 +68,7 @@
         {
           if(ledOnTime > 0 && millis() - ledLastStateChange > ledOnTime)
           {
-            ledOff();
+            ledOff(ledOffTime);
           }
         }
         if(ledState == false && ledOffTime != 0)

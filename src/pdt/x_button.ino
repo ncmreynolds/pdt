@@ -3,7 +3,7 @@
   {
     pinMode(buttonPin, INPUT_PULLUP);
   }
-  #ifdef ACT_AS_TRACKER
+  #if defined(ACT_AS_TRACKER) && HARDWARE_VARIANT == C3PDT
     void checkButton()
     {
       if(digitalRead(buttonPin) == false && buttonHeld == false)// && millis() - buttonPushTime > buttonDebounceTime) //Handle single button pushes, which don't do anything
@@ -174,8 +174,7 @@
         }
       }
     }
-  #endif
-  #ifdef ACT_AS_BEACON
+  #elif defined(ACT_AS_BEACON) && HARDWARE_VARIANT == C3TrackedSensor
     void checkButton()
     {
       if(digitalRead(buttonPin) == false && buttonHeld == false)// && millis() - buttonPushTime > buttonDebounceTime) //Handle single button pushes, which don't do anything
@@ -213,6 +212,37 @@
               currentSensorState = sensorState::bleedOut;
             }
           #endif
+        }
+        else
+        {
+          buttonPushTime = millis();
+          buttonLongPress = false;
+        }
+      }
+    }
+  #elif defined(ACT_AS_BEACON) && HARDWARE_VARIANT == C3LoRaBeacon
+    void checkButton()
+    {
+      if(digitalRead(buttonPin) == false && buttonHeld == false)// && millis() - buttonPushTime > buttonDebounceTime) //Handle single button pushes, which don't do anything
+      {
+        buttonPushTime = millis();
+        buttonHeld = true;
+      }
+      else if(digitalRead(buttonPin) == false && buttonHeld == true && millis() - buttonPushTime > buttonLongPressTime) //Handle long press
+      {
+        buttonPushTime = millis();
+        buttonLongPress = true;
+        localLogLn(F("Button: long press - powering off"));
+        ledOn(100,100); //Fast blink
+        powerOffTimer = millis();
+      }
+      else if(digitalRead(buttonPin) == true && buttonHeld == true && millis() - buttonPushTime > buttonDebounceTime) //Handle button releases
+      {
+        buttonHeld = false;
+        if(buttonLongPress == false) //This is a short press
+        {
+          localLogLn(F("Button: short press"));
+          ledOn(10,0); //Fast blink
         }
         else
         {

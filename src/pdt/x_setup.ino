@@ -5,11 +5,20 @@
  */
 void setup() {
   //The very first thing to do is set up GPIO, as some things need pulling up/down ASAP
+  #ifdef SUPPORT_SOFT_POWER_OFF
+    setupSoftPowerOff();
+  #endif
+  #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    setupPeripheralPowerOff();
+  #endif
   #ifdef SUPPORT_VIBRATION
     setupVibration();
   #endif
   #ifdef SUPPORT_LED
     setupLed();
+    #if HARDWARE_VARIANT == C3LoRaBeacon
+      ledOn(500,500);
+    #endif
   #endif
   #ifdef SUPPORT_BEEPER
     setupBeeper();

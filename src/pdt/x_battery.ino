@@ -4,15 +4,18 @@
     if(enableBatteryMonitor == true)
     {
       localLog(F("Configuring battery monitor: "));
-      analogSetAttenuation(ADC_11db); //Set ADC to read up to 2500mV
-      #if defined(ARDUINO_ESP32C3_DEV)
-        device[0].supplyVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/ADCpeakVoltage;
-      #else
-        device[0].supplyVoltage = analogRead(voltageMonitorPin)*3.3/512.0;
+      #if HARDWARE_VARIANT == C3PDT
+        analogReadResolution(12);
+        analogSetAttenuation(ADC_11db); //Set ADC to read up to 2500mV
+      #elif HARDWARE_VARIANT == C3TrackedSensor
+        analogReadResolution(12);
+        analogSetAttenuation(ADC_11db); //Set ADC to read up to 2500mV
+      #elif HARDWARE_VARIANT == C3LoRaBeacon
+        analogReadResolution(12);
+        analogSetAttenuation(ADC_6db); //Set ADC to read up to 1300mV
       #endif
-      batteryPercentage = estimateBatteryPercentage(device[0].supplyVoltage);
-      //checkBatteryVoltage();  //Set initial voltage reading
       localLogLn(F("OK"));
+      //checkBatteryVoltage();  //Set initial voltage reading
     }
     else
     {
@@ -29,10 +32,12 @@
   }
   void checkBatteryVoltage()
   {
-    #if defined(ARDUINO_ESP32C3_DEV)
+    #if HARDWARE_VARIANT == C3PDT
       device[0].supplyVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/ADCpeakVoltage;
-    #else
-      device[0].supplyVoltage = analogRead(voltageMonitorPin)*3.3/512.0;
+    #elif HARDWARE_VARIANT == C3TrackedSensor
+      device[0].supplyVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/ADCpeakVoltage;
+    #elif HARDWARE_VARIANT == C3LoRaBeacon
+      device[0].supplyVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor);
     #endif
     batteryPercentage = estimateBatteryPercentage(device[0].supplyVoltage);
     localLog(F("Battery voltage: "));

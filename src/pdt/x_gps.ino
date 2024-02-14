@@ -174,6 +174,9 @@
       {
         device[0].hasFix = true;
         localLogLn(F("GPS got fix"));
+        #ifdef SUPPORT_LED
+          ledOff(0);
+        #endif
       }
       device[0].lastLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
       device[0].latitude = gps.location.lat();
@@ -194,6 +197,9 @@
     {
       device[0].hasFix = false;
       localLogLn(F("GPS lost fix"));
+      #ifdef SUPPORT_LED
+        ledOn(500,500);
+      #endif
     }
     return false;
   }

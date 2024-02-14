@@ -99,9 +99,16 @@ void setupWebServer()
           response->print(F(" Features: <b>"));
           response->print(deviceFeatures(device[0].typeOfDevice));
           response->printf_P(PSTR("</b><li>Built: <b>%s %s</b>"), __TIME__, __DATE__);
-          response->printf_P(PSTR(" Board: <b>%s</b> "), ARDUINO_BOARD);
+          response->printf_P(PSTR(" Board: <b>%s</b> PCB Variant: <b>"), ARDUINO_BOARD);
+          #if HARDWARE_VARIANT == C3PDT
+            response->print(F("C3 PDT v1"));
+          #elif HARDWARE_VARIANT == C3TrackedSensor
+            response->print(F("C3 Trackable sensor v1"));
+          #elif HARDWARE_VARIANT == C3LoRaBeacon
+            response->print(F("C3 LoRa beacon v1"));
+          #endif
           #ifdef ESP_IDF_VERSION_MAJOR
-            response->print(F("ESP-IDF: <b>v"));
+            response->print(F("</b> ESP-IDF: <b>v"));
             #ifdef ESP_IDF_VERSION_MINOR
               response->print(ESP_IDF_VERSION_MAJOR);
               response->print('.');
@@ -111,6 +118,7 @@ void setupWebServer()
             #endif
           #endif
           response->print(F("</b></li>"));
+          response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), device[0].id[0], device[0].id[1], device[0].id[2], device[0].id[3], device[0].id[4], device[0].id[5]);
           if(filesystemMounted == true)
           {
             #if defined(USE_SPIFFS)
@@ -1848,11 +1856,12 @@ void setupWebServer()
           response->print(F("</p>"));
         #endif
         // class=\"u-full-width\"
-        response->print(F("<table><thead><tr><th>Name</th><th>Type</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th>Info</th></tr></thead><tbody>"));
+        response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th>Info</th></tr></thead><tbody>"));
         for(uint8_t index = 0; index < numberOfDevices; index++)
         {
-          response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
+          response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
             (device[index].name == nullptr) ? "n/a" : device[index].name,
+            device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
             deviceFeatures(device[index].typeOfDevice).c_str(),
             device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
             (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),

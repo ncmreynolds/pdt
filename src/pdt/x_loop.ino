@@ -73,6 +73,18 @@ void loop()
       #endif
     }
   #endif
+  #ifdef SUPPORT_SOFT_POWER_OFF
+    if(powerOffTimer !=0 && millis() - powerOffTimer > 5E3)  //Power off
+    {
+      localLogLn(F("Powering off now"));
+      flushLog();
+      #if defined(ACT_AS_SENSOR)
+        sensorPersitentData.end(); 
+      #endif
+      powerOff();
+      powerOffTimer = 0;
+    }
+  #endif
   #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
     if(debugPortAvailable == false && millis() - serialBufferCheckTime > 10000) //Check if the serial port is catching up/online
     {
