@@ -10,6 +10,7 @@ void setup() {
   #endif
   #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
     setupPeripheralPowerOff();
+    peripheralPowerOn();
   #endif
   #ifdef SUPPORT_VIBRATION
     setupVibration();
@@ -17,7 +18,7 @@ void setup() {
   #ifdef SUPPORT_LED
     setupLed();
     #if HARDWARE_VARIANT == C3LoRaBeacon
-      ledOn(500,500);
+      ledSlowBlink();
     #endif
   #endif
   #ifdef SUPPORT_BEEPER
@@ -38,6 +39,9 @@ void setup() {
   #endif
   #ifdef ACT_AS_SENSOR
     device[0].typeOfDevice = device[0].typeOfDevice | 2; //Mark it as a sensor
+  #endif
+  #ifdef SUPPORT_FTM
+    device[0].typeOfDevice = device[0].typeOfDevice | 8;  //Mark it as a tracker
   #endif
   device[0].majorVersion = PDT_MAJOR_VERSION;
   device[0].minorVersion = PDT_MINOR_VERSION;

@@ -20,7 +20,7 @@
   {
     if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout) == pdTRUE) //Take the semaphore to exclude the sentence processing task and udate the data structures
     {
-      for(uint8_t index = 0; index < numberOfDevices; index++)  //Degrade quality if location updates missed, this INCLUDES this device!
+      for(uint8_t index = 1; index < numberOfDevices; index++)  //Degrade quality if location updates missed, this INCLUDES this device!
       {
         if(device[index].hasFix == true && //Thing has fix!
             device[index].nextLocationUpdate != 0 &&  //Thing has shared when to expect the location update
@@ -48,7 +48,7 @@
               if(index == currentBeacon) //Need to stop tracking this beacon
               {
                 currentBeacon = maximumNumberOfDevices;
-                distanceToCurrentBeacon = BEACONUNREACHABLE;
+                distanceToCurrentBeacon = effectivelyUnreachable;
                 distanceToCurrentBeaconChanged = true;
                 #ifdef SUPPORT_BEEPER
                   endRepeatingBeep();
@@ -132,11 +132,18 @@
           }
         #endif
       }
-      if(millis() - lastGpsTimeCheck > gpsTimeCheckInterval)  //Maintain system time using GPS which may be possible even without a full fix
+      #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+      if(peripheralsEnabled)
       {
-        lastGpsTimeCheck = millis();
-        updateTimeFromGps();
+      #endif
+        if(millis() - lastGpsTimeCheck > gpsTimeCheckInterval)  //Maintain system time using GPS which may be possible even without a full fix
+        {
+          lastGpsTimeCheck = millis();
+          updateTimeFromGps();
+        }
+      #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
       }
+      #endif
       xSemaphoreGive(gpsSemaphore);
     }
   }
@@ -144,6 +151,10 @@
   {
     if(gps.time.isValid() == true)
     {
+      if(gpsTimeCheckInterval != 1800E3)
+      {
+        gpsTimeCheckInterval = 1800E3;  //Reduce the check interval to half an hour
+      }
       if(timeIsValid() == false)  //Get an initial time at startup
       {
         localLog(F("Attempting to use GPS for time: "));
@@ -151,7 +162,6 @@
         if(timeIsValid() == true)
         {
           localLogLn(F("OK"));
-          gpsTimeCheckInterval = 1800000;  //Reduce the check interval to half an hour
         }
         else
         {
@@ -162,46 +172,94 @@
       {
         localLogLn(F("Updating time from GPS"));
         setTimeFromGps();
-        gpsTimeCheckInterval = 1800000;  //Reduce the check interval to half an hour
+      }
+    }
+    else
+    {
+      if(gpsTimeCheckInterval != 30E3)
+      {
+        gpsTimeCheckInterval = 30E3;  //Reduce the check interval to 30s
       }
     }
   }
   bool updateLocation() //True implies there's a GPS fix
   {
-    if(gps.location.isValid() == true)
+    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    if(peripheralsEnabled == true)
     {
-      if(device[0].hasFix == false)
+    #endif
+      if(gps.location.isValid() == true)
       {
-        device[0].hasFix = true;
-        localLogLn(F("GPS got fix"));
+        if(device[0].hasFix == false)
+        {
+          device[0].hasFix = true;
+          lastGPSstateChange = millis();
+          localLogLn(F("GPS got fix"));
+          #ifdef SUPPORT_LED
+            ledOff(0);
+          #endif
+        }
+        device[0].lastLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
+        device[0].latitude = gps.location.lat();
+        device[0].longitude = gps.location.lng();
+        device[0].course = gps.course.deg();
+        device[0].speed = gps.speed.mps();
+        device[0].hdop = gps.hdop.hdop();
+        gpsSentences = gps.passedChecksum();
+        gpsErrors = gps.failedChecksum();
+        #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+          if(peripheralsEnabled == true)
+          {
+            if(device[0].hdop < normalHdopThreshold)
+            {
+              smoothedSpeed = (smoothedSpeed * 0.9) + (device[0].speed *0.1);
+              if(smoothedSpeed < stationaryThreshold)
+              {
+                if(moving == true)
+                {
+                  moving = false;
+                  lastGPSstateChange = millis();
+                  localLogLn(F("Device stationary"));
+                }
+              }
+              else
+              {
+                if(moving == false)
+                {
+                  moving = true;
+                  lastGPSstateChange = millis();
+                  localLogLn(F("Device moving"));
+                }
+              }
+            }
+          }
+        #endif
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+          if(millis() - lastGPSstatus > 10000)
+          {
+            lastGPSstatus = millis();
+            showGPSstatus();
+          }
+        #endif
+        return true;
+      }
+      else if(device[0].hasFix == true)
+      {
+        device[0].hasFix = false;
+        lastGPSstateChange = millis();
+        localLogLn(F("GPS lost fix"));
         #ifdef SUPPORT_LED
-          ledOff(0);
+          ledSlowBlink();
         #endif
       }
-      device[0].lastLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
-      device[0].latitude = gps.location.lat();
-      device[0].longitude = gps.location.lng();
-      device[0].course = gps.course.deg();
-      device[0].speed = gps.speed.mps();
-      device[0].hdop = gps.hdop.hdop();
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-        if(millis() - lastGPSstatus > 10000)
-        {
-          lastGPSstatus = millis();
-          showGPSstatus();
-        }
-      #endif
+      return false;
+    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    }
+    else
+    {
       return true;
     }
-    else if(device[0].hasFix == true)
-    {
-      device[0].hasFix = false;
-      localLogLn(F("GPS lost fix"));
-      #ifdef SUPPORT_LED
-        ledOn(500,500);
-      #endif
-    }
-    return false;
+    #endif
   }
   void processGpsSentences(void * parameter)
   {
@@ -450,7 +508,7 @@
     }
     void calculateDistanceToTrackers()
     {
-      distanceToClosestTracker = TRACKERUNREACHABLE;
+      distanceToClosestTracker = effectivelyUnreachable;
       for(uint8_t index = 1; index < numberOfDevices; index++)
       {
         if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasFix == true)
@@ -471,19 +529,19 @@
   #endif
   char* hdopDescription(float hdop)
   {
-    if(hdop < 1)
+    if(hdop < excellentHdopThreshold)
     {
        return PSTR("excellent");
     }
-    else if(hdop < 1.5)
+    else if(hdop < goodHdopThreshold)
     {
       return PSTR("good");
     }
-    else if(hdop < 2)
+    else if(hdop < normalHdopThreshold)
     {
       return PSTR("normal");
     }
-    else if(hdop < 3)
+    else if(hdop < poorHdopThreshold)
     {
       return PSTR("poor");
     }

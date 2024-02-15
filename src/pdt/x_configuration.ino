@@ -60,6 +60,12 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   #if defined(ACT_AS_TRACKER)
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
   #endif
+  #if defined(SUPPORT_ESPNOW)
+    configuration["espNowEnabled"] = espNowEnabled;
+  #endif
+  #if defined(SUPPORT_FTM)
+    configuration["ftmEnabled"] = ftmEnabled;
+  #endif
   #if defined(SUPPORT_LORA)
     configuration["loRaEnabled"] = loRaEnabled;
     configuration["deviceInfoSendInterval"] = deviceInfoSendInterval;
@@ -158,6 +164,12 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     #endif
     #if defined(ACT_AS_TRACKER)
       maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
+    #endif
+    #if defined(SUPPORT_FTM)
+      ftmEnabled = configuration["ftmEnabled"] | true;
+    #endif
+    #if defined(SUPPORT_ESPNOW)
+      espNowEnabled = configuration["espNowEnabled"] | true;
     #endif
     #if defined(SUPPORT_LORA)
       loRaEnabled = configuration["loRaEnabled"] | true;
@@ -508,6 +520,14 @@ void printConfiguration()
     localLog(F("maximumEffectiveRange: "));
     localLogLn(maximumEffectiveRange);
   #endif
+  #if defined(SUPPORT_FTM)
+    localLog(F("ftmEnabled: "));
+    localLogLn(ftmEnabled);
+  #endif
+  #if defined(SUPPORT_ESPNOW)
+    localLog(F("espNowEnabled: "));
+    localLogLn(espNowEnabled);
+  #endif
   #if defined(SUPPORT_LORA)
     localLog(F("loRaEnabled: "));
     localLogLn(loRaEnabled);
@@ -581,11 +601,11 @@ String deviceFeatures(uint8_t featureFlags)
   String features;
   if((featureFlags & 0x01) == 0)
   {
-    features = "Location beacon";
+    features = "GPS beacon";
   }
   else
   {
-    features = "Beacon tracker";
+    features = "Tracker";
   }
   if((featureFlags & 0x02) == 2)
   {
@@ -593,7 +613,11 @@ String deviceFeatures(uint8_t featureFlags)
   }
   if((featureFlags & 0x04) == 4)
   {
-    features += ", Lasertag emitter";
+    features += " Lasertag emitter";
+  }
+  if((featureFlags & 0x08) == 8)
+  {
+    features += " Time-of-flight beacon";
   }
   return features;
 }

@@ -33,6 +33,9 @@ void loop()
   #ifdef SUPPORT_BUTTON
     checkButton();
   #endif
+  #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    managePeripheralPower();
+  #endif
   if(bootTime == 0)
   {
     if(timeIsValid())
@@ -74,7 +77,7 @@ void loop()
     }
   #endif
   #ifdef SUPPORT_SOFT_POWER_OFF
-    if(powerOffTimer !=0 && millis() - powerOffTimer > 5E3)  //Power off
+    if(powerOffTimer !=0 && millis() - powerOffTimer > 3E3)  //Power off
     {
       localLogLn(F("Powering off now"));
       flushLog();

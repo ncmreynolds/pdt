@@ -70,185 +70,194 @@ void manageLogging(void * parameter)
 template<typename typeToLog>
 void localLog(typeToLog message)  //Add a partial line to the local log, starting with a timestamp
 {
-  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
+  if(loggingSemaphore != NULL)
   {
-    if(logfileYear == 0)  //If a log file is not chose, try and choose one
+    if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
     {
-      setLogFilename();
-    }
-    else if(logRolloverOccured() == true && startOfLogLine == true)  //Check for log rollover, which only occurs after a new line. It is done here so it is rolled at the time of logging, not the time of the log flush
-    {
-      if(loggingBuffer.length() > 0)
+      if(logfileYear == 0)  //If a log file is not chose, try and choose one
       {
-        flushLog();
+        setLogFilename();
       }
-      setLogFilename(); //Try to choose a next log file
-    }
-    if(startOfLogLine == true)
-    {
-      startOfLogLine = false;
-      if(loggingBuffer.length() > logFlushThreshold)  //Check for the need to flush a buffer that's about to get too large (which is not fatal)
+      else if(logRolloverOccured() == true && startOfLogLine == true)  //Check for log rollover, which only occurs after a new line. It is done here so it is rolled at the time of logging, not the time of the log flush
       {
-        if(autoFlush == true)
+        if(loggingBuffer.length() > 0)
         {
-          #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
-            if(waitForBufferSpace(27))
-            {
-              SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
-            }
-          #endif
-          logLastFlushed = millis();
           flushLog();
         }
-        else
-        {
-          flushLogNow = true;
-        }
+        setLogFilename(); //Try to choose a next log file
       }
-      updateTimestamp();
-      /*
-      #ifdef SERIAL_LOG
-        if(waitForBufferSpace(20))
+      if(startOfLogLine == true)
+      {
+        startOfLogLine = false;
+        if(loggingBuffer.length() > logFlushThreshold)  //Check for the need to flush a buffer that's about to get too large (which is not fatal)
         {
-          SERIAL_DEBUG_PORT.print(timestamp);
-          SERIAL_DEBUG_PORT.print(' ');
+          if(autoFlush == true)
+          {
+            #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
+              if(waitForBufferSpace(27))
+              {
+                SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+              }
+            #endif
+            logLastFlushed = millis();
+            flushLog();
+          }
+          else
+          {
+            flushLogNow = true;
+          }
+        }
+        updateTimestamp();
+        /*
+        #ifdef SERIAL_LOG
+          if(waitForBufferSpace(20))
+          {
+            SERIAL_DEBUG_PORT.print(timestamp);
+            SERIAL_DEBUG_PORT.print(' ');
+          }
+        #endif
+        */
+        logToFile(timestamp);
+        logToFile(' ');
+      }
+      #ifdef SERIAL_LOG
+        if(waitForBufferSpace(String(message).length()))
+        {
+          SERIAL_DEBUG_PORT.print(message);
         }
       #endif
-      */
-      logToFile(timestamp);
-      logToFile(' ');
+      logToFile(message);
+      xSemaphoreGive(loggingSemaphore);
     }
-    #ifdef SERIAL_LOG
-      if(waitForBufferSpace(String(message).length()))
-      {
-        SERIAL_DEBUG_PORT.print(message);
-      }
-    #endif
-    logToFile(message);
-    xSemaphoreGive(loggingSemaphore);
   }
 }
 template<typename typeToLog>
 void localLog(typeToLog message, uint8_t base)  //Add a partial line to the local log, starting with a timestamp
 {
-  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
+  if(loggingSemaphore != NULL)
   {
-    if(logfileYear == 0)  //If a log file is not chose, try and choose one
+    if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
     {
-      setLogFilename();
-    }
-    else if(autoFlush == true && logRolloverOccured() == true && startOfLogLine == true)  //Check for log rollover, which only occurs after a new line. It is done here so it is rolled at the time of logging, not the time of the log flush
-    {
-      if(loggingBuffer.length() > 0)
+      if(logfileYear == 0)  //If a log file is not chose, try and choose one
       {
-        flushLog();
+        setLogFilename();
       }
-      setLogFilename(); //Try to choose a next log file
-    }
-    if(startOfLogLine == true)
-    {
-      startOfLogLine = false;
-      if(loggingBuffer.length() > logFlushThreshold)  //Check for the need to flush a buffer that's about to get too large (which is not fatal)
+      else if(autoFlush == true && logRolloverOccured() == true && startOfLogLine == true)  //Check for log rollover, which only occurs after a new line. It is done here so it is rolled at the time of logging, not the time of the log flush
       {
-        if(autoFlush == true)
+        if(loggingBuffer.length() > 0)
         {
-          #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
-            if(waitForBufferSpace(29))
-            {
-              SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
-            }
-          #endif
-          logLastFlushed = millis();
           flushLog();
         }
-        else
-        {
-          flushLogNow = true;
-        }
+        setLogFilename(); //Try to choose a next log file
       }
-      updateTimestamp();
-      /*
-      #ifdef SERIAL_LOG
-        if(waitForBufferSpace(21))
+      if(startOfLogLine == true)
+      {
+        startOfLogLine = false;
+        if(loggingBuffer.length() > logFlushThreshold)  //Check for the need to flush a buffer that's about to get too large (which is not fatal)
         {
-          SERIAL_DEBUG_PORT.print(timestamp);
-          SERIAL_DEBUG_PORT.print(' ');
+          if(autoFlush == true)
+          {
+            #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
+              if(waitForBufferSpace(29))
+              {
+                SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+              }
+            #endif
+            logLastFlushed = millis();
+            flushLog();
+          }
+          else
+          {
+            flushLogNow = true;
+          }
+        }
+        updateTimestamp();
+        /*
+        #ifdef SERIAL_LOG
+          if(waitForBufferSpace(21))
+          {
+            SERIAL_DEBUG_PORT.print(timestamp);
+            SERIAL_DEBUG_PORT.print(' ');
+          }
+        #endif
+        */
+        logToFile(timestamp);
+        logToFile(' ');
+      }
+      #ifdef SERIAL_LOG
+        if(waitForBufferSpace(32))
+        {
+          SERIAL_DEBUG_PORT.print(message, base);
         }
       #endif
-      */
-      logToFile(timestamp);
-      logToFile(' ');
+      logToFile(message);
+      xSemaphoreGive(loggingSemaphore);
     }
-    #ifdef SERIAL_LOG
-      if(waitForBufferSpace(32))
-      {
-        SERIAL_DEBUG_PORT.print(message, base);
-      }
-    #endif
-    logToFile(message);
-    xSemaphoreGive(loggingSemaphore);
   }
 }
 template<typename typeToLog>
 void localLogLn(typeToLog message) //Add to the local log, starting with a timestamp
 {
-  if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
+  if(loggingSemaphore != NULL)
   {
-    if(logfileYear == 0)  //If a log file is not chose, try and choose one
+    if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
     {
-      setLogFilename();
-    }
-    else if(logRolloverOccured() == true && startOfLogLine == true)  //Check for log rollover, which only occurs after a new line. It is done here so it is rolled at the time of logging, not the time of the log flush
-    {
-      if(loggingBuffer.length() > 0)
+      if(logfileYear == 0)  //If a log file is not chose, try and choose one
       {
-        flushLog();
+        setLogFilename();
       }
-      setLogFilename(); //Try to choose a next log file
-    }
-    if(startOfLogLine == true)
-    {
-      startOfLogLine = false;
-      if(loggingBuffer.length() > logFlushThreshold)  //Check for the need to flush a buffer that's about to get too large (which is not fatal)
+      else if(logRolloverOccured() == true && startOfLogLine == true)  //Check for log rollover, which only occurs after a new line. It is done here so it is rolled at the time of logging, not the time of the log flush
       {
-        if(autoFlush == true)
+        if(loggingBuffer.length() > 0)
         {
-          #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
-            if(waitForBufferSpace(25))
-            {
-              SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
-            }
-          #endif
-          logLastFlushed = millis();
           flushLog();
         }
-        else
-        {
-          flushLogNow = true;
-        }
+        setLogFilename(); //Try to choose a next log file
       }
-      updateTimestamp();
-      /*
-      #ifdef SERIAL_LOG
-        if(waitForBufferSpace(21))
+      if(startOfLogLine == true)
+      {
+        startOfLogLine = false;
+        if(loggingBuffer.length() > logFlushThreshold)  //Check for the need to flush a buffer that's about to get too large (which is not fatal)
         {
-          SERIAL_DEBUG_PORT.print(timestamp);
-          SERIAL_DEBUG_PORT.print(' ');
+          if(autoFlush == true)
+          {
+            #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
+              if(waitForBufferSpace(25))
+              {
+                SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+              }
+            #endif
+            logLastFlushed = millis();
+            flushLog();
+          }
+          else
+          {
+            flushLogNow = true;
+          }
+        }
+        updateTimestamp();
+        /*
+        #ifdef SERIAL_LOG
+          if(waitForBufferSpace(21))
+          {
+            SERIAL_DEBUG_PORT.print(timestamp);
+            SERIAL_DEBUG_PORT.print(' ');
+          }
+        #endif
+        */
+        logToFile(timestamp);
+        logToFile(' ');
+      }
+      #ifdef SERIAL_LOG
+        if(waitForBufferSpace(String(message).length() + 1))
+        {
+          SERIAL_DEBUG_PORT.println(message);
         }
       #endif
-      */
-      logToFile(timestamp);
-      logToFile(' ');
+      logToFileLn(message);
+      startOfLogLine = true;
+      xSemaphoreGive(loggingSemaphore);
     }
-    #ifdef SERIAL_LOG
-      if(waitForBufferSpace(String(message).length() + 1))
-      {
-        SERIAL_DEBUG_PORT.println(message);
-      }
-    #endif
-    logToFileLn(message);
-    startOfLogLine = true;
-    xSemaphoreGive(loggingSemaphore);
   }
 }
 template<typename typeToLog>

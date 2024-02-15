@@ -27,13 +27,52 @@
   void setupPeripheralPowerOff()
   {
     pinMode(peripheralPowerOffPin, OUTPUT);
-    if(peripheralPowerOffPinInverted == true)
+  }
+  void managePeripheralPower()
+  {
+    #ifdef SUPPORT_GPS
+      if(peripheralsEnabled == true && moving == false && millis() - lastGPSstateChange > 60E3)
+      {
+        peripheralPowerOff();
+        lastGPSstateChange = millis();
+      }
+      if(peripheralsEnabled == false && millis() - lastGPSstateChange > 60E3)
+      {
+        peripheralPowerOn();
+        lastGPSstateChange = millis();
+      }
+    #endif
+  }
+  void peripheralPowerOn()
+  {
+    if(peripheralsEnabled == false)
     {
-      digitalWrite(peripheralPowerOffPin,LOW);
+      if(peripheralPowerOffPinInverted == true)
+      {
+        digitalWrite(peripheralPowerOffPin,LOW);
+      }
+      else
+      {
+        digitalWrite(peripheralPowerOffPin,HIGH);
+      }
+      peripheralsEnabled = true;
+      localLogLn(F("Peripheral power on"));
     }
-    else
+  }
+  void peripheralPowerOff()
+  {
+    if(peripheralsEnabled == true)
     {
-      digitalWrite(peripheralPowerOffPin,HIGH);
+      if(peripheralPowerOffPinInverted == true)
+      {
+        digitalWrite(peripheralPowerOffPin,HIGH);
+      }
+      else
+      {
+        digitalWrite(peripheralPowerOffPin,LOW);
+      }
+      peripheralsEnabled = false;
+      localLogLn(F("Peripheral power off"));
     }
   }
 #endif

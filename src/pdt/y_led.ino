@@ -14,6 +14,18 @@
     xSemaphoreGive(ledSemaphore);
     xTaskCreate(manageLed, "manageLed", 512, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
   }
+  void ledPulse()
+  {
+    ledOn(ledPulseOnTime,0);
+  }
+  void ledFastBlink()
+  {
+    ledOn(ledFastBlinkOnTime, ledFastBlinkOffTime);
+  }
+  void ledSlowBlink()
+  {
+    ledOn(ledSlowBlinkOnTime, ledSlowBlinkOffTime);
+  }
   void ledOn(uint32_t ontime, uint32_t offtime)
   {
     if(xSemaphoreTake(ledSemaphore, ledSemaphoreTimeout) == pdTRUE)

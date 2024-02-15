@@ -87,6 +87,8 @@
     #define SUPPORT_SOFT_PERIPHERAL_POWER_OFF
     #define SUPPORT_BUTTON
     #define SUPPORT_LED
+    #define SUPPORT_FTM
+    #define SUPPORT_ESPNOW
   #endif
 #endif
 //#define SERVE_CONFIG_FILE
@@ -275,6 +277,22 @@
 */
 #ifdef SUPPORT_GPS
   #include <TinyGPS++.h>
+#endif
+/*
+ * 
+ * FTM
+ * 
+ */
+#ifdef SUPPORT_FTM
+bool ftmEnabled = false;
+#endif
+/*
+ * 
+ * ESP-Now
+ * 
+ */
+#ifdef SUPPORT_ESPNOW
+bool espNowEnabled = false;
 #endif
 /*
 
@@ -468,8 +486,8 @@ char* timeServer = nullptr;
 const char* default_timeZone = "GMT0BST,M3.5.0/1,M10.5.0"; //The default DST setting for Europe/London, see https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 char* timeZone = nullptr;
 //const char* timeZone = "UTC0"; //Use this for UTC
-char timestamp[] = "XX:XX:XX XX-XX-XXXX"; //A string overwritten with the current timestamp for logging. It uses this blank XX format until time is set by NTP after booting.
-uint64_t bootTime = 0; //Use the moment the system got a valid NTP time to calculate the boot time for approximate uptime calculations, millis() wraps pretty quickly so we shouldn't use that
+char timestamp[] = "XX:XX:XX XX-XX-XXXX"; //A string overwritten with the current timestamp for logging.
+uint64_t bootTime = 0; //Use the moment the system got a valid NTP time to calculate the boot time for approximate uptime calculations
 #if defined ENABLE_REMOTE_RESTART
 uint32_t restartTimer = 0;  //Used to schedule a restart
 #endif
@@ -643,24 +661,30 @@ const uint16_t loggingYieldTime = 100;
 
 */
 #ifdef SUPPORT_GPS
+  TinyGPSPlus gps;
   TaskHandle_t gpsManagementTask = NULL;
   SemaphoreHandle_t gpsSemaphore = NULL;
   const uint16_t gpsSemaphoreTimeout = 5;
   const uint16_t gpsYieldTime = 100;
-  #define MINIMUM_VIABLE_HDOP 10
-  TinyGPSPlus gps;
+  const uint8_t excellentHdopThreshold = 1;
+  const uint8_t goodHdopThreshold = 2;
+  const uint8_t normalHdopThreshold = 4;
+  const uint8_t poorHdopThreshold = 6;
+  const uint8_t minimumViableHdop = 10;
   const uint32_t GPSBaud = 9600;
   uint32_t lastGpsTimeCheck = 0;
-  uint32_t gpsTimeCheckInterval = 30000;
+  uint16_t gpsTimeCheckInterval = 30000;
   uint32_t lastDistanceCalculation = 0;
-  uint32_t distanceCalculationInterval = 1000;
-  //double trackerLatitude = 51.508131; //London
-  //double trackerLongitude = -0.128002;
+  uint16_t distanceCalculationInterval = 1000;
+  uint32_t lastGPSstatus = 0;
+  uint16_t gpsSentences = 0;
+  uint16_t gpsErrors = 0;
+  bool useGpsForTimeSync = true;
   struct deviceLocationInfo {
     uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     char* name = nullptr;
     bool hasFix = false;
-    uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor
+    uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor, 4 = emitter, 8 = FTM beacon
     float supplyVoltage = 0;  // Battery health can be guesstimated from this
     uint32_t uptime = 0;  // Check for reboots
     uint8_t majorVersion = 0; //Software version
@@ -683,12 +707,12 @@ const uint16_t loggingYieldTime = 100;
     uint8_t currentNumberOfStunHits = 0;
   };
   const uint8_t maximumNumberOfDevices = 16;
-  uint8_t numberOfDevices = 0;
   deviceLocationInfo device[maximumNumberOfDevices];
+  uint8_t numberOfDevices = 0;
+  double effectivelyUnreachable = 1E10;
   #if defined(ACT_AS_TRACKER)
-    #define BEACONUNREACHABLE 100000
     double maximumEffectiveRange = 99;
-    uint32_t distanceToCurrentBeacon = BEACONUNREACHABLE;
+    uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
     bool distanceToCurrentBeaconChanged = false;
     uint32_t lastDistanceChangeUpdate = 0;
     uint8_t currentBeacon = maximumNumberOfDevices; //max implies none found
@@ -700,26 +724,24 @@ const uint16_t loggingYieldTime = 100;
     };
     trackingMode currentTrackingMode = trackingMode::nearest;
   #elif defined(ACT_AS_BEACON)
-    #define TRACKERUNREACHABLE 100000
     uint8_t closestTracker = maximumNumberOfDevices;
-    uint16_t distanceToClosestTracker = TRACKERUNREACHABLE;
+    uint16_t distanceToClosestTracker = effectivelyUnreachable;
   #endif
-  uint32_t lastGPSstatus = 0;
-  uint32_t chars;
-  uint16_t sentences, failed;
-  bool useGpsForTimeSync = true;
+  #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    double smoothedSpeed = 100;
+    uint8_t stationaryThreshold = 1;
+    bool moving = true;
+    uint32_t lastGPSstateChange = 0;
+  #endif
 #endif
 /*
  * 
- * LED
+ * Peripheral power
  * 
-#ifdef SUPPORT_LED
-  uint32_t ledOnTime = 20;
-  uint32_t ledOffTime = 1000;
-  uint32_t ledLastStateChange = 0;
-  bool ledState = false;
-#endif
  */
+#ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+  bool peripheralsEnabled = false;
+#endif
 /*
 
    Beeper
@@ -746,6 +768,11 @@ const uint16_t loggingYieldTime = 100;
   SemaphoreHandle_t ledSemaphore = NULL;
   const uint16_t ledYieldTime = 50;
   const uint16_t ledSemaphoreTimeout = 5;
+  uint16_t ledPulseOnTime = 50;
+  uint16_t ledSlowBlinkOnTime = 500;
+  uint16_t ledSlowBlinkOffTime = 500;
+  uint16_t ledFastBlinkOnTime = 10;
+  uint16_t ledFastBlinkOffTime = 90;
   uint32_t ledOnTime = 20;
   uint32_t ledOffTime = 0;
   uint32_t ledLastStateChange = 0;

@@ -246,7 +246,7 @@
             }
             else
             {
-              device[0].nextLocationUpdate = newLocationSharingInterval(BEACONUNREACHABLE, 0);
+              device[0].nextLocationUpdate = newLocationSharingInterval(effectivelyUnreachable, 0);
             }
           }
         #elif defined(ACT_AS_BEACON)
@@ -262,7 +262,7 @@
             }
             else
             {
-              device[0].nextLocationUpdate = newLocationSharingInterval(TRACKERUNREACHABLE, 0);
+              device[0].nextLocationUpdate = newLocationSharingInterval(effectivelyUnreachable, 0);
             }
           }
         #endif
@@ -574,7 +574,7 @@
                       unpacker.unpack(device[deviceIndex].speed);
                       unpacker.unpack(device[deviceIndex].hdop);
                       unpacker.unpack(device[deviceIndex].nextLocationUpdate);
-                      if(device[deviceIndex].hdop < MINIMUM_VIABLE_HDOP)
+                      if(device[deviceIndex].hdop < minimumViableHdop)
                       {
                         if(device[deviceIndex].hasFix == false)
                         {
@@ -612,6 +612,12 @@
                             device[deviceIndex].updateHistory);
                         }
                       #endif
+                      if((device[deviceIndex].updateHistory & 0x7fff)< 0x00ff)
+                      {
+                        localLog(F("Device "));
+                        localLog(deviceIndex);
+                        localLogLn(F(" gone online"));
+                      }
                     }
                     else if(messagetype == deviceStatusUpdateId)
                     {

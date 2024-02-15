@@ -77,17 +77,18 @@ void setupWebServer()
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 90, nullptr);
           //Top of page buttons
-          response->print(F("<h2>General</h2>"));
-          response->print(F("<div class=\"row\"><div class=\"three columns\"><a href =\"/listLogs\"><input class=\"button-primary\" type=\"button\" value=\"Logs\" style=\"width: 100%;\"></a></div>"));
+          response->print(F("<div class=\"row\"><div class=\"three columns\"><a href =\"/devices\"><input class=\"button-primary\" type=\"button\" value=\"Devices\" style=\"width: 100%;\"></a></div>"));
+          response->print(F("<div class=\"three columns\"><a href =\"/listLogs\"><input class=\"button-primary\" type=\"button\" value=\"Logs\" style=\"width: 100%;\"></a></div>"));
           response->print(F("<div class=\"three columns\"><a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Configuration\" style=\"width: 100%;\"></a></div>"));
-          #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
-            response->print(F("<div class=\"three columns\"><a href =\"/update\"><input class=\"button-primary\" type=\"button\" value=\"Software Update\" style=\"width: 100%;\"></a></div>"));
-          #endif
           #if defined(ENABLE_REMOTE_RESTART)
             response->print(F("<div class=\"three columns\"><a href =\"/restart\"><input class=\"button-primary\" type=\"button\" value=\"Restart\" style=\"width: 100%;\"></a></div>"));
           #endif
+          #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
+            response->print(F("</div><div class=\"row\"><div class=\"three columns\"><a href =\"/update\"><input class=\"button-primary\" type=\"button\" value=\"Software Update\" style=\"width: 100%;\"></a></div>"));
+          #endif
           response->print(F("</div>"));
           //Status information
+          response->print(F("<h2>General</h2>"));
           response->print(F("<ul>"));
           #if defined(ACT_AS_TRACKER)
             //response->printf_P(PSTR("<li>PDT tracker firmware: <b>%s %u.%u.%u</b>"), __BASE_FILE__, device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
@@ -260,9 +261,21 @@ void setupWebServer()
               response->print(F("</b></li>"));
             }
           }
+          #ifdef SUPPORT_ESPNOW
+            response->print(F("<h2>ESP-Now</h2>"));
+            response->print(F("<li>ESP-Now: <b>"));
+            if(espNowEnabled == true)
+            {
+              response->print(F("On"));
+            }
+            else
+            {
+              response->print(F("Off"));
+            }
+            response->print(F("</b></li>"));
+          #endif
           #if defined(SUPPORT_LORA)
           response->print(F("<h2>LoRa</h2>"));
-          response->print(F("<div class=\"row\"><div class=\"three columns\"><a href =\"/devices\"><input class=\"button-primary\" type=\"button\" value=\"Devices\" style=\"width: 100%;\"></a></div></div>"));
           response->print(F("<li>LoRa radio: <b>"));
           if(loRaEnabled == true)
           {
@@ -285,20 +298,57 @@ void setupWebServer()
           }
           response->print(F("</b></li>"));
           #endif
+          #ifdef SUPPORT_FTM
+            response->print(F("<h2>FTM (time-of-flight) beacon</h2>"));
+            response->print(F("<li>FTM beacon: <b>"));
+            if(ftmEnabled == true)
+            {
+              response->print(F("On"));
+            }
+            else
+            {
+              response->print(F("Off"));
+            }
+            response->print(F("</b></li>"));
+          #endif
           #ifdef SUPPORT_GPS
+            response->print(F("<h2>GPS</h2>"));
+            #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+              response->print(F("<li>Power: <b>"));
+              if(peripheralsEnabled == true)
+              {
+                response->print(F("On"));
+              }
+              else
+              {
+                response->print(F("Off"));
+              }
+              response->print(F("</b></li>"));
+            #endif
             if(device[0].hasFix)
             {          
               response->print(F("<li>Latitude: <b>"));
               response->print(device[0].latitude);
-              response->print(F("</b> "));
-              response->print(F("Longitude: <b>"));
+              response->print(F("</b> Longitude: <b>"));
               response->print(device[0].longitude);
-              response->print(F("</b>"));
-              response->print(F(" HDOP: <b>"));
+              response->print(F("</b> Speed: <b>"));
+              response->print(device[0].speed);
+              response->print(F("</b> HDOP: <b>"));
               response->print(device[0].hdop);
               response->print('(');
               response->print(hdopDescription(device[0].hdop));
               response->print(F(")</b></li>"));
+              response->print(F("<li>Sentences: <b>"));
+              response->print(gpsSentences);
+              response->print(F("</b> Errors: <b>"));
+              response->print(gpsErrors);
+              if(gpsSentences > 0 && gpsErrors > 0)
+              {
+                response->print('(');
+                response->print(float(100) * float(gpsErrors)/float(gpsSentences));
+                response->print(F("%)"));
+              }
+              response->print(F("</b></li>"));
               #if defined(ACT_AS_TRACKER)
                 response->print(F("<li>Distance to beacon: <b>"));
                 if(currentBeacon < maximumNumberOfDevices)
@@ -434,8 +484,9 @@ void setupWebServer()
           }
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 0, nullptr);
+          response->print(F("<div class=\"row\"><div class=\"three columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div></div>"));
           response->print(F("<h2>Log files</h2>"));
-          response->print(F("<table class=\"u-full-width\"><thead><tr><th>File</th><th>Size</th><th colspan=\"2\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></th></tr></thead><tbody>"));
+          response->print(F("<table class=\"u-full-width\"><thead><tr><th>File</th><th>Size</th></tr></thead><tbody>"));
           #if defined(USE_SPIFFS)
             Dir dir = SPIFFS.openDir(logDirectory);
             while (dir.next ())
@@ -588,10 +639,10 @@ void setupWebServer()
           #endif
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 0, nullptr);
-          response->print(F("<h2>Configuration</h2>"));
           //Start of form
           response->print(F("<form method=\"POST\">"));
-          response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\">"));
+          response->print(F("<div class=\"row\"><div class=\"three columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"three columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
+          response->print(F("<h2>Configuration</h2>"));
           response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"deviceName\">Node name</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"deviceName\" name=\"deviceName\"></div></div>"), device[0].name);
           response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Networking</h3></div></div>"));
           #if defined(SUPPORT_WIFI)
@@ -666,6 +717,15 @@ void setupWebServer()
             response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"topLadderResistor\">Top ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"topLadderResistor\" name=\"topLadderResistor\"></div>"), topLadderResistor);
             response->printf_P(PSTR("<div class=\"six columns\"><label for=\"bottomLadderResistor\">Bottom ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\"></div></div>"), bottomLadderResistor);
           #endif
+          //FTM
+          #if defined(SUPPORT_FTM)
+            //FTM
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>FTM (time-of-flight)</h3></div></div>"));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"ftmEnabled\">Time-of-flight beacon enabled</label><select class=\"u-full-width\" id=\"ftmEnabled\" name=\"ftmEnabled\">"));
+            response->print(F("<option value=\"true\""));response->print(ftmEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(ftmEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
+            response->print(F("</select></div></div>"));
+          #endif
           //GPS
           #ifdef SUPPORT_GPS
             response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>GPS</h3></div></div>"));
@@ -720,6 +780,14 @@ void setupWebServer()
             response->print(F("<option value=\"50\""));response->print(vibrationLevel == 50 ? " selected>":">");response->print(F("50%</option>"));
             response->print(F("<option value=\"75\""));response->print(vibrationLevel == 75 ? " selected>":">");response->print(F("75%</option>"));
             response->print(F("<option value=\"100\""));response->print(vibrationLevel == 100 ? " selected>":">");response->print(F("100%</option>"));
+            response->print(F("</select></div></div>"));
+          #endif
+          #if defined(SUPPORT_ESPNOW)
+            //ESP-Now
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>ESP-Now</h3></div></div>"));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"espNowEnabled\">ESP-Now radio enabled</label><select class=\"u-full-width\" id=\"espNowEnabled\" name=\"espNowEnabled\">"));
+            response->print(F("<option value=\"true\""));response->print(espNowEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
+            response->print(F("<option value=\"false\""));response->print(espNowEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
             response->print(F("</select></div></div>"));
           #endif
           #if defined(SUPPORT_LORA)
@@ -1148,6 +1216,32 @@ void setupWebServer()
               {
                 beeperEnabled = false;
                 //localLogLn(F("disabled"));
+              }
+            }
+          #endif
+          #ifdef SUPPORT_FTM
+            if(request->hasParam("ftmEnabled", true))
+            {
+              if(request->getParam("ftmEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                ftmEnabled = true;
+              }
+              else
+              {
+                ftmEnabled = false;
+              }
+            }
+          #endif
+          #ifdef SUPPORT_ESPNOW
+            if(request->hasParam("espNowEnabled", true))
+            {
+              if(request->getParam("espNowEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                espNowEnabled = true;
+              }
+              else
+              {
+                espNowEnabled = false;
               }
             }
           #endif
@@ -1821,11 +1915,12 @@ void setupWebServer()
         addPageHeader(response, 90, "/devices");
         response->print(F("<h2>Devices</h2>"));
         //Top of page buttons
-        response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+        response->print(F("<div class=\"row\"><div class=\"three columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div>"));
         #ifdef ACT_AS_TRACKER
-          response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\" style=\"width: 100%;\"></a> "));
-          response->print(F("<a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\" style=\"width: 100%;\"></a>"));
-          response->print(F("<p>Tracking mode: "));
+          response->print(F("<div class=\"row\">"));
+          response->print(F("<div class=\"three columns\"><a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\" style=\"width: 100%;\"></a></div>"));
+          response->print(F("<div class=\"three columns\"><a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\" style=\"width: 100%;\"></a></div></div>"));
+          response->print(F("<div class=\"row\"><div class=\"twelve columns\">Tracking mode: "));
           if(currentTrackingMode == trackingMode::nearest)
           {
             response->print(F("nearest"));
@@ -1853,29 +1948,42 @@ void setupWebServer()
               }
             }
           }
-          response->print(F("</p>"));
+          response->print(F("</div>"));
         #endif
-        // class=\"u-full-width\"
+        response->print(F("</div><div class=\"row\"><div class=\"twelve columns\">"));
         response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th>Info</th></tr></thead><tbody>"));
         for(uint8_t index = 0; index < numberOfDevices; index++)
         {
-          response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
-            (device[index].name == nullptr) ? "n/a" : device[index].name,
-            device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
-            deviceFeatures(device[index].typeOfDevice).c_str(),
-            device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
-            (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
-            device[index].supplyVoltage,
-            (device[index].hasFix == true) ? PSTR("Yes") : PSTR("No"),
-            device[index].latitude,
-            device[index].longitude,
-            device[index].distanceTo,
-            device[index].courseTo,
-            device[index].updateHistory);
-            if(index == 0)
-            {
-              response->print(F("This device"));
-            }
+          if(index > 0)
+          {
+            response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
+              (device[index].name == nullptr) ? "n/a" : device[index].name,
+              device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
+              deviceFeatures(device[index].typeOfDevice).c_str(),
+              device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
+              (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
+              device[index].supplyVoltage,
+              (device[index].hasFix == true) ? PSTR("Yes") : PSTR("No"),
+              device[index].latitude,
+              device[index].longitude,
+              device[index].distanceTo,
+              device[index].courseTo,
+              device[index].updateHistory);
+          }
+          else
+          {
+            response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>This device"),
+              (device[index].name == nullptr) ? "n/a" : device[index].name,
+              device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
+              deviceFeatures(device[index].typeOfDevice).c_str(),
+              device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
+              (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
+              device[index].supplyVoltage,
+              (device[index].hasFix == true) ? PSTR("Yes") : PSTR("No"),
+              device[index].latitude,
+              device[index].longitude
+              );
+          }
             #ifdef ACT_AS_TRACKER
               else if(index == currentBeacon)
               {
@@ -1886,14 +1994,14 @@ void setupWebServer()
                 response->printf_P(PSTR("<a href =\"/track?index=%u\"><input class=\"button-primary\" type=\"button\" value=\"Track\" style=\"width: 100%;\"></a>"),index);
               }
             #else
-              else if(index == closestTracker)
+              if(index == closestTracker)
               {
                 response->print(F("Closest tracker"));
               }
             #endif
             response->print(F("</td></tr>"));
         }
-        response->print(F("</tbody></table>"));
+        response->print(F("</tbody></table></div></div>"));
         addPageFooter(response);
         //Send response
         request->send(response);

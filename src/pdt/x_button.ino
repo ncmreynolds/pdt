@@ -233,7 +233,7 @@
         buttonPushTime = millis();
         buttonLongPress = true;
         localLogLn(F("Button: long press - powering off"));
-        ledOn(100,100); //Fast blink
+        ledFastBlink();
         powerOffTimer = millis();
       }
       else if(digitalRead(buttonPin) == true && buttonHeld == true && millis() - buttonPushTime > buttonDebounceTime) //Handle button releases
@@ -242,7 +242,7 @@
         if(buttonLongPress == false) //This is a short press
         {
           localLogLn(F("Button: short press"));
-          ledOn(10,0); //Fast blink
+          ledPulse();
         }
         else
         {
