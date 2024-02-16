@@ -41,7 +41,10 @@ void setup() {
     device[0].typeOfDevice = device[0].typeOfDevice | 2; //Mark it as a sensor
   #endif
   #ifdef SUPPORT_FTM
-    device[0].typeOfDevice = device[0].typeOfDevice | 8;  //Mark it as a tracker
+    if(ftmEnabled == true)
+    {
+      device[0].typeOfDevice = device[0].typeOfDevice | 8;  //Mark it as an FTM device
+    }
   #endif
   device[0].majorVersion = PDT_MAJOR_VERSION;
   device[0].minorVersion = PDT_MINOR_VERSION;

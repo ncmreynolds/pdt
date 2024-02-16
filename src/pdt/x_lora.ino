@@ -71,7 +71,7 @@
       #endif
       return;
     }
-    else if(packetSize <= MAX_LORA_BUFFER_SIZE)
+    else if(packetSize <= maxLoRaBufferSize)
     {
       /*
       #if defined(SERIAL_DEBUG)
@@ -223,7 +223,7 @@
         }
         loRaReceiveBufferSize = 0;
       }
-      if(millis() - lastDeviceInfoSendTime > deviceInfoSendInterval)
+      if(millis() - lastDeviceInfoSendTime > loRaDeviceInfoInterval)
       {
         lastDeviceInfoSendTime = millis();
         shareDeviceInfo();
@@ -272,7 +272,7 @@
   }
   void scheduleDeviceInfoShareSoon()
   {
-    lastDeviceInfoSendTime = millis() - (deviceInfoSendInterval + 5000);  //Force the sensor to update any trackers soon, 5s is a good time to allow for more hits before sending
+    lastDeviceInfoSendTime = millis() - (loRaDeviceInfoInterval + 5000);  //Force the sensor to update any trackers soon, 5s is a good time to allow for more hits before sending
   }
   uint32_t newLocationSharingInterval(uint16_t distance, float speed)
   {
@@ -281,19 +281,19 @@
     {
       if(distance < loRaPerimiter1)
       {
-        newInterval = locationSendInterval1;
+        newInterval = loRaLocationInterval1;
       }
       else if(distance < loRaPerimiter2)
       {
-        newInterval = locationSendInterval2;
+        newInterval = loRaLocationInterval2;
       }
       else if(distance < loRaPerimiter3)
       {
-        newInterval = locationSendInterval3;
+        newInterval = loRaLocationInterval3;
       }
       else
       {
-        newInterval = defaultLocationSendInterval;
+        newInterval = defaultLoRaLocationInterval;
       }
       return newInterval;
     }
@@ -305,7 +305,7 @@
     }
     else
     {
-      newInterval = locationSendInterval1;  //Return the shortest interval
+      newInterval = loRaLocationInterval1;  //Return the shortest interval
     }
     return newInterval;
   }
@@ -336,7 +336,7 @@
     packer.pack(device[0].speed);
     packer.pack(device[0].hdop);
     packer.pack(device[0].nextLocationUpdate);
-    if(packer.size() < MAX_LORA_BUFFER_SIZE)
+    if(packer.size() < maxLoRaBufferSize)
     {
       memcpy(loRaSendBuffer, packer.data(),packer.size());
       loRaSendBufferSize = packer.size();
@@ -387,15 +387,15 @@
         packer.pack(device[0].currentNumberOfHits);
         packer.pack(device[0].currentNumberOfStunHits);
       #else
-        packer.pack(defaultLocationSendInterval);
+        packer.pack(defaultLoRaLocationInterval);
         packer.pack(loRaPerimiter1);
-        packer.pack(locationSendInterval1);
+        packer.pack(loRaLocationInterval1);
         packer.pack(loRaPerimiter2);
-        packer.pack(locationSendInterval2);
+        packer.pack(loRaLocationInterval2);
         packer.pack(loRaPerimiter3);
-        packer.pack(locationSendInterval3);
+        packer.pack(loRaLocationInterval3);
       #endif
-      if(packer.size() < MAX_LORA_BUFFER_SIZE)
+      if(packer.size() < maxLoRaBufferSize)
       {
         memcpy(loRaSendBuffer, packer.data(),packer.size());
         loRaSendBufferSize = packer.size();
@@ -427,13 +427,13 @@
                 device[0].name,
                 printableUptime(millis()/1000).c_str(),
                 device[0].supplyVoltage,
-                defaultLocationSendInterval/1000,
+                defaultLoRaLocationInterval/1000,
                 loRaPerimiter1,
-                locationSendInterval1/1000,
+                loRaLocationInterval1/1000,
                 loRaPerimiter2,
-                locationSendInterval2/1000,
+                loRaLocationInterval2/1000,
                 loRaPerimiter3,
-                locationSendInterval3/1000
+                loRaLocationInterval3/1000
                 );
               #endif
             }
@@ -479,7 +479,7 @@
   }
   bool appendLoRaChecksum()
   {
-    if(loRaSendBufferSize < MAX_LORA_BUFFER_SIZE - 2)
+    if(loRaSendBufferSize < maxLoRaBufferSize - 2)
     {
       CRC16 crc(LORA_CRC_POLYNOME);
       crc.add((uint8_t *)loRaSendBuffer, loRaSendBufferSize);
@@ -612,11 +612,12 @@
                             device[deviceIndex].updateHistory);
                         }
                       #endif
-                      if((device[deviceIndex].updateHistory & 0x7fff)< 0x00ff)
+                      if(device[deviceIndex].online == false && countBits(device[deviceIndex].updateHistory) > 7)   //7 bits in in total to go online
                       {
                         localLog(F("Device "));
                         localLog(deviceIndex);
                         localLogLn(F(" gone online"));
+                        device[deviceIndex].online = true;
                       }
                     }
                     else if(messagetype == deviceStatusUpdateId)
@@ -775,49 +776,49 @@
                                     }
                                     else
                                     {
-                                      uint32_t receivedDefaultLocationSendInterval;
+                                      uint32_t receivedDefaultLoRaLocationInterval;
                                       uint16_t receivedLoRaPerimiter1;
-                                      uint32_t receivedLocationSendInterval1;
+                                      uint32_t receivedLoRaLocationInterval1;
                                       uint16_t receivedLoRaPerimiter2;
-                                      uint32_t receivedLocationSendInterval2;
+                                      uint32_t receivedLoRaLocationInterval2;
                                       uint16_t receivedLoRaPerimiter3;
-                                      uint32_t receivedLocationSendInterval3;
-                                      unpacker.unpack(receivedDefaultLocationSendInterval);
+                                      uint32_t receivedLoRaLocationInterval3;
+                                      unpacker.unpack(receivedDefaultLoRaLocationInterval);
                                       unpacker.unpack(receivedLoRaPerimiter1);
-                                      unpacker.unpack(receivedLocationSendInterval1);
+                                      unpacker.unpack(receivedLoRaLocationInterval1);
                                       unpacker.unpack(receivedLoRaPerimiter2);
-                                      unpacker.unpack(receivedLocationSendInterval2);
+                                      unpacker.unpack(receivedLoRaLocationInterval2);
                                       unpacker.unpack(receivedLoRaPerimiter3);
-                                      unpacker.unpack(receivedLocationSendInterval3);
+                                      unpacker.unpack(receivedLoRaLocationInterval3);
                                       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                         if(waitForBufferSpace(75))
                                         {
                                           SERIAL_DEBUG_PORT.printf_P(PSTR(" intervals: default %us, %um %us, %um %us, %um %us"),
-                                            receivedDefaultLocationSendInterval/1000,
+                                            receivedDefaultLoRaLocationInterval/1000,
                                             receivedLoRaPerimiter1,
-                                            receivedLocationSendInterval1/1000,
+                                            receivedLoRaLocationInterval1/1000,
                                             receivedLoRaPerimiter2,
-                                            receivedLocationSendInterval2/1000,
+                                            receivedLoRaLocationInterval2/1000,
                                             receivedLoRaPerimiter3,
-                                            receivedLocationSendInterval3/1000
+                                            receivedLoRaLocationInterval3/1000
                                           );
                                         }
                                       #endif
-                                      if(defaultLocationSendInterval != receivedDefaultLocationSendInterval ||
+                                      if(defaultLoRaLocationInterval != receivedDefaultLoRaLocationInterval ||
                                         loRaPerimiter1 != receivedLoRaPerimiter1 ||
-                                        locationSendInterval1 != receivedLocationSendInterval1 ||
+                                        loRaLocationInterval1 != receivedLoRaLocationInterval1 ||
                                         loRaPerimiter2 != receivedLoRaPerimiter2 ||
-                                        locationSendInterval2 != receivedLocationSendInterval2 ||
+                                        loRaLocationInterval2 != receivedLoRaLocationInterval2 ||
                                         loRaPerimiter3 != receivedLoRaPerimiter3 ||
-                                        locationSendInterval3 != receivedLocationSendInterval3)
+                                        loRaLocationInterval3 != receivedLoRaLocationInterval3)
                                       {
-                                        defaultLocationSendInterval = receivedDefaultLocationSendInterval;
+                                        defaultLoRaLocationInterval = receivedDefaultLoRaLocationInterval;
                                         loRaPerimiter1 = receivedLoRaPerimiter1;
-                                        locationSendInterval1 = receivedLocationSendInterval1;
+                                        loRaLocationInterval1 = receivedLoRaLocationInterval1;
                                         loRaPerimiter2 = receivedLoRaPerimiter2;
-                                        locationSendInterval2 = receivedLocationSendInterval2;
+                                        loRaLocationInterval2 = receivedLoRaLocationInterval2;
                                         loRaPerimiter3 = receivedLoRaPerimiter3;
-                                        locationSendInterval3 = receivedLocationSendInterval3;
+                                        loRaLocationInterval3 = receivedLoRaLocationInterval3;
                                         saveConfigurationSoon = millis();
                                         #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                           if(waitForBufferSpace(75))

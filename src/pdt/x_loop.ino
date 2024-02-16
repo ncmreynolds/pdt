@@ -58,7 +58,9 @@ void loop()
   {
     saveConfigurationSoon = 0;
     saveConfiguration(configurationFile);
-    printConfiguration();
+    #ifndef SERVE_CONFIG_FILE
+      printConfiguration();
+    #endif
   }
   #if defined(ENABLE_REMOTE_RESTART)
     if(restartTimer !=0 && millis() - restartTimer > 7000)  //Restart the ESP based off a request in the Web UI

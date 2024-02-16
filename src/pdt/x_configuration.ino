@@ -41,6 +41,10 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   configuration["timeZone"] = timeZone;
   #ifdef SUPPORT_GPS
     configuration["useGpsForTimeSync"] = useGpsForTimeSync;
+    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+      configuration["gpsStationaryTimeout"] = gpsStationaryTimeout;
+      configuration["gpsCheckInterval"] = gpsCheckInterval;
+    #endif
   #endif
   #ifdef SUPPORT_BATTERY_METER
     configuration["enableBatteryMonitor"] = enableBatteryMonitor;
@@ -62,19 +66,30 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   #endif
   #if defined(SUPPORT_ESPNOW)
     configuration["espNowEnabled"] = espNowEnabled;
+    configuration["espNowDeviceInfoInterval"] = espNowDeviceInfoInterval;
+    configuration["defaultEspNowLocationInterval"] = defaultEspNowLocationInterval;
+    configuration["espNowLocationInterval1"] = espNowLocationInterval1;
+    configuration["espNowPerimiter1"] = espNowPerimiter1;
+    configuration["espNowLocationInterval2"] = espNowLocationInterval2;
+    configuration["espNowPerimiter2"] = espNowPerimiter2;
+    configuration["espNowLocationInterval3"] = espNowLocationInterval3;
+    configuration["espNowPerimiter3"] = espNowPerimiter3;
   #endif
   #if defined(SUPPORT_FTM)
     configuration["ftmEnabled"] = ftmEnabled;
+    configuration["ftmSSID"] = ftmSSID;
+    configuration["ftmHideSSID"] = ftmHideSSID;
+    configuration["ftmPSK"] = ftmPSK;
   #endif
   #if defined(SUPPORT_LORA)
     configuration["loRaEnabled"] = loRaEnabled;
-    configuration["deviceInfoSendInterval"] = deviceInfoSendInterval;
-    configuration["defaultLocationSendInterval"] = defaultLocationSendInterval;
-    configuration["locationSendInterval1"] = locationSendInterval1;
+    configuration["loRaDeviceInfoInterval"] = loRaDeviceInfoInterval;
+    configuration["defaultLoRaLocationInterval"] = defaultLoRaLocationInterval;
+    configuration["loRaLocationInterval1"] = loRaLocationInterval1;
     configuration["loRaPerimiter1"] = loRaPerimiter1;
-    configuration["locationSendInterval2"] = locationSendInterval2;
+    configuration["loRaLocationInterval2"] = loRaLocationInterval2;
     configuration["loRaPerimiter2"] = loRaPerimiter2;
-    configuration["locationSendInterval3"] = locationSendInterval3;
+    configuration["loRaLocationInterval3"] = loRaLocationInterval3;
     configuration["loRaPerimiter3"] = loRaPerimiter3;
     configuration["rssiAttenuationPerimeter"] = rssiAttenuationPerimeter;
     configuration["rssiAttenuation"] = rssiAttenuation;
@@ -161,25 +176,58 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     //Simple values
     #ifdef SUPPORT_GPS
       useGpsForTimeSync = configuration["useGpsForTimeSync"] | true;
+      #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+        gpsStationaryTimeout = configuration["gpsStationaryTimeout"] | 300E6;
+        gpsCheckInterval = configuration["gpsCheckInterval"] | 300E6;
+      #endif
     #endif
     #if defined(ACT_AS_TRACKER)
       maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
     #endif
     #if defined(SUPPORT_FTM)
       ftmEnabled = configuration["ftmEnabled"] | true;
+      if(configuration["ftmSSID"])
+      {
+        ftmSSID = new char[strlen(configuration["ftmSSID"]) + 1];
+        strlcpy(ftmSSID,configuration["ftmSSID"],strlen(configuration["ftmSSID"]) + 1);
+      }
+      else
+      {
+        ftmSSID = new char[strlen(default_ftmWiFi_SSID) + 1];
+        strlcpy(ftmSSID,default_ftmWiFi_SSID,strlen(default_ftmWiFi_SSID) + 1);
+      }
+      ftmHideSSID = configuration["ftmHideSSID"] | false;
+      if(configuration["ftmPSK"])
+      {
+        ftmPSK = new char[strlen(configuration["ftmPSK"]) + 1];
+        strlcpy(ftmPSK,configuration["ftmPSK"],strlen(configuration["ftmPSK"]) + 1);
+      }
+      else
+      {
+        ftmPSK = new char[strlen(default_ftmWiFi_PSK) + 1];
+        strlcpy(ftmPSK,default_ftmWiFi_PSK,strlen(default_ftmWiFi_PSK) + 1);
+      }
     #endif
     #if defined(SUPPORT_ESPNOW)
       espNowEnabled = configuration["espNowEnabled"] | true;
+      espNowDeviceInfoInterval = configuration["espNowDeviceInfoInterval"] | 60000;
+      defaultEspNowLocationInterval = configuration["defaultEspNowLocationInterval"] | 60000;
+      espNowLocationInterval1 = configuration["espNowLocationInterval1"] | 5000;
+      espNowPerimiter1 = configuration["espNowPerimiter1"] | 20;
+      espNowLocationInterval2 = configuration["espNowLocationInterval2"] | 15000;
+      espNowPerimiter2 = configuration["espNowPerimiter2"] | 50;
+      espNowLocationInterval3 = configuration["espNowLocationInterval3"] | 30000;
+      espNowPerimiter3 = configuration["espNowPerimiter3"] | 100;
     #endif
     #if defined(SUPPORT_LORA)
       loRaEnabled = configuration["loRaEnabled"] | true;
-      deviceInfoSendInterval = configuration["deviceInfoSendInterval"] | 60000;
-      defaultLocationSendInterval = configuration["defaultLocationSendInterval"] | 60000;
-      locationSendInterval1 = configuration["locationSendInterval1"] | 5000;
+      loRaDeviceInfoInterval = configuration["loRaDeviceInfoInterval"] | 60000;
+      defaultLoRaLocationInterval = configuration["defaultLoRaLocationInterval"] | 60000;
+      loRaLocationInterval1 = configuration["loRaLocationInterval1"] | 5000;
       loRaPerimiter1 = configuration["loRaPerimiter1"] | 20;
-      locationSendInterval2 = configuration["locationSendInterval2"] | 15000;
+      loRaLocationInterval2 = configuration["loRaLocationInterval2"] | 15000;
       loRaPerimiter2 = configuration["loRaPerimiter2"] | 50;
-      locationSendInterval3 = configuration["locationSendInterval3"] | 30000;
+      loRaLocationInterval3 = configuration["loRaLocationInterval3"] | 30000;
       loRaPerimiter3 = configuration["loRaPerimiter3"] | 100;
       rssiAttenuationPerimeter = configuration["rssiAttenuationPerimeter"];
       rssiAttenuation = configuration["rssiAttenuation"];
@@ -515,6 +563,12 @@ void printConfiguration()
     {
       localLogLn(F("disabled"));
     }
+    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+      localLog(F("gpsStationaryTimeout: "));
+      localLogLn(gpsStationaryTimeout);
+      localLog(F("gpsCheckInterval: "));
+      localLogLn(gpsCheckInterval);
+    #endif
   #endif
   #if defined(ACT_AS_TRACKER)
     localLog(F("maximumEffectiveRange: "));
@@ -523,30 +577,58 @@ void printConfiguration()
   #if defined(SUPPORT_FTM)
     localLog(F("ftmEnabled: "));
     localLogLn(ftmEnabled);
+    if(ftmSSID != nullptr)
+    {
+      localLog(F("ftmSSID: "));
+      localLogLn(ftmSSID);
+    }
+    localLog(F("ftmHideSSID: "));
+    localLogLn(ftmHideSSID);
+    if(ftmPSK != nullptr)
+    {
+      localLog(F("ftmPSK: "));
+      localLogLn(ftmPSK);
+    }
   #endif
   #if defined(SUPPORT_ESPNOW)
     localLog(F("espNowEnabled: "));
     localLogLn(espNowEnabled);
+    localLog(F("espNowDeviceInfoInterval: "));
+    localLogLn(espNowDeviceInfoInterval);
+    localLog(F("defaultEspNowLocationInterval: "));
+    localLogLn(defaultEspNowLocationInterval);
+    localLog(F("espNowPerimiter1: "));
+    localLogLn(espNowPerimiter1);
+    localLog(F("espNowLocationInterval1: "));
+    localLogLn(espNowLocationInterval1);
+    localLog(F("espNowPerimiter2: "));
+    localLogLn(espNowPerimiter2);
+    localLog(F("espNowLocationInterval2: "));
+    localLogLn(espNowLocationInterval2);
+    localLog(F("espNowPerimiter3: "));
+    localLogLn(espNowPerimiter3);
+    localLog(F("espNowLocationInterval3: "));
+    localLogLn(espNowLocationInterval3);
   #endif
   #if defined(SUPPORT_LORA)
     localLog(F("loRaEnabled: "));
     localLogLn(loRaEnabled);
-    localLog(F("deviceInfoSendInterval: "));
-    localLogLn(deviceInfoSendInterval);
-    localLog(F("defaultLocationSendInterval: "));
-    localLogLn(defaultLocationSendInterval);
+    localLog(F("loRaDeviceInfoInterval: "));
+    localLogLn(loRaDeviceInfoInterval);
+    localLog(F("defaultLoRaLocationInterval: "));
+    localLogLn(defaultLoRaLocationInterval);
     localLog(F("loRaPerimiter1: "));
     localLogLn(loRaPerimiter1);
-    localLog(F("locationSendInterval1: "));
-    localLogLn(locationSendInterval1);
+    localLog(F("loRaLocationInterval1: "));
+    localLogLn(loRaLocationInterval1);
     localLog(F("loRaPerimiter2: "));
     localLogLn(loRaPerimiter2);
-    localLog(F("locationSendInterval2: "));
-    localLogLn(locationSendInterval2);
+    localLog(F("loRaLocationInterval2: "));
+    localLogLn(loRaLocationInterval2);
     localLog(F("loRaPerimiter3: "));
     localLogLn(loRaPerimiter3);
-    localLog(F("locationSendInterval3: "));
-    localLogLn(locationSendInterval3);
+    localLog(F("loRaLocationInterval3: "));
+    localLogLn(loRaLocationInterval3);
     localLog(F("rssiAttenuation: "));
     localLogLn(rssiAttenuation);
     localLog(F("rssiAttenuationBaseline: "));

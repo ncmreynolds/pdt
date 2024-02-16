@@ -31,12 +31,12 @@
   void managePeripheralPower()
   {
     #ifdef SUPPORT_GPS
-      if(peripheralsEnabled == true && moving == false && millis() - lastGPSstateChange > 60E3)
+      if(peripheralsEnabled == true && moving == false && gpsStationaryTimeout != 0 && millis() - lastGPSstateChange > gpsStationaryTimeout)
       {
         peripheralPowerOff();
         lastGPSstateChange = millis();
       }
-      if(peripheralsEnabled == false && millis() - lastGPSstateChange > 60E3)
+      if(peripheralsEnabled == false && gpsCheckInterval != 0 && millis() - lastGPSstateChange > gpsCheckInterval)
       {
         peripheralPowerOn();
         lastGPSstateChange = millis();

@@ -11,6 +11,12 @@
       espBoilerplate.setOutputStream(Serial);
     #endif
     espBoilerplate.setRetries(wifiClientTimeout);
+    #ifdef SUPPORT_FTM
+      if(ftmEnabled == true)
+      {
+        espBoilerplate.enableFtm();
+      }
+    #endif
     if(startWiFiClientOnBoot == true || startWiFiApOnBoot == true)
     {
       if(startWiFiClientOnBoot == true)

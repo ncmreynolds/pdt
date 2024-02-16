@@ -40,10 +40,10 @@
             localLog(F("Device "));
           }
           localLog(index);
-          if(device[index].updateHistory < 0x00ff)
+          if(device[index].online == true && device[index].updateHistory < 0x00ff)  //7 bits in the least significant section
           {
             localLogLn(F(" gone offline"));
-            device[index].hasFix = false;
+            device[index].online = false;
             #ifdef ACT_AS_TRACKER
               if(index == currentBeacon) //Need to stop tracking this beacon
               {
@@ -59,6 +59,12 @@
                     displayDistanceToBeacon();
                   }
                 #endif
+              }
+            #else
+              if(index == closestTracker) //Need to stop tracking this beacon
+              {
+                closestTracker = maximumNumberOfDevices;
+                distanceToClosestTracker = effectivelyUnreachable;
               }
             #endif
           }
@@ -298,6 +304,18 @@
     struct timeval now = { .tv_sec = t };
     settimeofday(&now, NULL);
   }
+  uint8_t countBits(uint16_t thingToCount)
+  {
+    uint8_t total = 0;
+    for(uint8_t bit = 0; bit < 16; bit++)
+    {
+      if(thingToCount & (uint16_t)(pow(2, bit)))
+      {
+        total++;
+      }
+    }
+    return total;
+  }
   #if defined(ACT_AS_TRACKER)
     uint8_t numberOfBeacons()
     {
@@ -338,15 +356,15 @@
               /*
               if(distanceToCurrentBeacon < loRaPerimiter1)
               {
-                device[beaconIndex].timeout = locationSendInterval1 * 2.5;
+                device[beaconIndex].timeout = loRaLocationInterval1 * 2.5;
               }
               else if(distanceToCurrentBeacon < loRaPerimiter2)
               {
-                device[beaconIndex].timeout = locationSendInterval2 * 2.5;
+                device[beaconIndex].timeout = loRaLocationInterval2 * 2.5;
               }
               else if(distanceToCurrentBeacon < loRaPerimiter3)
               {
-                device[beaconIndex].timeout = locationSendInterval3 * 2.5;
+                device[beaconIndex].timeout = loRaLocationInterval3 * 2.5;
               }
               else
               {
@@ -511,10 +529,10 @@
       distanceToClosestTracker = effectivelyUnreachable;
       for(uint8_t index = 1; index < numberOfDevices; index++)
       {
-        if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasFix == true)
+        if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasFix == true && device[index].online == true)
         {
-          device[index].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
-          device[index].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[0].latitude, device[0].longitude);
+          device[index].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
+          device[index].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
           if(device[index].distanceTo < distanceToClosestTracker)
           {
             distanceToClosestTracker = device[index].distanceTo;

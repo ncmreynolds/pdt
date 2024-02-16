@@ -91,7 +91,9 @@
     #define SUPPORT_ESPNOW
   #endif
 #endif
-//#define SERVE_CONFIG_FILE
+
+#define SERVE_CONFIG_FILE
+
 /*
 
    Block of includes that are always used
@@ -284,7 +286,12 @@
  * 
  */
 #ifdef SUPPORT_FTM
-bool ftmEnabled = false;
+  bool ftmEnabled = false;
+  char* ftmSSID = nullptr;
+  bool ftmHideSSID = false;
+  char* ftmPSK = nullptr;
+  const char* default_ftmWiFi_SSID = "_ftm";
+  const char* default_ftmWiFi_PSK = "12345678";
 #endif
 /*
  * 
@@ -292,7 +299,19 @@ bool ftmEnabled = false;
  * 
  */
 #ifdef SUPPORT_ESPNOW
-bool espNowEnabled = false;
+  bool espNowEnabled = false;
+  bool espNowInitialised = false;
+  uint32_t espNowRxPackets = 0;
+  uint32_t espNowTxPackets = 0;
+  float calculatedEspNowDutyCycle = 0;
+  uint32_t defaultEspNowLocationInterval = 60000;
+  uint16_t espNowPerimiter1 = 25;             //Range at which beacon 1 applies
+  uint32_t espNowLocationInterval1 = 5000;    // interval between sends
+  uint16_t espNowPerimiter2 = 50;             //Range at which beacon 2 applies
+  uint32_t espNowLocationInterval2 = 15000;   // interval between sends
+  uint16_t espNowPerimiter3 = 100;            //Range at which beacon 3 applies
+  uint32_t espNowLocationInterval3 = 30000;   // interval between sends
+  uint32_t espNowDeviceInfoInterval = 60000;    // Send info every 60s
 #endif
 /*
 
@@ -578,7 +597,7 @@ const uint16_t loggingYieldTime = 100;
 
 
 #if defined(SUPPORT_LORA)
-  #define MAX_LORA_BUFFER_SIZE 255
+  const uint8_t maxLoRaBufferSize = 255;
   bool loRaEnabled = true;
   bool loRaConnected = false;   // Has the radio initialised OK
   #if defined(LORA_ASYNC_METHODS)
@@ -605,18 +624,18 @@ const uint16_t loggingYieldTime = 100;
     volatile uint32_t loRaTxPackets = 0;
     volatile uint32_t loRaRxPackets = 0;
   #endif
-  uint8_t loRaSendBuffer[MAX_LORA_BUFFER_SIZE];
-  uint8_t loRaReceiveBuffer[MAX_LORA_BUFFER_SIZE];
+  uint8_t loRaSendBuffer[maxLoRaBufferSize];
+  uint8_t loRaReceiveBuffer[maxLoRaBufferSize];
   uint32_t lastDeviceInfoSendTime = 0;    // last send time
-  uint32_t deviceInfoSendInterval = 60000;    // Send info every 60s
+  uint32_t loRaDeviceInfoInterval = 60000;    // Send info every 60s
   uint32_t lastLocationSendTime = 0;    // last send time
-  uint32_t defaultLocationSendInterval = 60000;
+  uint32_t defaultLoRaLocationInterval = 60000;
   uint16_t loRaPerimiter1 = 25;             //Range at which beacon 1 applies
-  uint32_t locationSendInterval1 = 5000;    // interval between sends
+  uint32_t loRaLocationInterval1 = 5000;    // interval between sends
   uint16_t loRaPerimiter2 = 50;             //Range at which beacon 2 applies
-  uint32_t locationSendInterval2 = 15000;   // interval between sends
+  uint32_t loRaLocationInterval2 = 15000;   // interval between sends
   uint16_t loRaPerimiter3 = 100;            //Range at which beacon 3 applies
-  uint32_t locationSendInterval3 = 30000;   // interval between sends
+  uint32_t loRaLocationInterval3 = 30000;   // interval between sends
   float rssiAttenuation = -6.0;           //Rate at which double the distance degrades RSSI (should be -6)
   float rssiAttenuationBaseline = -40;    //RSSI at 10m
   float rssiAttenuationPerimeter = 10;
@@ -684,6 +703,7 @@ const uint16_t loggingYieldTime = 100;
     uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     char* name = nullptr;
     bool hasFix = false;
+    bool online = false;
     uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor, 4 = emitter, 8 = FTM beacon
     float supplyVoltage = 0;  // Battery health can be guesstimated from this
     uint32_t uptime = 0;  // Check for reboots
@@ -800,6 +820,10 @@ const uint16_t loggingYieldTime = 100;
  */
 #ifdef SUPPORT_SOFT_POWER_OFF
   uint32_t powerOffTimer = 0;  //Used to schedule a power off
+  #ifdef SUPPORT_GPS
+    uint32_t gpsStationaryTimeout = 60E3;  //Switch off GPS if stationary for 5 minutes
+    uint32_t gpsCheckInterval = 300E3;  //Wake up the GPS to see if moving every 5 minutes
+  #endif
 #endif
 /*
  * 
