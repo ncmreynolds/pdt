@@ -21,6 +21,9 @@ void loop()
   #ifdef SUPPORT_HACKING
     manageGame();
   #endif
+  #ifdef SUPPORT_ESPNOW
+    manageEspNow();
+  #endif
   #if defined(SUPPORT_LORA) && defined(SUPPORT_GPS)
     manageLoRa();
   #endif

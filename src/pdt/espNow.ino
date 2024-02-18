@@ -1,494 +1,193 @@
-/*
- * 
- * This file contains functions related to the LoRa radio
- * 
- */
-#ifdef SUPPORT_LORA
-  void calculateLoRaDutyCycle()
+#ifdef SUPPORT_ESPNOW
+  void calculateEspNowDutyCycle()
   {
-    calculatedLoRaDutyCycle = ((float)loRaTxTime/(float)millis())*100;
-    localLog(F("LoRa   TX(ms): "));
-    localLog(loRaTxTime);
+    calculatedEspNowDutyCycle = ((float)espNowTxTime/(float)millis())*100;
+    localLog(F("EspNow TX(ms): "));
+    localLog(espNowTxTime);
     localLog('/');
     localLog(millis());
-    localLog(F(" TX duty cycle: "));
-    localLog(calculatedLoRaDutyCycle);
+    localLog(F(" duty cycle: "));
+    localLog(calculatedEspNowDutyCycle);
     localLogLn('%');
   }
-  #ifdef LORA_ASYNC_METHODS
-    #if defined(ESP32)
-      void IRAM_ATTR copyLoRaPacketIntoBuffer(int packetSize)
-    #elif defined(ESP8266)
-      void ICACHE_RAM_ATTR copyLoRaPacketIntoBuffer(int packetSize)
-    #endif
-  #else
-    void copyLoRaPacketIntoBuffer(int packetSize)
-  #endif
+  void setupEspNow()
   {
-    //This block of code is to handle multiprocessor ESP32s
-    #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-      #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-        portENTER_CRITICAL(&loRaRxSynch); //
-      #elif CONFIG_IDF_TARGET_ESP32S3
-        portENTER_CRITICAL(&loRaRxSynch);
-      #endif
-    #endif
-    if(loRaRxBusy == true || loRaReceiveBufferSize > 0)  //Already dealing with a LoRa packet
+    if(espNowEnabled == true)
     {
-      //This block of code is to handle multiprocessor ESP32s
-      #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-        #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portEXIT_CRITICAL(&loRaRxSynch);
-        #elif CONFIG_IDF_TARGET_ESP32S3
-          portEXIT_CRITICAL(&loRaRxSynch);
-        #endif
-      #endif
-      if(loRaRxBusy == true)  //Already dealing with a LoRa packet
+      localLog(F("Initialising ESP-Now: "));
+      if(esp_now_init() == ESP_OK)
       {
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(40))
-        {
-          SERIAL_DEBUG_PORT.println(F("Packet received but busy, discarding"));
-        }
-        #endif
-      }
-      if(loRaReceiveBufferSize > 0)  //Already dealing with a LoRa packet
-      {
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(50))
-        {
-          SERIAL_DEBUG_PORT.println(F("Packet received but buffer full, discarding"));
-        }
-        #endif
-      }
-      return;
-    }
-    loRaRxBusy = true;
-    loRaRxPackets++;
-    if(packetSize == 0)
-    {
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-        if(waitForBufferSpace(30))
-        {
-          SERIAL_DEBUG_PORT.println(F("Empty packet received"));
-        }
-      #endif
-      return;
-    }
-    else if(packetSize <= maxLoRaBufferSize)
-    {
-      /*
-      #if defined(SERIAL_DEBUG)
-      if(waitForBufferSpace(48))
-      {
-        SERIAL_DEBUG_PORT.print(F("Packet received, length: "));
-        SERIAL_DEBUG_PORT.println(packetSize);
-        SERIAL_DEBUG_PORT.print(F("Packet: "));
-      }
-      #endif
-      */
-      for(uint8_t index = 0; index < packetSize; index++)
-      {
-        loRaReceiveBuffer[index] = LoRa.read();
-        /*
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(3))
-        {
-          SERIAL_DEBUG_PORT.printf_P("%02x ",loRaReceiveBuffer[index]);
-        }
-        #endif
-        */
-      }
-      /*
-      #if defined(SERIAL_DEBUG)
-      if(waitForBufferSpace(1))
-      {
-        SERIAL_DEBUG_PORT.println();
-      }
-      #endif
-      */
-      lastRssi = LoRa.packetRssi();
-      loRaReceiveBufferSize = packetSize;
-    }
-    else
-    {
-      #if defined(SERIAL_DEBUG)
-      if(waitForBufferSpace(45))
-      {
-        SERIAL_DEBUG_PORT.print(F("Oversize packet received, length: "));
-        SERIAL_DEBUG_PORT.println(packetSize);
-      }
-      #endif
-    }
-    loRaRxBusy = false;
-    //This block of code is to handle multiprocessor ESP32s
-    #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-      #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-        portEXIT_CRITICAL(&loRaRxSynch);
-      #elif CONFIG_IDF_TARGET_ESP32S3
-        portEXIT_CRITICAL(&loRaRxSynch);
-      #endif
-    #endif
-  }
-  #ifdef LORA_ASYNC_METHODS
-    /*
-     * Interrupt service routines for LoRa, which need some care when there are other async things in use
-     */
-    #if defined(ESP32)
-      void IRAM_ATTR onSend()
-    #elif defined(ESP8266)
-      void ICACHE_RAM_ATTR onSend()
-    #endif
-    {
-      //This block of code is to handle multiprocessor ESP32s
-      #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-        #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portENTER_CRITICAL(&loRaTxSynch);
-        #elif CONFIG_IDF_TARGET_ESP32S3
-          portENTER_CRITICAL(&loRaTxSynch);
-        #endif
-      #endif
-      loRaTxTime += millis() - loRaTxStartTime; //Calculate the time spent sending for duty cycle
-      loRaTxPackets++;
-      loRaTxComplete = true;
-      //This block of code is to handle multiprocessor ESP32s
-      #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-        #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portEXIT_CRITICAL(&loRaTxSynch);
-        #elif CONFIG_IDF_TARGET_ESP32S3
-          portEXIT_CRITICAL(&loRaTxSynch);
-        #endif
-      #endif
-    }
-    #if defined(ESP32)
-      void IRAM_ATTR onReceive(int packetSize)
-    #elif defined(ESP8266)
-      void ICACHE_RAM_ATTR onReceive(int packetSize)
-    #endif
-    {
-      copyLoRaPacketIntoBuffer(packetSize); //This keeps the code the same across sync/async methods
-    }
-  #endif
-  void setupLoRa()
-  {
-    localLog(F("Configuring LoRa radio: "));
-    if(loRaEnabled == true)
-    {
-      LoRa.setPins(loRaCSpin, loRaResetPin, loRaIrqPin);// set CS, reset, IRQ pin
-      if (LoRa.begin(868E6) == true)  //For EU, US is 915E6, Asia 433E6
-      {
-        LoRa.setTxPower(defaultLoRaTxPower);
-        LoRa.setSpreadingFactor(defaultLoRaSpreadingFactor);
-        LoRa.setSignalBandwidth(defaultLoRaSignalBandwidth);
-        LoRa.setSyncWord(loRaSyncWord);
         localLogLn(F("OK"));
-        loRaInitialised = true;
-        LoRa.enableCrc();
-        #if defined(LORA_ASYNC_METHODS)
-          LoRa.onReceive(onReceive);
-          LoRa.onTxDone(onSend);
-        #endif
-        LoRa.receive();
+        localLog(F("Adding ESP-Now receive callback: "));
+        if(esp_now_register_recv_cb([](const uint8_t *macAddress, const uint8_t *receivedMessage, int receivedMessageLength) {  //Very basic copy of buffer for later processing
+          if(espNowReceiveBufferSize == 0)
+          {
+            memcpy(&espNowReceiveBuffer,receivedMessage,receivedMessageLength);
+            espNowReceiveBufferSize = receivedMessageLength;
+            espNowRxPackets++;
+          }
+          else
+          {
+            espNowRxPacketsDropped++;
+          }
+        }) == ESP_OK)
+        {
+            localLogLn(F("OK"));
+        }
+        else
+        {
+            localLogLn(F("Failed"));
+            espNowInitialised = false;
+            return;
+        }
+        localLog(F("Adding ESP-Now send callback: "));
+        if(esp_now_register_send_cb([](const uint8_t* macAddress, esp_now_send_status_t status) {
+          if(status == ESP_OK)
+          {
+            if(espNowPacketSent != 0)
+            {
+              espNowTxTime += millis() - espNowPacketSent;
+              espNowPacketSent = 0;
+            }
+            espNowTxPackets++;
+          }
+          else
+          {
+            espNowTxPacketsDropped++;
+          }
+        }) == ESP_OK)
+        {
+            localLogLn(F("OK"));
+        }
+        else
+        {
+            localLogLn(F("Failed"));
+            espNowInitialised = false;
+            return;
+        }
+        if(addBroadcastPeer())
+        {
+          espNowInitialised = true;
+          return;
+        }
+        else
+        {
+          localLogLn(F("Failed"));
+        }
       }
-      else
-      {
-        localLogLn(F("failed"));
-        loRaInitialised = false;
-      }
+    }
+    espNowInitialised = false;
+  }
+  bool addBroadcastPeer()
+  {
+    esp_now_peer_info_t newPeer;
+    newPeer.peer_addr[0] = (uint8_t) broadcastMacAddress[0];
+    newPeer.peer_addr[1] = (uint8_t) broadcastMacAddress[1];
+    newPeer.peer_addr[2] = (uint8_t) broadcastMacAddress[2];
+    newPeer.peer_addr[3] = (uint8_t) broadcastMacAddress[3];
+    newPeer.peer_addr[4] = (uint8_t) broadcastMacAddress[4];
+    newPeer.peer_addr[5] = (uint8_t) broadcastMacAddress[5];
+    if(WiFi.getMode() == WIFI_STA)
+    {
+      newPeer.ifidx = WIFI_IF_STA;
     }
     else
     {
-      localLogLn(F("disabled"));
+      newPeer.ifidx = WIFI_IF_AP;
     }
-  }
-  void manageLoRa()
-  {
-    if(loRaEnabled == true)
+    newPeer.channel = WiFi.channel();
+    espNowChannel = newPeer.channel;
+    newPeer.encrypt = false;
+    localLog(F("Adding ESP-Now broadcast peer on channel "));
+    localLog(newPeer.channel);
+    localLog(F(" : "));
+    if(esp_now_add_peer(&newPeer) == ESP_OK)
     {
-      #ifdef LORA_ASYNC_METHODS
-        if(loRaTxComplete == true && loRaTxBusy == true)
-        {
-          loRaTxComplete = false;
-          loRaTxBusy = false;
-          LoRa.receive();
-        }
-      #else
-        int packetSize = LoRa.parsePacket();
-        if(packetSize > 0)
-        {
-          copyLoRaPacketIntoBuffer(packetSize);
-        }
-      #endif
-      if(loRaReceiveBufferSize > 0) //There's something in the buffer to process
+      localLogLn(F("OK"));
+      return true;
+    }
+    localLogLn(F("failed"));
+    return false;
+  }
+  bool deleteBroadcastPeer()
+  {
+    localLog(F("Deleting ESP-Now broadcast peer: "));
+    if(esp_now_del_peer(broadcastMacAddress) == ESP_OK)
+    {
+      localLogLn(F("OK"));
+      return true;
+    }
+    localLogLn(F("failed"));
+    return false;
+  }
+  void manageEspNow()
+  {
+    if(espNowEnabled == true && espNowInitialised == true)
+    {
+      if(espNowReceiveBufferSize > 0) //There's something in the buffer to process
       {
-        if(validateLoRaChecksum())
+        if(validateEspNowChecksum())
         {
-          processLoRaPacket();
+          processEspNowPacket();
         }
-        loRaReceiveBufferSize = 0;
+        espNowReceiveBufferSize = 0;
       }
-      if(millis() - lastLoRaDeviceInfoSendTime > loRaDeviceInfoInterval)
+      if(millis() - lastEspNowDeviceInfoSendTime > espNowDeviceInfoInterval)
       {
-        lastLoRaDeviceInfoSendTime = millis();
-        shareDeviceInfo();
-        calculateLoRaDutyCycle();
-      }
-      #ifdef SUPPORT_GPS
-      if(millis() - lastLoRaLocationSendTime > device[0].nextLoRaLocationUpdate)
-      {
-        lastLoRaLocationSendTime = millis();
-        if(loRaInitialised)
+        lastEspNowDeviceInfoSendTime = millis();
+        if(shareDeviceInfoByEspNow())
         {
-          #if defined(ACT_AS_TRACKER)
-            if(numberOfBeacons() > 0)  //Only share ocation if there are some beacons
+          calculateEspNowDutyCycle();
+        }
+      }
+      if(millis() - lastEspNowLocationSendTime > device[0].nextEspNowLocationUpdate)
+      {
+        lastEspNowLocationSendTime = millis();
+        #if defined(ACT_AS_TRACKER)
+          if(numberOfBeacons() > 0)  //Only share location if there are some beacons
+          {
+            if(shareLocationByEspNow())
             {
-              shareLocation();
-              calculateLoRaDutyCycle();
               if(currentBeacon != maximumNumberOfDevices) //There is a current beacon
               {
-                device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
+                device[0].nextEspNowLocationUpdate = newEspNowLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
               }
+              calculateEspNowDutyCycle();
             }
-            else
-            {
-              device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(effectivelyUnreachable, 0);
-            }
-          #elif defined(ACT_AS_BEACON)
-              if(numberOfTrackers() > 0)
-              {
-                shareLocation();
-                calculateLoRaDutyCycle();
-                if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
-                {
-                  device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
-                }
-              }
-              else
-              {
-                device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(effectivelyUnreachable, 0);
-              }
-          #endif
-        }
-      }
-      #endif
-    }
-  }
-  void scheduleDeviceInfoShareSoon()
-  {
-    lastLoRaDeviceInfoSendTime = millis() - (loRaDeviceInfoInterval + 5000);  //Force the sensor to update any trackers soon, 5s is a good time to allow for more hits before sending
-  }
-  uint32_t newLoRaLocationSharingInterval(uint16_t distance, float speed)
-  {
-    uint32_t newInterval = 0;
-    if(speed == 0)
-    {
-      if(distance < loRaPerimiter1)
-      {
-        newInterval = loRaLocationInterval1;
-      }
-      else if(distance < loRaPerimiter2)
-      {
-        newInterval = loRaLocationInterval2;
-      }
-      else if(distance < loRaPerimiter3)
-      {
-        newInterval = loRaLocationInterval3;
-      }
-      else
-      {
-        newInterval = defaultLoRaLocationInterval;
-      }
-      return newInterval;
-    }
-    newInterval = newLoRaLocationSharingInterval(distance, 0);  //Get the interval as if not moving
-    int16_t worstCaseDistance = (int16_t)distance - (speed * (newInterval/1000)); //Estimate worst case new distance after this interval
-    if(worstCaseDistance > 0)
-    {
-      newInterval = newLoRaLocationSharingInterval(worstCaseDistance, 0); //Assess new interval based on worst case distance
-    }
-    else
-    {
-      newInterval = loRaLocationInterval1;  //Return the shortest interval
-    }
-    return newInterval;
-  }
-  void shareLocation()
-  {
-    if(loRaTxBusy)
-    {
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-        if(waitForBufferSpace(80))
-        {
-          SERIAL_DEBUG_PORT.println(F("Cannot share location, LoRa busy"));
-        }
-      #endif
-      return;
-    }
-    loRaTxBusy = true;
-    MsgPack::Packer packer;
-    packer.pack(device[0].id[0]);
-    packer.pack(device[0].id[1]);
-    packer.pack(device[0].id[2]);
-    packer.pack(device[0].id[3]);
-    packer.pack(device[0].id[4]);
-    packer.pack(device[0].id[5]);
-    packer.pack(locationUpdateId);
-    packer.pack(device[0].latitude);
-    packer.pack(device[0].longitude);
-    packer.pack(device[0].course);
-    packer.pack(device[0].speed);
-    packer.pack(device[0].hdop);
-    packer.pack(device[0].nextLoRaLocationUpdate);
-    if(packer.size() < maxLoRaBufferSize)
-    {
-      memcpy(loRaSendBuffer, packer.data(),packer.size());
-      loRaSendBufferSize = packer.size();
-      if(transmitLoRaBuffer())
-      {
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-          if(waitForBufferSpace(80))
+          }
+          else
           {
-            SERIAL_DEBUG_PORT.printf_P(PSTR("LoRa   TX %02x:%02x:%02x:%02x:%02x:%02x location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f next update:%us\r\n"),
-              device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
-              device[0].latitude,
-              device[0].longitude,
-              device[0].course,
-              device[0].speed,
-              device[0].hdop,
-              device[0].nextLoRaLocationUpdate/1000);
+            device[0].nextEspNowLocationUpdate = newEspNowLocationSharingInterval(effectivelyUnreachable, 0);
+          }
+          #elif defined(ACT_AS_BEACON)
+          if(numberOfTrackers() > 0)
+          {
+            if(shareLocationByEspNow())
+            {
+              if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
+              {
+                device[0].nextEspNowLocationUpdate = newEspNowLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
+              }
+              calculateEspNowDutyCycle();
+            }
+          }
+          else
+          {
+            device[0].nextEspNowLocationUpdate = newEspNowLocationSharingInterval(effectivelyUnreachable, 0);
           }
         #endif
       }
     }
   }
-  #if defined(SUPPORT_BATTERY_METER)
-    void shareDeviceInfo()
-    {
-      if(loRaTxBusy)
-      {
-        return;
-      }
-      loRaTxBusy = true;
-      MsgPack::Packer packer;
-      packer.pack(device[0].id[0]);
-      packer.pack(device[0].id[1]);
-      packer.pack(device[0].id[2]);
-      packer.pack(device[0].id[3]);
-      packer.pack(device[0].id[4]);
-      packer.pack(device[0].id[5]);
-      packer.pack(deviceStatusUpdateId);
-      packer.pack(device[0].typeOfDevice);
-      packer.pack(device[0].majorVersion);
-      packer.pack(device[0].minorVersion);
-      packer.pack(device[0].patchVersion);
-      packer.pack(millis());
-      packer.pack(device[0].supplyVoltage);
-      packer.pack(device[0].name);
-      #ifdef ACT_AS_SENSOR
-        packer.pack(device[0].numberOfStartingHits);
-        packer.pack(device[0].numberOfStartingStunHits);
-        packer.pack(device[0].currentNumberOfHits);
-        packer.pack(device[0].currentNumberOfStunHits);
-      #else
-        packer.pack(defaultLoRaLocationInterval);
-        packer.pack(loRaPerimiter1);
-        packer.pack(loRaLocationInterval1);
-        packer.pack(loRaPerimiter2);
-        packer.pack(loRaLocationInterval2);
-        packer.pack(loRaPerimiter3);
-        packer.pack(loRaLocationInterval3);
-      #endif
-      if(packer.size() < maxLoRaBufferSize)
-      {
-        memcpy(loRaSendBuffer, packer.data(),packer.size());
-        loRaSendBufferSize = packer.size();
-        if(transmitLoRaBuffer())
-        {  
-          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-            if(waitForBufferSpace(80))
-            {
-              #ifdef ACT_AS_SENSOR
-              SERIAL_DEBUG_PORT.printf("LoRa   TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
-                device[0].typeOfDevice,
-                device[0].majorVersion,
-                device[0].minorVersion,
-                device[0].patchVersion,
-                device[0].name,
-                printableUptime(millis()/1000).c_str(),
-                device[0].supplyVoltage,
-                device[0].currentNumberOfHits,
-                device[0].numberOfStartingHits,
-                device[0].currentNumberOfStunHits,
-                device[0].numberOfStartingStunHits
-                );
-              #else
-                SERIAL_DEBUG_PORT.printf("LoRa   TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv intervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
-                device[0].typeOfDevice,
-                device[0].majorVersion,
-                device[0].minorVersion,
-                device[0].patchVersion,
-                device[0].name,
-                printableUptime(millis()/1000).c_str(),
-                device[0].supplyVoltage,
-                defaultLoRaLocationInterval/1000,
-                loRaPerimiter1,
-                loRaLocationInterval1/1000,
-                loRaPerimiter2,
-                loRaLocationInterval2/1000,
-                loRaPerimiter3,
-                loRaLocationInterval3/1000
-                );
-              #endif
-            }
-          #endif
-        }
-      }
-    }
-  #endif
-  bool transmitLoRaBuffer()
+  bool appendEspNowChecksum()
   {
-    if(appendLoRaChecksum()) //Add the checksum, if there is space
-    {
-      #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-        #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portENTER_CRITICAL(&loRaTxSynch);
-        #elif CONFIG_IDF_TARGET_ESP32S3
-          portENTER_CRITICAL(&loRaTxSynch);
-        #endif
-      #endif
-      LoRa.beginPacket(); //Start a new packet
-      LoRa.write(loRaSendBuffer, loRaSendBufferSize);
-      loRaTxStartTime = millis() ; //Time the send
-      #if defined(LORA_ASYNC_METHODS)
-        LoRa.endPacket(true); //Send the packet asynchronously
-      #else
-        LoRa.endPacket(); //Send the packet and wait
-        loRaTxTime += millis() - loRaTxStartTime; //Calculate the time spent sending for duty cycle
-        loRaTxPackets++;
-        loRaTxBusy = false;
-        LoRa.receive(); //Start receiving again
-      #endif
-      //This block of code is to handle multiprocessor ESP32s
-      #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
-        #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portEXIT_CRITICAL(&loRaTxSynch);
-        #elif CONFIG_IDF_TARGET_ESP32S3
-          portEXIT_CRITICAL(&loRaTxSynch);
-        #endif
-      #endif
-      return true;
-    }
-    return false;
-  }
-  bool appendLoRaChecksum()
-  {
-    if(loRaSendBufferSize < maxLoRaBufferSize - 2)
+    if(espNowSendBufferSize < maxEspNowBufferSize - 2)
     {
       CRC16 crc(LORA_CRC_POLYNOME);
-      crc.add((uint8_t *)loRaSendBuffer, loRaSendBufferSize);
+      crc.add((uint8_t *)espNowSendBuffer, espNowSendBufferSize);
       uint16_t packetCrc = crc.calc();
-      loRaSendBuffer[loRaSendBufferSize++] = (packetCrc & 0xff00) >> 8;
-      loRaSendBuffer[loRaSendBufferSize++] = packetCrc & 0xff;
+      espNowSendBuffer[espNowSendBufferSize++] = (packetCrc & 0xff00) >> 8;
+      espNowSendBuffer[espNowSendBufferSize++] = packetCrc & 0xff;
       return true;
     }
     else
@@ -496,35 +195,35 @@
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
         if(waitForBufferSpace(31))
         {
-          SERIAL_DEBUG_PORT.println(F("LoRa packet too large to send"));
+          SERIAL_DEBUG_PORT.println(F("EspNow packet too large to send"));
         }
       #endif
     }
     return false;
   }
-  bool validateLoRaChecksum()
+  bool validateEspNowChecksum()
   {
     CRC16 crc(LORA_CRC_POLYNOME);
-    crc.add((uint8_t *)loRaReceiveBuffer, loRaReceiveBufferSize - 2);
+    crc.add((uint8_t *)espNowReceiveBuffer, espNowReceiveBufferSize - 2);
     uint16_t expectedChecksum = crc.calc();
-    uint16_t packetChecksum = (loRaReceiveBuffer[loRaReceiveBufferSize - 2] << 8) + loRaReceiveBuffer[loRaReceiveBufferSize - 1];
+    uint16_t packetChecksum = (espNowReceiveBuffer[espNowReceiveBufferSize - 2] << 8) + espNowReceiveBuffer[espNowReceiveBufferSize - 1];
     if(expectedChecksum != packetChecksum)
     {
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
         if(waitForBufferSpace(52))
         {
-          SERIAL_DEBUG_PORT.printf_P(PSTR("LoRa packet checksum invalid, expected %04X got %04X\r\n"), expectedChecksum, packetChecksum);
+          SERIAL_DEBUG_PORT.printf_P(PSTR("EspNow packet checksum invalid, expected %04X got %04X\r\n"), expectedChecksum, packetChecksum);
         }
       #endif
       return false;
     }
-    loRaReceiveBufferSize -= 2;
+    espNowReceiveBufferSize -= 2;
     return true;
   }
-  void processLoRaPacket()
+  void processEspNowPacket()
   {
     /*
-    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+    #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
       if(waitForBufferSpace(30))
       {
         SERIAL_DEBUG_PORT.println(F("Processing received packet..."));
@@ -532,7 +231,7 @@
     #endif
     */
     MsgPack::Unpacker unpacker;
-    unpacker.feed(loRaReceiveBuffer, loRaReceiveBufferSize);
+    unpacker.feed(espNowReceiveBuffer, espNowReceiveBufferSize);
     if(unpacker.isUInt7() || unpacker.isUInt8())
     {
       unpacker.unpack(_remoteMacAddress[0]);
@@ -561,7 +260,7 @@
                     #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                       if(waitForBufferSpace(80))
                       {
-                        SERIAL_DEBUG_PORT.printf_P(PSTR("LoRa   RX %02x:%02x:%02x:%02x:%02x:%02x device %u "),
+                        SERIAL_DEBUG_PORT.printf_P(PSTR("EspNow RX %02x:%02x:%02x:%02x:%02x:%02x device %u "),
                           _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5],
                           deviceIndex);
                       }
@@ -569,14 +268,14 @@
                     device[deviceIndex].lastRssi = lastRssi;
                     if(messagetype == locationUpdateId)
                     {
-                      device[deviceIndex].lastLoRaLocationUpdate = millis();  //Only location updates matter for deciding when something has disappeared
-                      device[deviceIndex].loRaUpdateHistory = (device[deviceIndex].loRaUpdateHistory >> 1) | 0x8000;
+                      device[deviceIndex].lastEspNowLocationUpdate = millis();  //Only location updates matter for deciding when something has disappeared
+                      device[deviceIndex].espNowUpdateHistory = (device[deviceIndex].espNowUpdateHistory >> 1) | 0x8000;
                       unpacker.unpack(device[deviceIndex].latitude);
                       unpacker.unpack(device[deviceIndex].longitude);
                       unpacker.unpack(device[deviceIndex].course);
                       unpacker.unpack(device[deviceIndex].speed);
                       unpacker.unpack(device[deviceIndex].hdop);
-                      unpacker.unpack(device[deviceIndex].nextLoRaLocationUpdate);
+                      unpacker.unpack(device[deviceIndex].nextEspNowLocationUpdate);
                       if(device[deviceIndex].hdop < minimumViableHdop)
                       {
                         if(device[deviceIndex].hasFix == false)
@@ -611,16 +310,16 @@
                             device[deviceIndex].hdop,
                             device[deviceIndex].distanceTo,
                             device[deviceIndex].lastRssi,
-                            device[deviceIndex].nextLoRaLocationUpdate/1000,
-                            device[deviceIndex].loRaUpdateHistory);
+                            device[deviceIndex].nextEspNowLocationUpdate/1000,
+                            device[deviceIndex].espNowUpdateHistory);
                         }
                       #endif
-                      if(device[deviceIndex].loRaOnline == false && countBits(device[deviceIndex].loRaUpdateHistory) > 7)   //7 bits in in total to go online
+                      if(device[deviceIndex].espNowOnline == false && countBits(device[deviceIndex].espNowUpdateHistory) > 7)   //7 bits in in total to go online
                       {
                         localLog(F("Device "));
                         localLog(deviceIndex);
                         localLogLn(F(" gone online"));
-                        device[deviceIndex].loRaOnline = true;
+                        device[deviceIndex].espNowOnline = true;
                       }
                     }
                     else if(messagetype == deviceStatusUpdateId)
@@ -779,49 +478,49 @@
                                     }
                                     else
                                     {
-                                      uint32_t receivedDefaultLoRaLocationInterval;
-                                      uint16_t receivedLoRaPerimiter1;
-                                      uint32_t receivedLoRaLocationInterval1;
-                                      uint16_t receivedLoRaPerimiter2;
-                                      uint32_t receivedLoRaLocationInterval2;
-                                      uint16_t receivedLoRaPerimiter3;
-                                      uint32_t receivedLoRaLocationInterval3;
-                                      unpacker.unpack(receivedDefaultLoRaLocationInterval);
-                                      unpacker.unpack(receivedLoRaPerimiter1);
-                                      unpacker.unpack(receivedLoRaLocationInterval1);
-                                      unpacker.unpack(receivedLoRaPerimiter2);
-                                      unpacker.unpack(receivedLoRaLocationInterval2);
-                                      unpacker.unpack(receivedLoRaPerimiter3);
-                                      unpacker.unpack(receivedLoRaLocationInterval3);
+                                      uint32_t receivedDefaultEspNowLocationInterval;
+                                      uint16_t receivedEspNowPerimiter1;
+                                      uint32_t receivedEspNowLocationInterval1;
+                                      uint16_t receivedEspNowPerimiter2;
+                                      uint32_t receivedEspNowLocationInterval2;
+                                      uint16_t receivedEspNowPerimiter3;
+                                      uint32_t receivedEspNowLocationInterval3;
+                                      unpacker.unpack(receivedDefaultEspNowLocationInterval);
+                                      unpacker.unpack(receivedEspNowPerimiter1);
+                                      unpacker.unpack(receivedEspNowLocationInterval1);
+                                      unpacker.unpack(receivedEspNowPerimiter2);
+                                      unpacker.unpack(receivedEspNowLocationInterval2);
+                                      unpacker.unpack(receivedEspNowPerimiter3);
+                                      unpacker.unpack(receivedEspNowLocationInterval3);
                                       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                         if(waitForBufferSpace(75))
                                         {
                                           SERIAL_DEBUG_PORT.printf_P(PSTR(" intervals: default %us, %um %us, %um %us, %um %us"),
-                                            receivedDefaultLoRaLocationInterval/1000,
-                                            receivedLoRaPerimiter1,
-                                            receivedLoRaLocationInterval1/1000,
-                                            receivedLoRaPerimiter2,
-                                            receivedLoRaLocationInterval2/1000,
-                                            receivedLoRaPerimiter3,
-                                            receivedLoRaLocationInterval3/1000
+                                            receivedDefaultEspNowLocationInterval/1000,
+                                            receivedEspNowPerimiter1,
+                                            receivedEspNowLocationInterval1/1000,
+                                            receivedEspNowPerimiter2,
+                                            receivedEspNowLocationInterval2/1000,
+                                            receivedEspNowPerimiter3,
+                                            receivedEspNowLocationInterval3/1000
                                           );
                                         }
                                       #endif
-                                      if(defaultLoRaLocationInterval != receivedDefaultLoRaLocationInterval ||
-                                        loRaPerimiter1 != receivedLoRaPerimiter1 ||
-                                        loRaLocationInterval1 != receivedLoRaLocationInterval1 ||
-                                        loRaPerimiter2 != receivedLoRaPerimiter2 ||
-                                        loRaLocationInterval2 != receivedLoRaLocationInterval2 ||
-                                        loRaPerimiter3 != receivedLoRaPerimiter3 ||
-                                        loRaLocationInterval3 != receivedLoRaLocationInterval3)
+                                      if(defaultEspNowLocationInterval != receivedDefaultEspNowLocationInterval ||
+                                        espNowPerimiter1 != receivedEspNowPerimiter1 ||
+                                        espNowLocationInterval1 != receivedEspNowLocationInterval1 ||
+                                        espNowPerimiter2 != receivedEspNowPerimiter2 ||
+                                        espNowLocationInterval2 != receivedEspNowLocationInterval2 ||
+                                        espNowPerimiter3 != receivedEspNowPerimiter3 ||
+                                        espNowLocationInterval3 != receivedEspNowLocationInterval3)
                                       {
-                                        defaultLoRaLocationInterval = receivedDefaultLoRaLocationInterval;
-                                        loRaPerimiter1 = receivedLoRaPerimiter1;
-                                        loRaLocationInterval1 = receivedLoRaLocationInterval1;
-                                        loRaPerimiter2 = receivedLoRaPerimiter2;
-                                        loRaLocationInterval2 = receivedLoRaLocationInterval2;
-                                        loRaPerimiter3 = receivedLoRaPerimiter3;
-                                        loRaLocationInterval3 = receivedLoRaLocationInterval3;
+                                        defaultEspNowLocationInterval = receivedDefaultEspNowLocationInterval;
+                                        espNowPerimiter1 = receivedEspNowPerimiter1;
+                                        espNowLocationInterval1 = receivedEspNowLocationInterval1;
+                                        espNowPerimiter2 = receivedEspNowPerimiter2;
+                                        espNowLocationInterval2 = receivedEspNowLocationInterval2;
+                                        espNowPerimiter3 = receivedEspNowPerimiter3;
+                                        espNowLocationInterval3 = receivedEspNowLocationInterval3;
                                         saveConfigurationSoon = millis();
                                         #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                                           if(waitForBufferSpace(75))
@@ -1013,48 +712,210 @@
       //}
     #endif
   }
-  #ifdef SUPPORT_GPS
-  uint8_t identifyDevice(uint8_t *macAddress)
+  bool sendEspNowBuffer()
   {
-    uint8_t deviceIndex = 1;
-    if(numberOfDevices == maximumNumberOfDevices)
+    if(appendEspNowChecksum()) //Add the checksum, if there is space
     {
-      #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(50))
+      espNowPacketSent = millis();
+      esp_err_t espNowSendResult = esp_now_send(broadcastMacAddress, espNowSendBuffer, espNowSendBufferSize);
+      if(espNowSendResult == ESP_OK)
+      {
+        return true;
+      }
+      else
+      {
+        espNowTxPacketsDropped++;
+        if(espNowSendResult == ESP_ERR_ESPNOW_CHAN || WiFi.channel() != espNowChannel) //Channel has changed, move peer address
         {
-          SERIAL_DEBUG_PORT.printf("Too many devices to add %02x:%02x:%02x:%02x:%02x:%02x\r\n", _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5]);
+          if(deleteBroadcastPeer())
+          {
+            addBroadcastPeer();
+          }
+        }
+      }
+      espNowPacketSent = 0;
+    }
+  }
+  uint32_t newEspNowLocationSharingInterval(uint16_t distance, float speed)
+  {
+    uint32_t newInterval = 0;
+    if(speed == 0)
+    {
+      if(distance < espNowPerimiter1)
+      {
+        newInterval = espNowLocationInterval1;
+      }
+      else if(distance < espNowPerimiter2)
+      {
+        newInterval = espNowLocationInterval2;
+      }
+      else if(distance < espNowPerimiter3)
+      {
+        newInterval = espNowLocationInterval3;
+      }
+      else
+      {
+        newInterval = defaultEspNowLocationInterval;
+      }
+      return newInterval;
+    }
+    newInterval = newEspNowLocationSharingInterval(distance, 0);  //Get the interval as if not moving
+    int16_t worstCaseDistance = (int16_t)distance - (speed * (newInterval/1000)); //Estimate worst case new distance after this interval
+    if(worstCaseDistance > 0)
+    {
+      newInterval = newEspNowLocationSharingInterval(worstCaseDistance, 0); //Assess new interval based on worst case distance
+    }
+    else
+    {
+      newInterval = espNowLocationInterval1;  //Return the shortest interval
+    }
+    return newInterval;
+  }
+  bool shareLocationByEspNow()
+  {
+    /*
+    if(espNowTxBusy)
+    {
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+        if(waitForBufferSpace(80))
+        {
+          SERIAL_DEBUG_PORT.println(F("Cannot share location, EspNow busy"));
         }
       #endif
-      return maximumNumberOfDevices;
+      return;
     }
-    for(deviceIndex = 1; deviceIndex < numberOfDevices; deviceIndex++)
+    espNowTxBusy = true;
+    */
+    MsgPack::Packer packer;
+    packer.pack(device[0].id[0]);
+    packer.pack(device[0].id[1]);
+    packer.pack(device[0].id[2]);
+    packer.pack(device[0].id[3]);
+    packer.pack(device[0].id[4]);
+    packer.pack(device[0].id[5]);
+    packer.pack(locationUpdateId);
+    packer.pack(device[0].latitude);
+    packer.pack(device[0].longitude);
+    packer.pack(device[0].course);
+    packer.pack(device[0].speed);
+    packer.pack(device[0].hdop);
+    packer.pack(device[0].nextEspNowLocationUpdate);
+    if(packer.size() < maxEspNowBufferSize)
     {
-      if(device[deviceIndex].id[0] == macAddress[0] &&
-          device[deviceIndex].id[1] == macAddress[1] &&
-          device[deviceIndex].id[2] == macAddress[2] &&
-          device[deviceIndex].id[3] == macAddress[3] &&
-          device[deviceIndex].id[4] == macAddress[4] &&
-          device[deviceIndex].id[5] == macAddress[5])
+      memcpy(espNowSendBuffer, packer.data(),packer.size());
+      espNowSendBufferSize = packer.size();
+      if(sendEspNowBuffer())
       {
-        return deviceIndex;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
+          if(waitForBufferSpace(80))
+          {
+            SERIAL_DEBUG_PORT.printf_P(PSTR("ESPNow TX %02x:%02x:%02x:%02x:%02x:%02x location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f next update:%us\r\n"),
+              device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+              device[0].latitude,
+              device[0].longitude,
+              device[0].course,
+              device[0].speed,
+              device[0].hdop,
+              device[0].nextEspNowLocationUpdate/1000);
+          }
+        #endif
+        return true;
       }
     }
-    #if defined(SERIAL_DEBUG)
-      if(waitForBufferSpace(50))
-      {
-        SERIAL_DEBUG_PORT.printf("New device %u found %02x:%02x:%02x:%02x:%02x:%02x\r\n", numberOfDevices, _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5]);
-      }
-    #endif
-    device[numberOfDevices].id[0] = _remoteMacAddress[0];
-    device[numberOfDevices].id[1] = _remoteMacAddress[1];
-    device[numberOfDevices].id[2] = _remoteMacAddress[2];
-    device[numberOfDevices].id[3] = _remoteMacAddress[3];
-    device[numberOfDevices].id[4] = _remoteMacAddress[4];
-    device[numberOfDevices].id[5] = _remoteMacAddress[5];
-    numberOfDevices++;
-    lastDeviceStatus = (millis() - deviceStatusInterval) + random(5000,10000); //A new device prompts a status share in 5-10s
-    lastLoRaLocationSendTime = (millis() -  device[0].nextLoRaLocationUpdate) + random(10000,20000); //A new device prompts a location share in 10-20s
-    return numberOfDevices-1;
+    else
+    {
+      espNowTxPacketsDropped++;
+    }
+    return false;
   }
-  #endif
+  bool shareDeviceInfoByEspNow()
+  {
+    /*
+    if(espNowTxBusy)
+    {
+      return;
+    }
+    espNowTxBusy = true;
+    */
+    MsgPack::Packer packer;
+    packer.pack(device[0].id[0]);
+    packer.pack(device[0].id[1]);
+    packer.pack(device[0].id[2]);
+    packer.pack(device[0].id[3]);
+    packer.pack(device[0].id[4]);
+    packer.pack(device[0].id[5]);
+    packer.pack(deviceStatusUpdateId);
+    packer.pack(device[0].typeOfDevice);
+    packer.pack(device[0].majorVersion);
+    packer.pack(device[0].minorVersion);
+    packer.pack(device[0].patchVersion);
+    packer.pack(millis());
+    packer.pack(device[0].supplyVoltage);
+    packer.pack(device[0].name);
+    #ifdef ACT_AS_SENSOR
+      packer.pack(device[0].numberOfStartingHits);
+      packer.pack(device[0].numberOfStartingStunHits);
+      packer.pack(device[0].currentNumberOfHits);
+      packer.pack(device[0].currentNumberOfStunHits);
+    #else
+      packer.pack(defaultEspNowLocationInterval);
+      packer.pack(espNowPerimiter1);
+      packer.pack(espNowLocationInterval1);
+      packer.pack(espNowPerimiter2);
+      packer.pack(espNowLocationInterval2);
+      packer.pack(espNowPerimiter3);
+      packer.pack(espNowLocationInterval3);
+    #endif
+    if(packer.size() < maxEspNowBufferSize)
+    {
+      memcpy(espNowSendBuffer, packer.data(),packer.size());
+      espNowSendBufferSize = packer.size();
+      if(sendEspNowBuffer())
+      {  
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
+          if(waitForBufferSpace(80))
+          {
+            #ifdef ACT_AS_SENSOR
+            SERIAL_DEBUG_PORT.printf("ESPNow TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+              device[0].typeOfDevice,
+              device[0].majorVersion,
+              device[0].minorVersion,
+              device[0].patchVersion,
+              device[0].name,
+              printableUptime(millis()/1000).c_str(),
+              device[0].supplyVoltage,
+              device[0].currentNumberOfHits,
+              device[0].numberOfStartingHits,
+              device[0].currentNumberOfStunHits,
+              device[0].numberOfStartingStunHits
+              );
+            #else
+              SERIAL_DEBUG_PORT.printf("ESPNow TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv intervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+              device[0].typeOfDevice,
+              device[0].majorVersion,
+              device[0].minorVersion,
+              device[0].patchVersion,
+              device[0].name,
+              printableUptime(millis()/1000).c_str(),
+              device[0].supplyVoltage,
+              defaultEspNowLocationInterval/1000,
+              espNowPerimiter1,
+              espNowLocationInterval1/1000,
+              espNowPerimiter2,
+              espNowLocationInterval2/1000,
+              espNowPerimiter3,
+              espNowLocationInterval3/1000
+              );
+            #endif
+          }
+        #endif
+        return true;
+      }
+    }
+    else
+    {
+      espNowTxPacketsDropped++;
+    }
+    return false;
+  }
 #endif

@@ -23,12 +23,12 @@
       for(uint8_t index = 1; index < numberOfDevices; index++)  //Degrade quality if location updates missed, this INCLUDES this device!
       {
         if(device[index].hasFix == true && //Thing has fix!
-            device[index].nextLocationUpdate != 0 &&  //Thing has shared when to expect the location update
-            millis() - device[index].lastLocationUpdate > (device[index].nextLocationUpdate + (device[index].nextLocationUpdate>>3))) //Allow margin of 1/8 the expected interval
+            device[index].nextLoRaLocationUpdate != 0 &&  //Thing has shared when to expect the location update
+            millis() - device[index].lastLoRaLocationUpdate > (device[index].nextLoRaLocationUpdate + (device[index].nextLoRaLocationUpdate>>3))) //Allow margin of 1/8 the expected interval
         {
-          device[index].lastLocationUpdate = millis();  //A failed update is an 'update'
-          device[index].updateHistory = device[index].updateHistory >> 1; //Reduce update history quality
-          //device[index].nextLocationUpdate = device[index].nextLocationUpdate >> 1; //Halve the timeout
+          device[index].lastLoRaLocationUpdate = millis();  //A failed update is an 'update'
+          device[index].loRaUpdateHistory = device[index].loRaUpdateHistory >> 1; //Reduce update history quality
+          //device[index].nextLoRaLocationUpdate = device[index].nextLoRaLocationUpdate >> 1; //Halve the timeout
           #ifdef ACT_AS_TRACKER
           if(index == currentBeacon)
           {
@@ -40,10 +40,10 @@
             localLog(F("Device "));
           }
           localLog(index);
-          if(device[index].online == true && device[index].updateHistory < 0x00ff)  //7 bits in the least significant section
+          if(device[index].loRaOnline == true && device[index].loRaUpdateHistory < 0x00ff)  //7 bits in the least significant section
           {
             localLogLn(F(" gone offline"));
-            device[index].online = false;
+            device[index].loRaOnline = false;
             #ifdef ACT_AS_TRACKER
               if(index == currentBeacon) //Need to stop tracking this beacon
               {
@@ -71,7 +71,7 @@
           else
           {
             localLog(F(" dropped packet, update history now:0x"));
-            localLogLn(String(device[index].updateHistory,HEX));
+            localLogLn(String(device[index].loRaUpdateHistory,HEX));
           }
         }
       }
@@ -205,7 +205,7 @@
             ledOff(0);
           #endif
         }
-        device[0].lastLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
+        device[0].lastLoRaLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
         device[0].latitude = gps.location.lat();
         device[0].longitude = gps.location.lng();
         device[0].course = gps.course.deg();
@@ -529,7 +529,7 @@
       distanceToClosestTracker = effectivelyUnreachable;
       for(uint8_t index = 1; index < numberOfDevices; index++)
       {
-        if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasFix == true && device[index].online == true)
+        if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasFix == true && device[index].loRaOnline == true)
         {
           device[index].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
           device[index].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);

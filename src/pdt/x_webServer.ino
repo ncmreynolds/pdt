@@ -276,22 +276,31 @@ void setupWebServer()
             response->print(F("</b></li>"));
             if(espNowEnabled == true)
             {
-              response->print(F("<li>Packets: <b>"));
               if(espNowInitialised == true)
               {
-                
+                response->print(F("<li>Channel: <b>"));
+                response->print(espNowChannel);
+                response->print(F("</b></li>"));
+                response->print(F("<li>Packets: <b>"));
                 response->print(espNowRxPackets);
                 response->print(F(" RX / "));
                 response->print(espNowTxPackets);
                 response->print(F(" TX"));
                 response->printf_P(PSTR(" Duty cycle: %.02f%%"),calculatedEspNowDutyCycle);
                 response->print(F(""));
+                response->print(F("</b></li><li>Dropped: <b>"));
+                response->print(espNowRxPacketsDropped);
+                response->print(F(" RX / "));
+                response->print(espNowTxPacketsDropped);
+                response->print(F(" TX</b></li>"));
+                response->print(F("<li>Update interval: <b>"));
+                response->print(device[0].nextEspNowLocationUpdate/1000);
+                response->print(F("s</b></li>"));
               }
               else
               {
-                response->print(F("not initialised"));
+                response->print(F("<li><b>Not initialised</b></li>"));
               }
-              response->print(F("</b></li>"));
             }
             response->print(F("</ul></div></div>"));
             response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/espnowconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"ESP-Now configuration\" style=\"width: 100%;\"></a></div></div>"));
@@ -311,7 +320,7 @@ void setupWebServer()
             if(loRaEnabled == true)
             {
               response->print(F("<li>Packets: <b>"));
-              if(loRaConnected == true)
+              if(loRaInitialised == true)
               {
                 
                 response->print(loRaRxPackets);
@@ -319,13 +328,15 @@ void setupWebServer()
                 response->print(loRaTxPackets);
                 response->print(F(" TX"));
                 response->printf_P(PSTR(" Duty cycle: %.02f%%"),calculatedLoRaDutyCycle);
-                response->print(F(""));
+                response->print(F("</b></li>"));
+                response->print(F("<li>Update interval: <b>"));
+                response->print(device[0].nextLoRaLocationUpdate/1000);
+                response->print(F("s</b></li>"));
               }
               else
               {
-                response->print(F("not connected"));
+                response->print(F("<li><b>Not initialised</b></li>"));
               }
-              response->print(F("</b></li>"));
             }
             response->print(F("</ul></div></div>"));
             response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/loraconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"LoRa configuration\" style=\"width: 100%;\"></a></div></div>"));
@@ -1238,9 +1249,14 @@ void setupWebServer()
             response->print(F("<option value=\"30\""));response->print(espNowPerimiter1 == 30 ? " selected>":">");response->print(F("30m</option>"));
             response->print(F("</select></div>"));
             response->print(F("<div class=\"six columns\"><label for=\"espNowLocationInterval1\">ESP-Now beacon interval 1</label><select class=\"u-full-width\" id=\"espNowLocationInterval1\" name=\"espNowLocationInterval1\">"));
+            response->print(F("<option value=\"1000\""));response->print(espNowLocationInterval1 == 1000 ? " selected>":">");response->print(F("1s</option>"));
             response->print(F("<option value=\"5000\""));response->print(espNowLocationInterval1 == 5000 ? " selected>":">");response->print(F("5s</option>"));
             response->print(F("<option value=\"10000\""));response->print(espNowLocationInterval1 == 10000 ? " selected>":">");response->print(F("10s</option>"));
+            response->print(F("<option value=\"15000\""));response->print(espNowLocationInterval1 == 15000 ? " selected>":">");response->print(F("15s</option>"));
             response->print(F("<option value=\"30000\""));response->print(espNowLocationInterval1 == 30000 ? " selected>":">");response->print(F("30s</option>"));
+            response->print(F("<option value=\"45000\""));response->print(espNowLocationInterval1 == 45000 ? " selected>":">");response->print(F("45s</option>"));
+            response->print(F("<option value=\"60000\""));response->print(espNowLocationInterval1 == 60000 ? " selected>":">");response->print(F("60s</option>"));
+            response->print(F("<option value=\"90000\""));response->print(espNowLocationInterval1 == 90000 ? " selected>":">");response->print(F("90s</option>"));
             response->print(F("</select></div></div>"));
             //espNow beacon interval 2
             response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"espNowPerimiter2\">ESP-Now perimiter 2</label><select class=\"u-full-width\" id=\"espNowPerimiter2\" name=\"espNowPerimiter2\">"));
@@ -1252,11 +1268,14 @@ void setupWebServer()
             response->print(F("<option value=\"50\""));response->print(espNowPerimiter2 == 50 ? " selected>":">");response->print(F("50m</option>"));
             response->print(F("</select></div>"));
             response->print(F("<div class=\"six columns\"><label for=\"espNowLocationInterval2\">ESP-Now beacon interval 2</label><select class=\"u-full-width\" id=\"espNowLocationInterval2\" name=\"espNowLocationInterval2\">"));
+            response->print(F("<option value=\"1000\""));response->print(espNowLocationInterval2 == 1000 ? " selected>":">");response->print(F("1s</option>"));
             response->print(F("<option value=\"5000\""));response->print(espNowLocationInterval2 == 5000 ? " selected>":">");response->print(F("5s</option>"));
             response->print(F("<option value=\"10000\""));response->print(espNowLocationInterval2 == 10000 ? " selected>":">");response->print(F("10s</option>"));
+            response->print(F("<option value=\"15000\""));response->print(espNowLocationInterval2 == 15000 ? " selected>":">");response->print(F("15s</option>"));
             response->print(F("<option value=\"30000\""));response->print(espNowLocationInterval2 == 30000 ? " selected>":">");response->print(F("30s</option>"));
             response->print(F("<option value=\"45000\""));response->print(espNowLocationInterval2 == 45000 ? " selected>":">");response->print(F("45s</option>"));
             response->print(F("<option value=\"60000\""));response->print(espNowLocationInterval2 == 60000 ? " selected>":">");response->print(F("60s</option>"));
+            response->print(F("<option value=\"90000\""));response->print(espNowLocationInterval2 == 90000 ? " selected>":">");response->print(F("90s</option>"));
             response->print(F("</select></div></div>"));
             //espNow beacon interval 3
             response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"espNowPerimiter3\">ESP-Now perimiter 3</label><select class=\"u-full-width\" id=\"espNowPerimiter3\" name=\"espNowPerimiter3\">"));
@@ -1266,6 +1285,8 @@ void setupWebServer()
             response->print(F("<option value=\"150\""));response->print(espNowPerimiter3 == 150 ? " selected>":">");response->print(F("150m</option>"));
             response->print(F("</select></div>"));
             response->print(F("<div class=\"six columns\"><label for=\"espNowLocationInterval3\">ESP-Now beacon interval 3</label><select class=\"u-full-width\" id=\"espNowLocationInterval3\" name=\"espNowLocationInterval3\">"));
+            response->print(F("<option value=\"1000\""));response->print(espNowLocationInterval3 == 1000 ? " selected>":">");response->print(F("1s</option>"));
+            response->print(F("<option value=\"5000\""));response->print(espNowLocationInterval3 == 5000 ? " selected>":">");response->print(F("5s</option>"));
             response->print(F("<option value=\"10000\""));response->print(espNowLocationInterval3 == 10000 ? " selected>":">");response->print(F("10s</option>"));
             response->print(F("<option value=\"15000\""));response->print(espNowLocationInterval3 == 15000 ? " selected>":">");response->print(F("15s</option>"));
             response->print(F("<option value=\"30000\""));response->print(espNowLocationInterval3 == 30000 ? " selected>":">");response->print(F("30s</option>"));
@@ -1492,10 +1513,12 @@ void setupWebServer()
             response->print(F("<option value=\"30\""));response->print(loRaPerimiter1 == 30 ? " selected>":">");response->print(F("30m</option>"));
             response->print(F("</select></div>"));
             response->print(F("<div class=\"six columns\"><label for=\"loRaLocationInterval1\">LoRa beacon interval 1</label><select class=\"u-full-width\" id=\"loRaLocationInterval1\" name=\"loRaLocationInterval1\">"));
-            response->print(F("<option value=\"5000\""));response->print(loRaLocationInterval1 == 5000 ? " selected>":">");response->print(F("5s</option>"));
             response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval1 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-            response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval1 == 15000 ? " selected>":">");response->print(F("15s</option>"));
+            response->print(F("<option value=\"15000\""));response->print(loRaLocationInterval1 == 15000 ? " selected>":">");response->print(F("15s</option>"));
             response->print(F("<option value=\"30000\""));response->print(loRaLocationInterval1 == 30000 ? " selected>":">");response->print(F("30s</option>"));
+            response->print(F("<option value=\"45000\""));response->print(loRaLocationInterval1 == 45000 ? " selected>":">");response->print(F("45s</option>"));
+            response->print(F("<option value=\"60000\""));response->print(loRaLocationInterval1 == 60000 ? " selected>":">");response->print(F("60s</option>"));
+            response->print(F("<option value=\"90000\""));response->print(loRaLocationInterval1 == 90000 ? " selected>":">");response->print(F("90s</option>"));
             response->print(F("</select></div></div>"));
             //LoRa beacon interval 2
             response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter2\">LoRa perimiter 2</label><select class=\"u-full-width\" id=\"loRaPerimiter2\" name=\"loRaPerimiter2\">"));
@@ -1507,12 +1530,12 @@ void setupWebServer()
             response->print(F("<option value=\"50\""));response->print(loRaPerimiter2 == 50 ? " selected>":">");response->print(F("50m</option>"));
             response->print(F("</select></div>"));
             response->print(F("<div class=\"six columns\"><label for=\"loRaLocationInterval2\">LoRa beacon interval 2</label><select class=\"u-full-width\" id=\"loRaLocationInterval2\" name=\"loRaLocationInterval2\">"));
-            response->print(F("<option value=\"5000\""));response->print(loRaLocationInterval2 == 5000 ? " selected>":">");response->print(F("5s</option>"));
             response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval2 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-            response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval2 == 15000 ? " selected>":">");response->print(F("15s</option>"));
+            response->print(F("<option value=\"15000\""));response->print(loRaLocationInterval2 == 15000 ? " selected>":">");response->print(F("15s</option>"));
             response->print(F("<option value=\"30000\""));response->print(loRaLocationInterval2 == 30000 ? " selected>":">");response->print(F("30s</option>"));
             response->print(F("<option value=\"45000\""));response->print(loRaLocationInterval2 == 45000 ? " selected>":">");response->print(F("45s</option>"));
             response->print(F("<option value=\"60000\""));response->print(loRaLocationInterval2 == 60000 ? " selected>":">");response->print(F("60s</option>"));
+            response->print(F("<option value=\"90000\""));response->print(loRaLocationInterval2 == 90000 ? " selected>":">");response->print(F("90s</option>"));
             response->print(F("</select></div></div>"));
             //LoRa beacon interval 3
             response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter3\">LoRa perimiter 3</label><select class=\"u-full-width\" id=\"loRaPerimiter3\" name=\"loRaPerimiter3\">"));
@@ -1963,22 +1986,24 @@ void setupWebServer()
             response->print(F("<form method=\"POST\">"));
             response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"four columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
             response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>GPS configuration</h2></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"six columns\">Switch off GPS when stationary after</div>"));
-            response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"gpsStationaryTimeout\" name=\"gpsStationaryTimeout\">"));
-            response->print(F("<option value=\"0\""));response->print(gpsStationaryTimeout == 0 ? " selected>":">");response->print(F("Never</option>"));
-            response->print(F("<option value=\"60000\""));response->print(gpsStationaryTimeout == 60000 ? " selected>":">");response->print(F("1m</option>"));
-            response->print(F("<option value=\"180000\""));response->print(gpsStationaryTimeout == 180000 ? " selected>":">");response->print(F("3m</option>"));
-            response->print(F("<option value=\"120000\""));response->print(gpsStationaryTimeout == 300000 ? " selected>":">");response->print(F("5m</option>"));
-            response->print(F("</select></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"six columns\">Check for movement after</div>"));
-            response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"gpsCheckInterval\" name=\"gpsCheckInterval\">"));
-            response->print(F("<option value=\"0\""));response->print(gpsCheckInterval == 0 ? " selected>":">");response->print(F("Never (dangerous)</option>"));
-            response->print(F("<option value=\"180000\""));response->print(gpsCheckInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
-            response->print(F("<option value=\"120000\""));response->print(gpsCheckInterval == 300000 ? " selected>":">");response->print(F("5m</option>"));
-            response->print(F("<option value=\"900000\""));response->print(gpsCheckInterval == 900000 ? " selected>":">");response->print(F("15m</option>"));
-            response->print(F("<option value=\"1800000\""));response->print(gpsCheckInterval == 1800000 ? " selected>":">");response->print(F("30m</option>"));
-            response->print(F("<option value=\"3600000\""));response->print(gpsCheckInterval == 3600000 ? " selected>":">");response->print(F("60m</option>"));
-            response->print(F("</select></div></div>"));
+            #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+              response->print(F("<div class=\"row\"><div class=\"six columns\">Switch off GPS when stationary after</div>"));
+              response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"gpsStationaryTimeout\" name=\"gpsStationaryTimeout\">"));
+              response->print(F("<option value=\"0\""));response->print(gpsStationaryTimeout == 0 ? " selected>":">");response->print(F("Never</option>"));
+              response->print(F("<option value=\"60000\""));response->print(gpsStationaryTimeout == 60000 ? " selected>":">");response->print(F("1m</option>"));
+              response->print(F("<option value=\"180000\""));response->print(gpsStationaryTimeout == 180000 ? " selected>":">");response->print(F("3m</option>"));
+              response->print(F("<option value=\"120000\""));response->print(gpsStationaryTimeout == 300000 ? " selected>":">");response->print(F("5m</option>"));
+              response->print(F("</select></div></div>"));
+              response->print(F("<div class=\"row\"><div class=\"six columns\">Check for movement after</div>"));
+              response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"gpsCheckInterval\" name=\"gpsCheckInterval\">"));
+              response->print(F("<option value=\"0\""));response->print(gpsCheckInterval == 0 ? " selected>":">");response->print(F("Never (dangerous)</option>"));
+              response->print(F("<option value=\"180000\""));response->print(gpsCheckInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
+              response->print(F("<option value=\"120000\""));response->print(gpsCheckInterval == 300000 ? " selected>":">");response->print(F("5m</option>"));
+              response->print(F("<option value=\"900000\""));response->print(gpsCheckInterval == 900000 ? " selected>":">");response->print(F("15m</option>"));
+              response->print(F("<option value=\"1800000\""));response->print(gpsCheckInterval == 1800000 ? " selected>":">");response->print(F("30m</option>"));
+              response->print(F("<option value=\"3600000\""));response->print(gpsCheckInterval == 3600000 ? " selected>":">");response->print(F("60m</option>"));
+              response->print(F("</select></div></div>"));
+            #endif
             response->print(F("<div class=\"row\"><div class=\"six columns\">Sync time with GPS</div>"));
             response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"useGpsForTimeSync\" name=\"useGpsForTimeSync\">"));
             response->print(F("<option value=\"true\""));response->print(useGpsForTimeSync == true ? " selected>":">");response->print(F("Enabled</option>"));
@@ -2056,26 +2081,28 @@ void setupWebServer()
                 }
               }
             }
-            if(request->hasParam("gpsStationaryTimeout", true))
-            {
-              if(gpsStationaryTimeout != request->getParam("gpsStationaryTimeout", true)->value().toInt())
+            #ifdef SUPPORT_SOFT_POWER_OFF
+              if(request->hasParam("gpsStationaryTimeout", true))
               {
-                gpsStationaryTimeout = request->getParam("gpsStationaryTimeout", true)->value().toInt();
-                localLog(F("gpsStationaryTimeout: "));
-                localLogLn(gpsStationaryTimeout);
-                gpsConfigurationChanged = true;
+                if(gpsStationaryTimeout != request->getParam("gpsStationaryTimeout", true)->value().toInt())
+                {
+                  gpsStationaryTimeout = request->getParam("gpsStationaryTimeout", true)->value().toInt();
+                  localLog(F("gpsStationaryTimeout: "));
+                  localLogLn(gpsStationaryTimeout);
+                  gpsConfigurationChanged = true;
+                }
               }
-            }
-            if(request->hasParam("gpsCheckInterval", true))
-            {
-              if(gpsCheckInterval != request->getParam("gpsCheckInterval", true)->value().toInt())
+              if(request->hasParam("gpsCheckInterval", true))
               {
-                gpsCheckInterval = request->getParam("gpsCheckInterval", true)->value().toInt();
-                localLog(F("gpsCheckInterval: "));
-                localLogLn(gpsCheckInterval);
-                gpsConfigurationChanged = true;
+                if(gpsCheckInterval != request->getParam("gpsCheckInterval", true)->value().toInt())
+                {
+                  gpsCheckInterval = request->getParam("gpsCheckInterval", true)->value().toInt();
+                  localLog(F("gpsCheckInterval: "));
+                  localLogLn(gpsCheckInterval);
+                  gpsConfigurationChanged = true;
+                }
               }
-            }
+            #endif
             if(gpsConfigurationChanged == true)
             {
               saveConfigurationSoon = millis();
@@ -2705,7 +2732,7 @@ void setupWebServer()
               device[index].longitude,
               device[index].distanceTo,
               device[index].courseTo,
-              device[index].updateHistory);
+              ((device[index].loRaUpdateHistory > device[index].espNowUpdateHistory) ? device[index].loRaUpdateHistory : device[index].espNowUpdateHistory));
           }
           else
           {
@@ -2726,7 +2753,7 @@ void setupWebServer()
               {
                 response->print(F("Tracked"));
               }
-              else if(index != 0 && device[index].online == false)
+              else if(index != 0 && (device[index].loRaOnline == false && device[index].espNowOnline == false))
               {
                 response->print(F("Offline"));
               }
@@ -2739,7 +2766,7 @@ void setupWebServer()
               {
                 response->print(F("Closest tracker"));
               }
-              else if(index != 0 && device[index].online == false)
+              else if(index != 0 && (device[index].loRaOnline == false && device[index].espNowOnline == false))
               {
                 response->print(F("Offline"));
               }

@@ -12,11 +12,8 @@
    The same sketch has the code for both devices, uncomment the '#define ACT_AS_TRACKER' below to build for the tracker, otherwise it is a beacon
 
 */
-//#define ACT_AS_TRACKER
 
-#ifndef ACT_AS_TRACKER
-  #define ACT_AS_BEACON
-#endif
+
 
 //Hardware variant supports different PCBs and GPIO usage for different boards. This is not as modular as I would like
 
@@ -24,12 +21,10 @@
 #define C3TrackedSensor 2
 #define C3LoRaBeacon 3
 
-#if defined ACT_AS_BEACON
-  #define HARDWARE_VARIANT C3LoRaBeacon
-  //#define HARDWARE_VARIANT C3TrackedSensor
-#else
-  #define HARDWARE_VARIANT C3PDT
-#endif
+//#define HARDWARE_VARIANT C3PDT
+//#define HARDWARE_VARIANT C3TrackedSensor
+#define HARDWARE_VARIANT C3LoRaBeacon
+
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
 #define PDT_PATCH_VERSION 5
@@ -60,16 +55,19 @@
 //#define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
 #if defined(ACT_AS_TRACKER)
   #if HARDWARE_VARIANT == C3PDT
+    #define ACT_AS_TRACKER
     #define SUPPORT_BUTTON
     #define SUPPORT_DISPLAY
     #define SUPPORT_BEEPER
     #define DEBUG_BEEPER
     #define USE_SSD1331
+    #define SUPPORT_ESPNOW
   #endif
   #pragma message "Acting as tracker"
 #else
   #pragma message "Acting as beacon"
   #if HARDWARE_VARIANT == C3TrackedSensor
+    #define ACT_AS_BEACON
     #define ACT_AS_SENSOR
     #pragma message "Acting as sensor"
     #if defined(ACT_AS_SENSOR)
@@ -82,12 +80,13 @@
       Preferences sensorPersitentData;
     #endif
   #elif HARDWARE_VARIANT == C3LoRaBeacon
+    #define ACT_AS_BEACON
     #define SUPPORT_BUTTON
     #define SUPPORT_SOFT_POWER_OFF
     #define SUPPORT_SOFT_PERIPHERAL_POWER_OFF
     #define SUPPORT_BUTTON
     #define SUPPORT_LED
-    #define SUPPORT_FTM
+    //#define SUPPORT_FTM
     #define SUPPORT_ESPNOW
   #endif
 #endif
@@ -299,11 +298,29 @@
  * 
  */
 #ifdef SUPPORT_ESPNOW
+  #define DEBUG_ESPNOW
+  extern "C" {
+    #include <esp_now.h>
+    //#include <esp_wifi.h> // only for esp_wifi_set_channel()
+  }
+  #define ESP_ERR_ESPNOW_CHAN         (ESP_ERR_ESPNOW_BASE + 9) /*!< Channel error */
   bool espNowEnabled = false;
   bool espNowInitialised = false;
-  uint32_t espNowRxPackets = 0;
-  uint32_t espNowTxPackets = 0;
-  float calculatedEspNowDutyCycle = 0;
+  uint8_t espNowPreferredChannel = 1;
+  uint8_t espNowChannel = 1;
+  const uint8_t maxEspNowBufferSize = 255;
+  uint8_t espNowReceiveBuffer[maxEspNowBufferSize];
+  volatile uint8_t espNowReceiveBufferSize = 0;
+  uint8_t espNowSendBuffer[maxEspNowBufferSize];
+  volatile uint8_t espNowSendBufferSize = 0;
+  volatile uint32_t espNowRxPackets = 0;
+  volatile uint32_t espNowRxPacketsDropped = 0;
+  volatile uint32_t espNowTxPackets = 0;
+  volatile uint32_t espNowTxPacketsDropped = 0;
+  volatile uint32_t espNowPacketSent = 0;
+  uint32_t espNowTxTime = 0; //Time in ms spent transmitting
+  float maximumEspNowDutyCycle = 1.0;
+  float calculatedEspNowDutyCycle = 0.0;  //Calculated from loRaTxTime and millis()
   uint32_t defaultEspNowLocationInterval = 60000;
   uint16_t espNowPerimiter1 = 25;             //Range at which beacon 1 applies
   uint32_t espNowLocationInterval1 = 5000;    // interval between sends
@@ -311,7 +328,10 @@
   uint32_t espNowLocationInterval2 = 15000;   // interval between sends
   uint16_t espNowPerimiter3 = 100;            //Range at which beacon 3 applies
   uint32_t espNowLocationInterval3 = 30000;   // interval between sends
+  uint32_t lastEspNowDeviceInfoSendTime = 0;
   uint32_t espNowDeviceInfoInterval = 60000;    // Send info every 60s
+  uint32_t lastEspNowLocationSendTime = 0;
+  uint8_t broadcastMacAddress[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 #endif
 /*
 
@@ -374,7 +394,11 @@
     const int8_t TXPin = -1;              //No TX pin
   #endif
   #ifdef SUPPORT_LORA
-    #if HARDWARE_VARIANT == C3TrackedSensor
+    #if HARDWARE_VARIANT == C3PDT
+      const int8_t loRaCSpin = 7;          // LoRa radio chip select
+      const int8_t loRaResetPin = 8;       // LoRa radio reset
+      const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+    #elif HARDWARE_VARIANT == C3TrackedSensor
       const int8_t loRaCSpin = 7;          // LoRa radio chip select
       const int8_t loRaResetPin = 8;       // LoRa radio reset
       const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
@@ -599,7 +623,7 @@ const uint16_t loggingYieldTime = 100;
 #if defined(SUPPORT_LORA)
   const uint8_t maxLoRaBufferSize = 255;
   bool loRaEnabled = true;
-  bool loRaConnected = false;   // Has the radio initialised OK
+  bool loRaInitialised = false;   // Has the radio initialised OK
   #if defined(LORA_ASYNC_METHODS)
     #ifdef ESP32
       portMUX_TYPE loRaRxSynch = portMUX_INITIALIZER_UNLOCKED;  //Mutex for multi-core ESP32s
@@ -626,14 +650,14 @@ const uint16_t loggingYieldTime = 100;
   #endif
   uint8_t loRaSendBuffer[maxLoRaBufferSize];
   uint8_t loRaReceiveBuffer[maxLoRaBufferSize];
-  uint32_t lastDeviceInfoSendTime = 0;    // last send time
+  uint32_t lastLoRaDeviceInfoSendTime = 0;    // last send time
   uint32_t loRaDeviceInfoInterval = 60000;    // Send info every 60s
-  uint32_t lastLocationSendTime = 0;    // last send time
+  uint32_t lastLoRaLocationSendTime = 0;    // last send time
   uint32_t defaultLoRaLocationInterval = 60000;
   uint16_t loRaPerimiter1 = 25;             //Range at which beacon 1 applies
-  uint32_t loRaLocationInterval1 = 5000;    // interval between sends
+  uint32_t loRaLocationInterval1 = 10000;    // interval between sends
   uint16_t loRaPerimiter2 = 50;             //Range at which beacon 2 applies
-  uint32_t loRaLocationInterval2 = 15000;   // interval between sends
+  uint32_t loRaLocationInterval2 = 20000;   // interval between sends
   uint16_t loRaPerimiter3 = 100;            //Range at which beacon 3 applies
   uint32_t loRaLocationInterval3 = 30000;   // interval between sends
   float rssiAttenuation = -6.0;           //Rate at which double the distance degrades RSSI (should be -6)
@@ -692,6 +716,7 @@ const uint16_t loggingYieldTime = 100;
   const uint8_t minimumViableHdop = 10;
   const uint32_t GPSBaud = 9600;
   uint32_t lastGpsTimeCheck = 0;
+  uint32_t lastGPSstateChange = 0;
   uint16_t gpsTimeCheckInterval = 30000;
   uint32_t lastDistanceCalculation = 0;
   uint16_t distanceCalculationInterval = 1000;
@@ -703,16 +728,24 @@ const uint16_t loggingYieldTime = 100;
     uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     char* name = nullptr;
     bool hasFix = false;
-    bool online = false;
     uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor, 4 = emitter, 8 = FTM beacon
     float supplyVoltage = 0;  // Battery health can be guesstimated from this
     uint32_t uptime = 0;  // Check for reboots
     uint8_t majorVersion = 0; //Software version
     uint8_t minorVersion = 0;
     uint8_t patchVersion = 0;
-    uint32_t lastLocationUpdate = 0;  // Used to track packet loss
-    uint16_t nextLocationUpdate = 0;  // Used to track packet loss
-    uint16_t updateHistory = 0xffff;  // Rolling bitmask of packets received/not received based on expected arrival times
+    #ifdef SUPPORT_ESPNOW
+      bool espNowOnline = false;
+      uint32_t lastEspNowLocationUpdate = 0;  // Used to track packet loss
+      uint16_t nextEspNowLocationUpdate = 0;  // Used to track packet loss
+      uint16_t espNowUpdateHistory = 0xffff;  // Rolling bitmask of packets received/not received based on expected arrival times
+    #endif
+    #ifdef SUPPORT_LORA
+      bool loRaOnline = false;
+      uint32_t lastLoRaLocationUpdate = 0;  // Used to track packet loss
+      uint16_t nextLoRaLocationUpdate = 0;  // Used to track packet loss
+      uint16_t loRaUpdateHistory = 0xffff;  // Rolling bitmask of packets received/not received based on expected arrival times
+    #endif
     double latitude = 0;  //Location info
     double longitude = 0;
     float course = 0;
@@ -751,7 +784,6 @@ const uint16_t loggingYieldTime = 100;
     double smoothedSpeed = 100;
     uint8_t stationaryThreshold = 1;
     bool moving = true;
-    uint32_t lastGPSstateChange = 0;
   #endif
 #endif
 /*

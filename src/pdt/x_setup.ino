@@ -72,6 +72,9 @@ void setup() {
   #ifdef SUPPORT_WIFI
     setupNetwork();
   #endif
+  #ifdef SUPPORT_ESPNOW
+    setupEspNow();
+  #endif
   #ifdef SUPPORT_LORA
     setupLoRa();  //Needs to be before SPI display
   #endif
