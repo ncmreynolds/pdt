@@ -107,7 +107,7 @@
       }
       #endif
       */
-      lastRssi = LoRa.packetRssi();
+      lastLoRaRssi = LoRa.packetRssi();
       loRaReceiveBufferSize = packetSize;
     }
     else
@@ -244,7 +244,7 @@
             {
               shareLocation();
               calculateLoRaDutyCycle();
-              if(currentBeacon != maximumNumberOfDevices) //There is a current beacon
+              if(currentlyTrackedBeacon != maximumNumberOfDevices) //There is a current beacon
               {
                 device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
               }
@@ -271,6 +271,68 @@
         }
       }
       #endif
+      for(uint8_t index = 1; index < numberOfDevices; index++)  //Degrade quality if location updates missed, this INCLUDES this device!
+      {
+        if(device[index].hasGpsFix == true && //Thing has fix!
+            device[index].loRaUpdateHistory > 0x00 && //Not already offline
+            device[index].nextLoRaLocationUpdate != 0 &&  //Thing has shared when to expect the location update
+            millis() - device[index].lastLoRaLocationUpdate > (device[index].nextLoRaLocationUpdate + (device[index].nextLoRaLocationUpdate>>3))) //Allow margin of 1/8 the expected interval
+        {
+          device[index].lastLoRaLocationUpdate = millis();  //A failed update is an 'update'
+          device[index].loRaUpdateHistory = device[index].loRaUpdateHistory >> 1; //Reduce update history quality
+          //device[index].nextLoRaLocationUpdate = device[index].nextLoRaLocationUpdate >> 1; //Halve the timeout
+          #ifdef ACT_AS_TRACKER
+            if(index == currentlyTrackedBeacon)
+            {
+              localLog(F("Currently tracked beacon "));
+            }
+            else
+          #else
+            if(index == closestTracker)
+            {
+              localLog(F("Closest tracker "));
+            }
+            else
+          #endif
+          {
+            localLog(F("Device "));
+          }
+          localLog(index);
+          if(device[index].loRaOnline == true && device[index].loRaUpdateHistory < sensitivityValues[trackerSensitivity])  //7 bits in the least significant section
+          {
+            localLogLn(F(" gone offline"));
+            device[index].loRaOnline = false;
+            #ifdef ACT_AS_TRACKER
+              if(index == currentlyTrackedBeacon) //Need to stop tracking this beacon
+              {
+                currentlyTrackedBeacon = maximumNumberOfDevices;
+                distanceToCurrentBeacon = effectivelyUnreachable;
+                distanceToCurrentBeaconChanged = true;
+                #ifdef SUPPORT_BEEPER
+                  endRepeatingBeep();
+                #endif
+                #ifdef SUPPORT_DISPLAY
+                  if(currentDisplayState == displayState::distance) //Clear distance if showing
+                  {
+                    displayDistanceToBeacon();
+                  }
+                #endif
+              }
+            #else
+              if(index == closestTracker) //Need to stop tracking this beacon
+              {
+                closestTracker = maximumNumberOfDevices;
+                distanceToClosestTracker = effectivelyUnreachable;
+              }
+            #endif
+          }
+          else
+          {
+            localLog(F(" dropped LoRa packet, signal quality now:0x"));
+            localLogLn(String(device[index].loRaUpdateHistory,HEX));
+          }
+        }
+      }
     }
   }
   void scheduleDeviceInfoShareSoon()
@@ -531,6 +593,7 @@
       }
     #endif
     */
+    uint8_t _remoteMacAddress[6] = {0, 0, 0, 0, 0, 0};  //MAC address of the remote device
     MsgPack::Unpacker unpacker;
     unpacker.feed(loRaReceiveBuffer, loRaReceiveBufferSize);
     if(unpacker.isUInt7() || unpacker.isUInt8())
@@ -566,7 +629,9 @@
                           deviceIndex);
                       }
                     #endif
-                    device[deviceIndex].lastRssi = lastRssi;
+                    #if defined(SUPPORT_LORA)
+                      device[deviceIndex].lastLoRaRssi = lastLoRaRssi;
+                    #endif
                     if(messagetype == locationUpdateId)
                     {
                       device[deviceIndex].lastLoRaLocationUpdate = millis();  //Only location updates matter for deciding when something has disappeared
@@ -579,7 +644,7 @@
                       unpacker.unpack(device[deviceIndex].nextLoRaLocationUpdate);
                       if(device[deviceIndex].hdop < minimumViableHdop)
                       {
-                        if(device[deviceIndex].hasFix == false)
+                        if(device[deviceIndex].hasGpsFix == false)
                         {
                           #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                             if(waitForBufferSpace(40))
@@ -587,10 +652,10 @@
                               SERIAL_DEBUG_PORT.printf_P(PSTR("Device %u got GPS fix\r\n"), deviceIndex);
                             }
                           #endif
-                          device[deviceIndex].hasFix = true;
+                          device[deviceIndex].hasGpsFix = true;
                         }
                       }
-                      else if(device[deviceIndex].hasFix == true)
+                      else if(device[deviceIndex].hasGpsFix == true)
                       {
                         #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                           if(waitForBufferSpace(40))
@@ -598,7 +663,7 @@
                             SERIAL_DEBUG_PORT.printf_P(PSTR("Device %u lost GPS fix\r\n"), deviceIndex);
                           }
                         #endif
-                        device[deviceIndex].hasFix = false;
+                        device[deviceIndex].hasGpsFix = false;
                       }
                       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                         if(waitForBufferSpace(80))
@@ -610,12 +675,12 @@
                             device[deviceIndex].speed,
                             device[deviceIndex].hdop,
                             device[deviceIndex].distanceTo,
-                            device[deviceIndex].lastRssi,
+                            device[deviceIndex].lastLoRaRssi,
                             device[deviceIndex].nextLoRaLocationUpdate/1000,
                             device[deviceIndex].loRaUpdateHistory);
                         }
                       #endif
-                      if(device[deviceIndex].loRaOnline == false && countBits(device[deviceIndex].loRaUpdateHistory) > 7)   //7 bits in in total to go online
+                      if(device[deviceIndex].loRaOnline == false && countBits(device[deviceIndex].loRaUpdateHistory) > countBits(sensitivityValues[trackerSensitivity]))   //7 bits in in total to go online
                       {
                         localLog(F("Device "));
                         localLog(deviceIndex);
@@ -672,7 +737,7 @@
                                           device[deviceIndex].name,
                                           printableUptime(device[deviceIndex].uptime/1000).c_str(),
                                           device[deviceIndex].supplyVoltage,
-                                          device[deviceIndex].lastRssi);
+                                          device[deviceIndex].lastLoRaRssi);
                                       }
                                     #endif
                                     if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
@@ -685,7 +750,7 @@
                                         {
                                           device[deviceIndex].numberOfStartingHits = unpackerTemp;
                                           #if defined(ACT_AS_TRACKER)
-                                            currentBeaconStateChanged = true;
+                                            currentlyTrackedBeaconStateChanged = true;
                                           #endif
                                         }
                                         if(unpacker.isUInt7() || unpacker.isUInt8())  //Starting stun
@@ -695,7 +760,7 @@
                                           {
                                             device[deviceIndex].numberOfStartingStunHits = unpackerTemp;
                                             #if defined(ACT_AS_TRACKER)
-                                              currentBeaconStateChanged = true;
+                                              currentlyTrackedBeaconStateChanged = true;
                                             #endif
                                           }
                                           if(unpacker.isUInt7() || unpacker.isUInt8())  //Current hits
@@ -705,7 +770,7 @@
                                               {
                                                 device[deviceIndex].currentNumberOfHits = unpackerTemp;
                                                 #if defined(ACT_AS_TRACKER)
-                                                  currentBeaconStateChanged = true;
+                                                  currentlyTrackedBeaconStateChanged = true;
                                                 #endif
                                               }
                                               if(unpacker.isUInt7() || unpacker.isUInt8())  //Current hits
@@ -715,7 +780,7 @@
                                                 {
                                                   device[deviceIndex].currentNumberOfStunHits = unpackerTemp;
                                                   #if defined(ACT_AS_TRACKER)
-                                                    currentBeaconStateChanged = true;
+                                                    currentlyTrackedBeaconStateChanged = true;
                                                   #endif
                                                 }
                                                 #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
@@ -1013,48 +1078,4 @@
       //}
     #endif
   }
-  #ifdef SUPPORT_GPS
-  uint8_t identifyDevice(uint8_t *macAddress)
-  {
-    uint8_t deviceIndex = 1;
-    if(numberOfDevices == maximumNumberOfDevices)
-    {
-      #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(50))
-        {
-          SERIAL_DEBUG_PORT.printf("Too many devices to add %02x:%02x:%02x:%02x:%02x:%02x\r\n", _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5]);
-        }
-      #endif
-      return maximumNumberOfDevices;
-    }
-    for(deviceIndex = 1; deviceIndex < numberOfDevices; deviceIndex++)
-    {
-      if(device[deviceIndex].id[0] == macAddress[0] &&
-          device[deviceIndex].id[1] == macAddress[1] &&
-          device[deviceIndex].id[2] == macAddress[2] &&
-          device[deviceIndex].id[3] == macAddress[3] &&
-          device[deviceIndex].id[4] == macAddress[4] &&
-          device[deviceIndex].id[5] == macAddress[5])
-      {
-        return deviceIndex;
-      }
-    }
-    #if defined(SERIAL_DEBUG)
-      if(waitForBufferSpace(50))
-      {
-        SERIAL_DEBUG_PORT.printf("New device %u found %02x:%02x:%02x:%02x:%02x:%02x\r\n", numberOfDevices, _remoteMacAddress[0], _remoteMacAddress[1], _remoteMacAddress[2], _remoteMacAddress[3], _remoteMacAddress[4], _remoteMacAddress[5]);
-      }
-    #endif
-    device[numberOfDevices].id[0] = _remoteMacAddress[0];
-    device[numberOfDevices].id[1] = _remoteMacAddress[1];
-    device[numberOfDevices].id[2] = _remoteMacAddress[2];
-    device[numberOfDevices].id[3] = _remoteMacAddress[3];
-    device[numberOfDevices].id[4] = _remoteMacAddress[4];
-    device[numberOfDevices].id[5] = _remoteMacAddress[5];
-    numberOfDevices++;
-    lastDeviceStatus = (millis() - deviceStatusInterval) + random(5000,10000); //A new device prompts a status share in 5-10s
-    lastLoRaLocationSendTime = (millis() -  device[0].nextLoRaLocationUpdate) + random(10000,20000); //A new device prompts a location share in 10-20s
-    return numberOfDevices-1;
-  }
-  #endif
 #endif

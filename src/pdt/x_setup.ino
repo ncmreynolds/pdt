@@ -79,7 +79,10 @@ void setup() {
     setupLoRa();  //Needs to be before SPI display
   #endif
   #ifdef SUPPORT_DISPLAY
-    setupScreen();  //Needs to be after LoRa
+    setupDisplay();  //Needs to be after LoRa
+  #endif
+  #ifdef SUPPORT_LVGL
+    setupLvgl();
   #endif
   #ifdef SUPPORT_GPS
     setupGps();

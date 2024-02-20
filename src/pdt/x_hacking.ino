@@ -20,7 +20,7 @@
     game.addGameTab(); //Builds all the game controls
 
     //Our own control tab
-    Serial.println(F("Adding files tab"));
+    SERIAL_DEBUG_PORT.println(F("Adding files tab"));
     controlsTabID = ESPUI.addControl(ControlType::Tab, "Drone control", "Drone control");
     filesTabID = ESPUI.addControl(ControlType::Tab, "Local files", "Local files");
     statusWidgetID = ESPUI.addControl( ControlType::Label, "System status", "Running", ControlColor::Emerald, controlsTabID);

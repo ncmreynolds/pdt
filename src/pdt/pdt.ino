@@ -20,14 +20,16 @@
 #define C3PDT 1
 #define C3TrackedSensor 2
 #define C3LoRaBeacon 3
+#define CYDTracker 4
 
 //#define HARDWARE_VARIANT C3PDT
 //#define HARDWARE_VARIANT C3TrackedSensor
-#define HARDWARE_VARIANT C3LoRaBeacon
+//#define HARDWARE_VARIANT C3LoRaBeacon
+#define HARDWARE_VARIANT CYDTracker
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
-#define PDT_PATCH_VERSION 5
+#define PDT_PATCH_VERSION 6
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -35,63 +37,92 @@
 */
 #define SERIAL_DEBUG
 #define SERIAL_LOG
-//#define DEBUG_LOGGING
-#define SUPPORT_LORA
-#define DEBUG_LORA
-#define SUPPORT_GPS
-//#define DEBUG_GPS
+
 #define SUPPORT_WIFI
-#define SUPPORT_BATTERY_METER
 #define USE_LITTLEFS
-#define ENABLE_LOCAL_WEBSERVER
-#define ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-#define DEBUG_LOCAL_WEBSERVER
-//#define DEBUG_FORM_SUBMISSION
-#define ENABLE_REMOTE_RESTART
-#define ENABLE_LOG_DELETION
-//#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
-//#define ENABLE_OTA_UPDATE
-//#define SUPPORT_OTA
-//#define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
-#if defined(ACT_AS_TRACKER)
-  #if HARDWARE_VARIANT == C3PDT
-    #define ACT_AS_TRACKER
-    #define SUPPORT_BUTTON
-    #define SUPPORT_DISPLAY
-    #define SUPPORT_BEEPER
-    #define DEBUG_BEEPER
-    #define USE_SSD1331
-    #define SUPPORT_ESPNOW
-  #endif
-  #pragma message "Acting as tracker"
-#else
-  #pragma message "Acting as beacon"
-  #if HARDWARE_VARIANT == C3TrackedSensor
-    #define ACT_AS_BEACON
-    #define ACT_AS_SENSOR
-    #pragma message "Acting as sensor"
-    #if defined(ACT_AS_SENSOR)
-      #define SUPPORT_BUTTON
-      #define SUPPORT_BEEPER
-      #define SUPPORT_VIBRATION
-      #define SUPPORT_LED
-      #define SUPPORT_HACKING
-      #include <Preferences.h>
-      Preferences sensorPersitentData;
-    #endif
-  #elif HARDWARE_VARIANT == C3LoRaBeacon
-    #define ACT_AS_BEACON
-    #define SUPPORT_BUTTON
-    #define SUPPORT_SOFT_POWER_OFF
-    #define SUPPORT_SOFT_PERIPHERAL_POWER_OFF
-    #define SUPPORT_BUTTON
-    #define SUPPORT_LED
-    //#define SUPPORT_FTM
-    #define SUPPORT_ESPNOW
-  #endif
+
+#if HARDWARE_VARIANT == C3PDT
+  #define ACT_AS_TRACKER
+  #define SUPPORT_BUTTON
+  #define SUPPORT_DISPLAY
+  #define SUPPORT_BEEPER
+  #define DEBUG_BEEPER
+  #define USE_SSD1331
+  #define SUPPORT_GPS
+  //#define DEBUG_GPS
+  #define SUPPORT_LORA
+  #define DEBUG_LORA
+  #define SUPPORT_ESPNOW
+  #define SUPPORT_BATTERY_METER
+  #define ENABLE_LOCAL_WEBSERVER
+#elif HARDWARE_VARIANT == C3TrackedSensor
+  #define ACT_AS_BEACON
+  #define ACT_AS_SENSOR
+  #define SUPPORT_BUTTON
+  #define SUPPORT_BEEPER
+  #define SUPPORT_VIBRATION
+  #define SUPPORT_LED
+  #define SUPPORT_GPS
+  //#define DEBUG_GPS
+  #define SUPPORT_LORA
+  #define DEBUG_LORA
+  #define SUPPORT_BATTERY_METER
+  #define SUPPORT_HACKING
+  #include <Preferences.h>
+  Preferences sensorPersitentData;
+  #define ENABLE_LOCAL_WEBSERVER
+#elif HARDWARE_VARIANT == C3LoRaBeacon
+  #define ACT_AS_BEACON
+  #define SUPPORT_BUTTON
+  #define SUPPORT_SOFT_POWER_OFF
+  #define SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+  #define SUPPORT_BUTTON
+  #define SUPPORT_LED
+  #define SUPPORT_GPS
+  //#define DEBUG_GPS
+  #define SUPPORT_LORA
+  #define DEBUG_LORA
+  #define SUPPORT_BATTERY_METER
+  //#define SUPPORT_FTM
+  #define SUPPORT_ESPNOW
+  #define DEBUG_ESPNOW
+  #define ENABLE_LOCAL_WEBSERVER
+#elif HARDWARE_VARIANT == CYDTracker
+  #define ACT_AS_TRACKER
+  #define SUPPORT_GPS
+  //#define DEBUG_GPS
+  //#define SUPPORT_LORA
+  //#define DEBUG_LORA
+  #define SUPPORT_ESPNOW
+  #define DEBUG_ESPNOW
+  #define SUPPORT_LVGL
+  #define DEBUG_LVGL
+  #define ENABLE_LOCAL_WEBSERVER
 #endif
 
-#define SERVE_CONFIG_FILE
+#if defined(ACT_AS_TRACKER)
+  //#pragma message "Acting as tracker"
+#elif defined(ACT_AS_BEACON)
+  //#pragma message "Acting as beacon"
+#endif
+
+
+/*
+ * Web server options
+ */
+#ifdef ENABLE_LOCAL_WEBSERVER
+  #define ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+  #define SERVE_CONFIG_FILE
+  #define DEBUG_LOCAL_WEBSERVER
+  //#define DEBUG_FORM_SUBMISSION
+  #define ENABLE_REMOTE_RESTART
+  #define ENABLE_LOG_DELETION
+  //#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
+  //#define ENABLE_OTA_UPDATE
+  //#define SUPPORT_OTA
+  //#define ENABLE_LOCAL_WEBSERVER_BASIC_AUTH //Uncomment to password protect the web configuration interface
+#endif
+
 
 /*
 
@@ -103,24 +134,22 @@
 #include <LittleFS.h> //LittleFS storage
 #include <FS.h> //Filesystem library
 #include <time.h> //Time/NTP library
-//#include <MD5Builder.h> //MD5 has library to hash authorisation lists
 #include <ArduinoJson.h>  //Used to serialise/deserialise configuration files and server responses
+/*
+ * 
+ * WiFi and IP
+ * 
+ */
 #ifdef SUPPORT_WIFI
   #include <espBoilerplate.h>
-  #include <DNSServer.h>
-  /*
-  #if defined(ESP8266)
-    #include <ESP8266WiFi.h>
-    #include <ESP8266mDNS.h>
-    #include <WiFiUdp.h>
-  #elif defined(ESP32)
-    #include <WiFi.h>
+  #ifdef ENABLE_LOCAL_WEBSERVER
+    #include <DNSServer.h>
   #endif
-  */
   #if defined(ENABLE_OTA_UPDATE)
     #include <ArduinoOTA.h> //Over-the-air update library
   #endif
 #endif
+
 #if defined(ACT_AS_SENSOR)
   #include <lasertag.h>
   lasertag sensor;
@@ -217,17 +246,29 @@
 #if defined(SUPPORT_LORA) || defined(SUPPORT_DISPLAY)
   #include <SPI.h>
 #endif
+
 /*
-
-   Includes for LoRa
-
-*/
-#if defined(SUPPORT_LORA)
-  #include <LoRa.h>
+ * 
+ * Needed to encode the data in packets
+ * 
+ */
+#if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
   #include <MsgPack.h>  //MsgPack is used to transmit data
   #include "CRC16.h" //A CRC16 is used to check the packet is LIKELY to be sent in a known format
   #include "CRC.h"
   #define LORA_CRC_POLYNOME 0xac9a  //Taken from https://users.ece.cmu.edu/~koopman/crc/
+  const uint8_t locationUpdateId = 0x00;    //LoRa packet contains location info from a beacon
+  //const uint8_t trackerLocationUpdateId = 0x01;   //LoRa packet contains location info from a tracker
+  const uint8_t deviceStatusUpdateId = 0x10;             //LoRa packet contains device info, shared infrequently
+#endif
+
+/*
+ *
+ *  Includes for LoRa
+ *
+ */
+#if defined(SUPPORT_LORA)
+  #include <LoRa.h>
   //#define LORA_ASYNC_METHODS //Uncomment to use callbacks, rather than polling for LoRa events
   uint8_t defaultLoRaTxPower = 17;
   uint8_t defaultLoRaSpreadingFactor = 7;
@@ -250,6 +291,198 @@
   #if defined(USE_SSD1331)
     #include "ssd1306.h"
   #endif
+#endif
+/*
+ * 
+ * Block of iuncludes for LVGL on CYD
+ * 
+ */
+#ifdef SUPPORT_LVGL
+  #include <TFT_eSPI.h>
+  TFT_eSPI tft = TFT_eSPI();
+  int fontSize = 2, x = 0, y = 0;
+  uint8_t screenRotation = 0;
+  
+  #include <XPT2046_Touchscreen.h>
+  // The CYD touch uses some non default SPI pins
+  
+  #define XPT2046_IRQ 36
+  #define XPT2046_MOSI 32
+  #define XPT2046_MISO 39
+  #define XPT2046_CLK 25
+  #define XPT2046_CS 33
+  SPIClass touchscreenSPI = SPIClass(VSPI);
+  XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
+  uint16_t touchScreenMinimumX = 200, touchScreenMaximumX = 3700, touchScreenMinimumY = 240,touchScreenMaximumY = 3800;
+  
+  #include <lvgl.h>
+
+  enum class deviceState: std::int8_t {
+    starting,
+    detectingGpsPins,
+    detectingGpsBaudRate,
+    gpsDetected,
+    gpsLocked,
+    tracking
+  };
+  deviceState currentDeviceState = deviceState::starting;
+
+  //Screen resolution
+  static const uint16_t screenWidth  = 240;
+  static const uint16_t screenHeight = 320;
+  static const uint8_t bufferFraction = 16;
+  
+  static lv_disp_draw_buf_t draw_buf;
+  //static lv_color_t buf[(screenWidth * screenHeight) / 10];
+  lv_color_t *buf;
+  
+  //Tab view
+  static lv_obj_t * tabview;
+  static const char tabLabel_1[] = "Home";
+  static const char tabLabel_2[] = "GPS";
+  static const char tabLabel_3[] = "Settings";
+  static const char tabLabel_4[] = "Info";
+  lv_obj_t * tab1 = nullptr;
+  lv_obj_t * tab2 = nullptr;
+  lv_obj_t * tab3 = nullptr;
+  lv_obj_t * tab4 = nullptr;
+  uint8_t tabHeight = 40;
+  //Tab 1
+  lv_obj_t * status_spinner = nullptr;
+  lv_obj_t * status_label = nullptr;
+  static const char statusLabel_0[] PROGMEM = "Starting";
+  static const char statusLabel_1[] PROGMEM = "Detecting hardware";
+  static const char statusLabel_2[] PROGMEM = "Calibrating hardware";
+  static const char statusLabel_3[] PROGMEM = "Getting location";
+  static const char statusLabel_4[] PROGMEM = "Scanning";
+  
+  static lv_style_t style_meter;
+  static uint8_t meterDiameter = 100;
+  static const uint8_t meterSpacing = 8;
+  
+  static lv_obj_t * meter0;
+  static lv_meter_indicator_t * needle0;
+  static lv_obj_t * meter0label0;
+  
+  static lv_obj_t * meter1;
+  static lv_meter_indicator_t * needle1;
+  static lv_obj_t * meter1label0;
+  
+  static lv_obj_t * chart0;
+  static lv_chart_series_t * chart0ser0;
+  #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+    static lv_chart_series_t * chart0ser1;
+  #endif
+  static lv_obj_t * chart0label0;
+  
+  static lv_obj_t * chart1;
+  static lv_chart_series_t * chart1ser0;
+  static lv_chart_series_t * chart1ser1;
+  static lv_obj_t * chart1label0;
+
+  static const uint16_t chartX = 220, chartY = 50;
+  static const uint8_t chartSpacing = 18, chartLabelSpacing = 2, chartPoints = 16;
+
+  //Tab 2
+  uint32_t lastLvglTabUpdate = 0;
+  uint32_t lvglTabUpdateInterval = 500;
+  lv_obj_t * tab2table = nullptr;
+  static const char statusTableLabel_0[] PROGMEM = "Date";
+  static const char statusTableLabel_1[] PROGMEM = "Time";
+  static const char statusTableLabel_2[] PROGMEM = "Satellites";
+  static const char statusTableLabel_3[] PROGMEM = "HDOP";
+  static const char statusTableLabel_4[] PROGMEM = "Lat";
+  static const char statusTableLabel_5[] PROGMEM = "Lon";
+  static const char statusTableLabel_6[] PROGMEM = "Speed";
+  static const char statusTableLabel_7[] PROGMEM = "Course";
+  static const char statusTableLabel_8[] PROGMEM = "Bearing";
+  static const char statusTableLabel_Unknown[] = "??";
+  //Tab 3
+  lv_obj_t * units_dd = nullptr;
+  lv_obj_t * dateFormat_dd = nullptr;
+  lv_obj_t * sensitivity_dd = nullptr;
+  lv_obj_t * priority_dd = nullptr;
+  lv_obj_t * displayTimeout_dd = nullptr;
+  #ifdef SUPPORT_BEEPER
+    lv_obj_t * beeper_dd = nullptr;
+  #endif
+  lv_obj_t * displayBrightness_slider = nullptr;
+
+  //Backlight management
+  uint32_t backlightLastSet = 0;
+  uint32_t backlightChangeInterval = 10;
+  const uint8_t absoluteMinimumBrightnessLevel = 16;
+  const uint8_t absoluteMaximumBrightnessLevel = 255;
+  uint8_t minimumBrightnessLevel = absoluteMinimumBrightnessLevel;
+  uint8_t maximumBrightnessLevel = absoluteMaximumBrightnessLevel;
+  uint8_t lastBrightnessLevel = 128;
+  #define LDR_PIN 34
+  #define LCD_BACK_LIGHT_PIN 21
+  // use first channel of 16 channels (started from zero)
+  #define LEDC_CHANNEL_0     0
+  // use 12 bit precission for LEDC timer
+  #define LEDC_TIMER_12_BIT  12
+  // use 5000 Hz as a LEDC base frequency
+  #define LEDC_BASE_FREQ     500
+  
+  //Display updates
+  //uint32_t lastDisplayUpdate = 0;
+  //uint32_t displayUpdateInterval = 250;
+  
+  //User interface
+  
+  uint8_t units = 0;
+  uint8_t dateFormat = 0;
+  uint8_t priority = 0;
+  uint8_t displayTimeout = 0;
+  uint32_t displayTimeouts[] = {0, 60000, 60000 * 5, 60000 * 15}; //No/1/5/15 minute timeouts on screen
+  
+  //Power saving
+  
+  //#include "esp_pm.h"
+  bool uiActive = false;
+  /*
+   * 
+   * Sadly these function prototypes end up here because of build system aggro
+   * 
+   */
+  void flushDisplay( lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p )
+  {
+      uint32_t w = ( area->x2 - area->x1 + 1 );
+      uint32_t h = ( area->y2 - area->y1 + 1 );
+  
+      tft.startWrite();
+      tft.setAddrWindow( area->x1, area->y1, w, h );
+      tft.pushColors( ( uint16_t * )&color_p->full, w * h, true );
+      tft.endWrite();
+  
+      lv_disp_flush_ready( disp_drv );
+  }
+  void readTouchscreen(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
+  {
+    if(touchscreen.touched())
+    {
+      TS_Point touchpoint = touchscreen.getPoint();
+      //Some very basic auto calibration so it doesn't go out of range
+      if(touchpoint.x < touchScreenMinimumX) touchScreenMinimumX = touchpoint.x;
+      if(touchpoint.x > touchScreenMaximumX) touchScreenMaximumX = touchpoint.x;
+      if(touchpoint.y < touchScreenMinimumY) touchScreenMinimumY = touchpoint.y;
+      if(touchpoint.y > touchScreenMaximumY) touchScreenMaximumY = touchpoint.y;
+      //Map this to the pixel position
+      data->point.x = map(touchpoint.x,touchScreenMinimumX,touchScreenMaximumX,1,screenWidth); // Touchscreen X calibration
+      data->point.y = map(touchpoint.y,touchScreenMinimumY,touchScreenMaximumY,1,screenHeight); // Touchscreen Y calibration
+      data->state = LV_INDEV_STATE_PR;
+
+      //SERIAL_DEBUG_PORT.print( "Touch x " );
+      //SERIAL_DEBUG_PORT.print( data->point.x );
+      //SERIAL_DEBUG_PORT.print( " y " );
+      //SERIAL_DEBUG_PORT.println( data->point.y );
+    }
+    else
+    {
+      data->state = LV_INDEV_STATE_REL;
+    }
+  }
 #endif
 /*
 
@@ -303,8 +536,8 @@
     #include <esp_now.h>
     //#include <esp_wifi.h> // only for esp_wifi_set_channel()
   }
-  #define ESP_ERR_ESPNOW_CHAN         (ESP_ERR_ESPNOW_BASE + 9) /*!< Channel error */
-  bool espNowEnabled = false;
+  //#define ESP_ERR_ESPNOW_CHAN         (ESP_ERR_ESPNOW_BASE + 9) /*!< Channel error */
+  bool espNowEnabled = true;
   bool espNowInitialised = false;
   uint8_t espNowPreferredChannel = 1;
   uint8_t espNowChannel = 1;
@@ -325,9 +558,9 @@
   uint16_t espNowPerimiter1 = 25;             //Range at which beacon 1 applies
   uint32_t espNowLocationInterval1 = 5000;    // interval between sends
   uint16_t espNowPerimiter2 = 50;             //Range at which beacon 2 applies
-  uint32_t espNowLocationInterval2 = 15000;   // interval between sends
+  uint32_t espNowLocationInterval2 = 5000;   // interval between sends
   uint16_t espNowPerimiter3 = 100;            //Range at which beacon 3 applies
-  uint32_t espNowLocationInterval3 = 30000;   // interval between sends
+  uint32_t espNowLocationInterval3 = 10000;   // interval between sends
   uint32_t lastEspNowDeviceInfoSendTime = 0;
   uint32_t espNowDeviceInfoInterval = 60000;    // Send info every 60s
   uint32_t lastEspNowLocationSendTime = 0;
@@ -338,7 +571,7 @@
    Pin configurations
 
 */
-#if defined(ARDUINO_ESP32C3_DEV)
+//#if defined(ARDUINO_ESP32C3_DEV)
   // NUM_DIGITAL_PINS        22
   // NUM_ANALOG_INPUTS       6
   // SS    = 7
@@ -375,23 +608,38 @@
       #pragma message "USB CDC configured on boot for debug messages"
       #define SERIAL_DEBUG_PORT Serial
     #else
-      #pragma message "Configuring USB CDC for debug messages"
-      #define SERIAL_DEBUG_PORT USBSerial
+      #if defined(ARDUINO_ESP32C3_DEV)
+        #pragma message "Configuring USB CDC for debug messages"
+        #define SERIAL_DEBUG_PORT USBSerial
+      #else
+        #define SERIAL_DEBUG_PORT Serial
+      #endif
     #endif
   #else
   #endif
   #ifdef SUPPORT_GPS
-    #ifdef SUPPORT_DISPLAY
-      #if ARDUINO_USB_CDC_ON_BOOT == 1
-        #define GPS_PORT Serial0
-      #else
-        #define GPS_PORT Serial
-      #endif
-    #else
+    #if ARDUINO_USB_CDC_ON_BOOT == 1
       #define GPS_PORT Serial0
+    #else
+      #if defined(ARDUINO_ESP32C3_DEV)
+        #define GPS_PORT Serial
+      #else
+        #define GPS_PORT Serial1
+      #endif
     #endif
-    const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
-    const int8_t TXPin = -1;              //No TX pin
+    #if HARDWARE_VARIANT == C3PDT
+      const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
+      const int8_t TXPin = -1;              //No TX pin
+    #elif HARDWARE_VARIANT == C3TrackedSensor
+      const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
+      const int8_t TXPin = -1;              //No TX pin
+    #elif HARDWARE_VARIANT == C3LoRaBeacon
+      const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
+      const int8_t TXPin = -1;              //No TX pin
+    #elif HARDWARE_VARIANT == CYDTracker
+      const int8_t RXPin = 27;              //GPS needs an RX pin, but it can be moved wherever, within reason
+      const int8_t TXPin = -1;              //No TX pin
+    #endif
   #endif
   #ifdef SUPPORT_LORA
     #if HARDWARE_VARIANT == C3PDT
@@ -405,6 +653,10 @@
     #elif HARDWARE_VARIANT == C3LoRaBeacon
       const int8_t loRaCSpin = 7;          // LoRa radio chip select
       const int8_t loRaResetPin = 2;       // LoRa radio reset
+      const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+    #elif HARDWARE_VARIANT == CYDTracker
+      const int8_t loRaCSpin = 7;          // LoRa radio chip select
+      const int8_t loRaResetPin = 8;       // LoRa radio reset
       const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
     #endif
   #endif
@@ -472,6 +724,7 @@
       bool beepOnPress = false;
     #endif
   #endif
+/*
 #else
   #ifdef SUPPORT_LORA
     const int8_t loRaCSpin = 15;          // LoRa radio chip select
@@ -479,6 +732,7 @@
     const int8_t loRaIrqPin = 5;         // change for your board; must be a hardware interrupt pin
   #endif
 #endif
+*/
 /*
 
    Variables, depending on supported features
@@ -548,20 +802,18 @@ uint32_t restartTimer = 0;  //Used to schedule a restart
     #include "credentials.h"
     #pragma message "Using external default WiFi credentials"
   #else
-    #define WIFI_PSK "Your WiFi PSK"
     #define WIFI_SSID "Your WiFi SSID"
+    #define WIFI_PSK "Your WiFi PSK"
     #pragma message "Using default WiFi credentials from sketch"
   #endif
 #endif
-#if defined(ESP8266) || defined(ESP32)
-  //uint8_t _localMacAddress[6] = {0, 0, 0, 0, 0, 0}; //MAC address of this device, which is ALWAYS used to identify it even if WiFi is disabled
-  uint8_t _remoteMacAddress[6] = {0, 0, 0, 0, 0, 0};  //MAC address of the remote device
-#endif
 #if defined(SUPPORT_WIFI)
-  bool startWiFiClientOnBoot = true;
+  bool startWiFiClientOnBoot = false;
   bool startWiFiApOnBoot = true;
-  bool enableCaptivePortal = true;
-  DNSServer* dnsServer = nullptr; //May not be used so don't create the object unless it is enabled
+  #ifdef ENABLE_LOCAL_WEBSERVER
+    bool enableCaptivePortal = true;
+    DNSServer* dnsServer = nullptr; //May not be used so don't create the object unless it is enabled
+  #endif
   uint32_t wiFiClientInactivityTimer = 0;
   uint32_t lastWifiActivity = 0;
   const char* default_WiFi_SSID = WIFI_PSK;
@@ -571,7 +823,7 @@ uint32_t restartTimer = 0;  //Used to schedule a restart
   const char* default_AP_PSK = "12345678";
   char* APSSID = nullptr;
   char* APPSK = nullptr;
-  uint8_t softApChannel = 11;
+  uint8_t softApChannel = 1;
   uint8_t wifiClientTimeout = 30;
 #endif
 const int8_t networkTimeout = 30;  //Timeout in seconds for network connection
@@ -607,13 +859,12 @@ uint8_t logfileMonth = 0; //Used to detect rollover
 uint16_t logfileYear = 0; //Used to detect rollover
 bool startOfLogLine = true; //If true then the logging add the time/date at the start of the line
 String loggingBuffer = ""; //A logging backlog buffer
-//uint16_t loggingBufferSize = 2048; //The space to reserve for a logging backlog. This is not a hard limit, it is to reduce heap fragmentation.
-uint16_t loggingBufferSize = 32768; //The space to reserve for a logging backlog. This is not a hard limit, it is to reduce heap fragmentation.
+uint32_t loggingBufferSize = 4096; //The space to reserve for a logging backlog. This is not a hard limit, it is to reduce heap fragmentation.
 uint32_t logLastFlushed = 0;  //Time (millis) of the last log flush
 bool autoFlush = false;
 bool flushLogNow = false;
-uint32_t logFlushInterval = 57600; //Frequency in seconds of log flush, this is 16h
-uint32_t logFlushThreshold = 2000; //Threshold for forced log flush
+uint32_t logFlushInterval = 60; //Frequency in seconds of log flush, this is 60s
+uint32_t logFlushThreshold = loggingBufferSize*3/4; //Threshold for forced log flush
 SemaphoreHandle_t loggingSemaphore = NULL;
 const uint16_t loggingSemaphoreTimeout = 50;
 TaskHandle_t loggingManagementTask = NULL;
@@ -635,7 +886,7 @@ const uint16_t loggingYieldTime = 100;
     volatile bool loRaRxBusy = false;
     volatile uint8_t loRaSendBufferSize = 0;
     volatile uint8_t loRaReceiveBufferSize = 0;
-    volatile float lastRssi = 0.0;
+    volatile float lastLoRaRssi = 0.0;
     volatile uint32_t loRaTxPackets = 0;
     volatile uint32_t loRaRxPackets = 0;
   #else
@@ -644,7 +895,7 @@ const uint16_t loggingYieldTime = 100;
     volatile bool loRaRxBusy = false;
     volatile uint8_t loRaSendBufferSize = 0;
     volatile uint8_t loRaReceiveBufferSize = 0;
-    volatile float lastRssi = 0.0;
+    volatile float lastLoRaRssi = 0.0;
     volatile uint32_t loRaTxPackets = 0;
     volatile uint32_t loRaRxPackets = 0;
   #endif
@@ -663,9 +914,6 @@ const uint16_t loggingYieldTime = 100;
   float rssiAttenuation = -6.0;           //Rate at which double the distance degrades RSSI (should be -6)
   float rssiAttenuationBaseline = -40;    //RSSI at 10m
   float rssiAttenuationPerimeter = 10;
-  const uint8_t locationUpdateId = 0x00;    //LoRa packet contains location info from a beacon
-  //const uint8_t trackerLocationUpdateId = 0x01;   //LoRa packet contains location info from a tracker
-  const uint8_t deviceStatusUpdateId = 0x10;             //LoRa packet contains device info, shared infrequently
 #endif
 /*
 
@@ -727,7 +975,7 @@ const uint16_t loggingYieldTime = 100;
   struct deviceLocationInfo {
     uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     char* name = nullptr;
-    bool hasFix = false;
+    bool hasGpsFix = false;
     uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor, 4 = emitter, 8 = FTM beacon
     float supplyVoltage = 0;  // Battery health can be guesstimated from this
     uint32_t uptime = 0;  // Check for reboots
@@ -753,23 +1001,27 @@ const uint16_t loggingYieldTime = 100;
     float hdop = 0;
     float distanceTo = 0;
     float courseTo = 0;
-    float lastRssi = 0; // Can also be used to estimate distance
+    float lastLoRaRssi = 0; // Can also be used to estimate distance
     uint8_t numberOfStartingHits = 0;
     uint8_t numberOfStartingStunHits = 0;
     uint8_t currentNumberOfHits = 0;
     uint8_t currentNumberOfStunHits = 0;
+    float diameter = 1;
+    float height = 1;
   };
-  const uint8_t maximumNumberOfDevices = 16;
+  const uint8_t maximumNumberOfDevices = 4;
   deviceLocationInfo device[maximumNumberOfDevices];
   uint8_t numberOfDevices = 0;
   double effectivelyUnreachable = 1E10;
   #if defined(ACT_AS_TRACKER)
     double maximumEffectiveRange = 99;
+    uint8_t trackerSensitivity = 1;
+    uint16_t sensitivityValues[3] = {0x0FFF, 0x00FF, 0x000F};
     uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
     bool distanceToCurrentBeaconChanged = false;
     uint32_t lastDistanceChangeUpdate = 0;
-    uint8_t currentBeacon = maximumNumberOfDevices; //max implies none found
-    bool currentBeaconStateChanged = false; //Note when it has been show
+    uint8_t currentlyTrackedBeacon = maximumNumberOfDevices; //max implies none found
+    bool currentlyTrackedBeaconStateChanged = false; //Note when it has been show
     enum class trackingMode : std::int8_t {
       nearest,
       furthest,
@@ -870,8 +1122,8 @@ const uint16_t loggingYieldTime = 100;
 
 */
 #ifdef SUPPORT_BATTERY_METER
-  uint32_t lastDeviceStatus = 0;
-  uint32_t deviceStatusInterval = 60000;
+  uint32_t lastBatteryStatus = 0;
+  uint32_t batteryStatusInterval = 60000;
   uint8_t batteryPercentage = 100;
 #endif
 

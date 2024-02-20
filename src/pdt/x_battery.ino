@@ -24,9 +24,9 @@
   }
   void manageBattery()
   {
-    if(millis() - lastDeviceStatus > deviceStatusInterval && enableBatteryMonitor == true)
+    if(millis() - lastBatteryStatus > batteryStatusInterval && enableBatteryMonitor == true)
     {
-      lastDeviceStatus = millis();
+      lastBatteryStatus = millis();
       checkBatteryVoltage();
     }
   }

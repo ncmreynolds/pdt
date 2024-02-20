@@ -125,7 +125,7 @@
   #if defined(ACT_AS_TRACKER)
     void setBeeperUrgency()
     {
-      if(currentBeacon != maximumNumberOfDevices && distanceToCurrentBeacon < maximumEffectiveRange)
+      if(currentlyTrackedBeacon != maximumNumberOfDevices && distanceToCurrentBeacon < maximumEffectiveRange)
       {
         if(distanceToCurrentBeacon < 5) 
         {

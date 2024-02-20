@@ -5,26 +5,29 @@
  * The functions are templated so you can print most types to the log with no fuss. Adding a printf equivalent is on my to-do list
  * 
  */
-#if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
 void setupLogging()
 {
   loggingSemaphore = xSemaphoreCreateBinary();
   #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
-    SERIAL_DEBUG_PORT.begin();
-    debugPortStartingBufferSize = SERIAL_DEBUG_PORT.availableForWrite();
-    SERIAL_DEBUG_PORT.println(F("Online?"));  //Try to send something
-    delay(100); //Wait for it to send
-    debugPortAvailable = SERIAL_DEBUG_PORT.availableForWrite() == debugPortStartingBufferSize; //Check if USB port is connected by seeing if it has been able to send stuff
-    //if(debugPortAvailable)
-    {
-        delay(5000);  //Allow time for the serial console to be opened by a person
-    }
+    #if defined(ARDUINO_ESP32C3_DEV)
+      SERIAL_DEBUG_PORT.begin();
+      debugPortStartingBufferSize = SERIAL_DEBUG_PORT.availableForWrite();
+      SERIAL_DEBUG_PORT.println(F("Online?"));  //Try to send something
+      delay(100); //Wait for it to send
+      debugPortAvailable = SERIAL_DEBUG_PORT.availableForWrite() == debugPortStartingBufferSize; //Check if USB port is connected by seeing if it has been able to send stuff
+      //if(debugPortAvailable)
+      {
+          delay(5000);  //Allow time for the serial console to be opened by a person
+      }
+    #else
+      SERIAL_DEBUG_PORT.begin(115200);
+      debugPortAvailable = true;
+    #endif
   #endif
   loggingBuffer.reserve(loggingBufferSize); //Reserve heap for the logging backlog
   xSemaphoreGive(loggingSemaphore);
   xTaskCreate(manageLogging, "manageLogging", 10000, NULL, configMAX_PRIORITIES - 1, &loggingManagementTask);
 }
-#endif
 
 void manageLogging(void * parameter)
 {
@@ -271,26 +274,27 @@ void logToFileLn(typeToLog message)
     loggingBuffer+=message;
     loggingBuffer+="\r\n";
 }
-
-bool waitForBufferSpace(uint16_t spaceNeeded)   //The TX buffer DOES get full so wait for it to empty out
-{
-  if(debugPortAvailable == true)
+#if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
+  bool waitForBufferSpace(uint16_t spaceNeeded)   //The TX buffer DOES get full so wait for it to empty out
   {
-    serialBufferCheckTime = millis();
-    while(SERIAL_DEBUG_PORT.availableForWrite() < spaceNeeded && millis() - serialBufferCheckTime < (spaceNeeded * 2))
+    if(debugPortAvailable == true)
     {
-      delay(1);
+      serialBufferCheckTime = millis();
+      while(SERIAL_DEBUG_PORT.availableForWrite() < spaceNeeded && millis() - serialBufferCheckTime < (spaceNeeded * 2))
+      {
+        delay(1);
+      }
+      if(millis() - serialBufferCheckTime >= spaceNeeded * 2)
+      {
+        debugPortAvailable = false; //Stop using the serial output for a bit to let it clear, or come online
+        return false;
+      }
+      debugPortAvailable = true;  //Succesfully sent, keep using the serial output
+      return true;
     }
-    if(millis() - serialBufferCheckTime >= spaceNeeded * 2)
-    {
-      debugPortAvailable = false; //Stop using the serial output for a bit to let it clear, or come online
-      return false;
-    }
-    debugPortAvailable = true;  //Succesfully sent, keep using the serial output
-    return true;
+    return false;
   }
-  return false;
-}
+#endif
 
 void flushLog() //Flush the log to filesystem if it seems safe to do so
 {

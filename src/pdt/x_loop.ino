@@ -47,15 +47,12 @@ void loop()
       localLogLn(F("Time synced"));
     }
   }
-  #ifdef ACT_AS_TRACKER
-    if(currentBeaconStateChanged == true)  //Ideally show the status to the tracker, but not if asleep
-    {
-      currentBeaconStateChanged = false;
-      //if(currentDisplayState == displayState::distance|| currentDisplayState == displayState::status)
-      {
-        displayStatus();
-      }
-    }
+  #ifdef SUPPORT_DISPLAY
+    manageDisplay();
+  #endif
+  #ifdef SUPPORT_LVGL
+    manageLVGL();
+    manageBacklight();
   #endif
   if(saveConfigurationSoon != 0 && millis() - saveConfigurationSoon > 5000) //Save configuration after a delay to avoid AsyncWebserver doing it in a callback
   {

@@ -19,7 +19,10 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["APSSID"] = APSSID;
     configuration["APPSK"] = APPSK;
     configuration["startWiFiApOnBoot"] = startWiFiApOnBoot;
-    configuration["enableCaptivePortal"] = enableCaptivePortal;
+    configuration["softApChannel"] = softApChannel;
+    #if defined(ENABLE_LOCAL_WEBSERVER)
+      configuration["enableCaptivePortal"] = enableCaptivePortal;
+    #endif
     configuration["wiFiClientInactivityTimer"]  = wiFiClientInactivityTimer;
     configuration["wifiClientTimeout"]  = wifiClientTimeout;
   #endif
@@ -63,9 +66,12 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   #endif
   #if defined(ACT_AS_TRACKER)
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
+    configuration["trackerSensitivity"] = trackerSensitivity;
+    configuration["priority"] = priority;
   #endif
   #if defined(SUPPORT_ESPNOW)
     configuration["espNowEnabled"] = espNowEnabled;
+    configuration["espNowPreferredChannel"] = espNowPreferredChannel;
     configuration["espNowDeviceInfoInterval"] = espNowDeviceInfoInterval;
     configuration["defaultEspNowLocationInterval"] = defaultEspNowLocationInterval;
     configuration["espNowLocationInterval1"] = espNowLocationInterval1;
@@ -94,6 +100,13 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["rssiAttenuationPerimeter"] = rssiAttenuationPerimeter;
     configuration["rssiAttenuation"] = rssiAttenuation;
     configuration["rssiAttenuationBaseline"] = rssiAttenuationBaseline;
+  #endif
+  #if defined(SUPPORT_LVGL)
+    configuration["units"] = units;
+    configuration["dateFormat"] = dateFormat;
+    configuration["displayTimeout"] = displayTimeout;
+    configuration["minimumBrightnessLevel"] = minimumBrightnessLevel;
+    configuration["maximumBrightnessLevel"] = maximumBrightnessLevel;
   #endif
   configuration["loggingBufferSize"] = loggingBufferSize;
   configuration["logFlushThreshold"] = logFlushThreshold;
@@ -183,6 +196,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     #endif
     #if defined(ACT_AS_TRACKER)
       maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
+      trackerSensitivity = configuration["trackerSensitivity"] | 1;
     #endif
     #if defined(SUPPORT_FTM)
       ftmEnabled = configuration["ftmEnabled"] | true;
@@ -210,6 +224,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     #endif
     #if defined(SUPPORT_ESPNOW)
       espNowEnabled = configuration["espNowEnabled"] | true;
+      espNowPreferredChannel = configuration["espNowPreferredChannel"] | 1;
       espNowDeviceInfoInterval = configuration["espNowDeviceInfoInterval"] | 60000;
       defaultEspNowLocationInterval = configuration["defaultEspNowLocationInterval"] | 60000;
       espNowLocationInterval1 = configuration["espNowLocationInterval1"] | 5000;
@@ -262,7 +277,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       strlcpy(configurationComment,default_configurationComment,strlen(default_configurationComment) + 1);
     }
     #if defined(SUPPORT_WIFI)
-      if(configuration["SSID"])
+      if(configuration["SSID"] && strlen(configuration["SSID"]) > 0)
       {
         SSID = new char[strlen(configuration["SSID"]) + 1];
         strlcpy(SSID,configuration["SSID"],strlen(configuration["SSID"]) + 1);
@@ -284,23 +299,26 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       }
       startWiFiClientOnBoot = configuration["startWiFiClientOnBoot"] | true;
       startWiFiApOnBoot = configuration["startWiFiApOnBoot"] | true;
-      if(configuration["APSSID"])
+      softApChannel = configuration["softApChannel"] | 1;
+      if(configuration["APSSID"] && strlen(configuration["APSSID"]) > 0)
       {
         APSSID = new char[strlen(configuration["APSSID"]) + 1];
         strlcpy(APSSID,configuration["APSSID"],strlen(configuration["APSSID"]) + 1);
+        if(configuration["APPSK"] && strlen(configuration["APPSK"]) > 0)
+        {
+          APPSK = new char[strlen(configuration["APPSK"]) + 1];
+          strlcpy(APPSK,configuration["APPSK"],strlen(configuration["APPSK"]) + 1);
+        }
+        else
+        {
+          APPSK = new char[strlen(default_AP_PSK) + 1];
+          strlcpy(APPSK,default_AP_PSK,strlen(default_AP_PSK) + 1);
+        }
       }
       else
       {
         APSSID = new char[strlen(default_deviceName) + 5];
         sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
-      }
-      if(configuration["APPSK"])
-      {
-        APPSK = new char[strlen(configuration["APPSK"]) + 1];
-        strlcpy(APPSK,configuration["APPSK"],strlen(configuration["APPSK"]) + 1);
-      }
-      else
-      {
         APPSK = new char[strlen(default_AP_PSK) + 1];
         strlcpy(APPSK,default_AP_PSK,strlen(default_AP_PSK) + 1);
       }
@@ -364,6 +382,13 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       vibrationEnabled = configuration["vibrationEnabled"] | true;
       vibrationLevel = configuration["vibrationLevel"] | 100;
     #endif
+    #if defined(SUPPORT_LVGL)
+      units = configuration["units"] | 0;
+      dateFormat = configuration["dateFormat"] | 0;
+      displayTimeout = configuration["displayTimeout"] | 0;
+      minimumBrightnessLevel = configuration["minimumBrightnessLevel"] | absoluteMinimumBrightnessLevel;
+      maximumBrightnessLevel = configuration["maximumBrightnessLevel"] | absoluteMaximumBrightnessLevel;
+    #endif
     #ifdef SUPPORT_HACKING
       gameLength = configuration["gameLength"] | 10 ;
       gameRetries = configuration["gameRetries"] | 0;
@@ -396,6 +421,14 @@ bool loadDefaultConfiguration()
     strlcpy(SSID,default_WiFi_SSID,strlen(default_WiFi_SSID) + 1);
     PSK = new char[strlen(default_WiFi_PSK) + 1];
     strlcpy(PSK,default_WiFi_PSK,strlen(default_WiFi_PSK) + 1);
+    startWiFiClientOnBoot = false;
+    APSSID = new char[strlen(device[0].name) + 1];
+    strlcpy(APSSID,device[0].name,strlen(device[0].name) + 1);
+    APPSK = new char[strlen(default_AP_PSK) + 1];
+    strlcpy(APPSK,default_AP_PSK,strlen(default_AP_PSK) + 1);
+    #if defined(ENABLE_LOCAL_WEBSERVER)
+      enableCaptivePortal = true;
+    #endif
   #endif
   timeServer = new char[strlen(default_timeServer) + 1];
   strlcpy(timeServer,default_timeServer,strlen(default_timeServer) + 1);
@@ -468,6 +501,8 @@ void printConfiguration()
     {
       localLogLn(F("disabled"));
     }
+    localLog(F("softApChannel: "));
+    localLogLn(softApChannel);
     localLog(F("AP SSID: "));
     if(APSSID != nullptr)
     {
@@ -486,15 +521,17 @@ void printConfiguration()
     {
       localLogLn(F("<none>"));
     }
-    localLog(F("enableCaptivePortal: "));
-    if(enableCaptivePortal)
-    {
-      localLogLn(F("enabled"));
-    }
-    else
-    {
-      localLogLn(F("disabled"));
-    }
+    #if defined(ENABLE_LOCAL_WEBSERVER)
+      localLog(F("enableCaptivePortal: "));
+      if(enableCaptivePortal)
+      {
+        localLogLn(F("enabled"));
+      }
+      else
+      {
+        localLogLn(F("disabled"));
+      }
+    #endif
     localLog(F("timeServer: "));
     if(timeServer != nullptr)
     {
@@ -573,6 +610,8 @@ void printConfiguration()
   #if defined(ACT_AS_TRACKER)
     localLog(F("maximumEffectiveRange: "));
     localLogLn(maximumEffectiveRange);
+    localLog(F("trackerSensitivity: "));
+    localLogLn(sensitivityValues[trackerSensitivity]);
   #endif
   #if defined(SUPPORT_FTM)
     localLog(F("ftmEnabled: "));
@@ -593,6 +632,8 @@ void printConfiguration()
   #if defined(SUPPORT_ESPNOW)
     localLog(F("espNowEnabled: "));
     localLogLn(espNowEnabled);
+    localLog(F("espNowPreferredChannel: "));
+    localLogLn(espNowPreferredChannel);
     localLog(F("espNowDeviceInfoInterval: "));
     localLogLn(espNowDeviceInfoInterval);
     localLog(F("defaultEspNowLocationInterval: "));
@@ -657,6 +698,18 @@ void printConfiguration()
     localLogLn(vibrationEnabled);
     localLog(F("vibrationLevel: "));
     localLogLn(vibrationLevel);
+  #endif
+  #if defined(SUPPORT_LVGL)
+    localLog(F("units: "));
+    localLogLn(units);
+    localLog(F("dateFormat: "));
+    localLogLn(dateFormat);
+    localLog(F("displayTimeout: "));
+    localLogLn(displayTimeout);
+    localLog(F("minimumBrightnessLevel: "));
+    localLogLn(minimumBrightnessLevel);
+    localLog(F("maximumBrightnessLevel: "));
+    localLogLn(maximumBrightnessLevel);
   #endif
   localLog(F("loggingBufferSize: "));
   localLogLn(loggingBufferSize);

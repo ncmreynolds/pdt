@@ -1,14 +1,14 @@
 #if defined(SUPPORT_WIFI)
   void setupNetwork()
   {
-    #ifdef ACT_AS_TRACKER
+    #ifdef SUPPORT_BUTTON
       if(digitalRead(buttonPin) == false) //Start WiFi if button pushed
       {
         startWiFiApOnBoot = true;
       }
     #endif
     #if defined(SERIAL_DEBUG)
-      espBoilerplate.setOutputStream(Serial);
+      espBoilerplate.setOutputStream(SERIAL_DEBUG_PORT);
     #endif
     espBoilerplate.setRetries(wifiClientTimeout);
     #ifdef SUPPORT_FTM
@@ -27,7 +27,18 @@
       {
         if(wifiClientConnected == false)
         {
-          espBoilerplate.setApChannel(softApChannel);
+          #if defined(SUPPORT_ESPNOW)
+            if(espNowEnabled)
+            {
+              espBoilerplate.setApChannel(espNowPreferredChannel);  //Overrides AP channel
+            }
+            else
+            {
+              espBoilerplate.setApChannel(softApChannel);
+            }
+          #else
+            espBoilerplate.setApChannel(softApChannel);
+          #endif
           wifiApStarted = espBoilerplate.beginAp(APSSID, APPSK);
         }
         else
@@ -35,13 +46,15 @@
           wifiApStarted = espBoilerplate.beginAp(APSSID, APPSK);
         }
       }
-      if(wifiApStarted == true && enableCaptivePortal == true)
-      {
-        localLog(F("Starting captive portal DNS server: "));
-        dnsServer = new DNSServer;
-        dnsServer->start(53, "*", WiFi.softAPIP());  //DNS server is required for captive portal to work
-        localLogLn(F("OK"));
-      }
+      #ifdef ENABLE_LOCAL_WEBSERVER
+        if(wifiApStarted == true && enableCaptivePortal == true)
+        {
+          localLog(F("Starting captive portal DNS server: "));
+          dnsServer = new DNSServer;
+          dnsServer->start(53, "*", WiFi.softAPIP());  //DNS server is required for captive portal to work
+          localLogLn(F("OK"));
+        }
+      #endif
       if(wifiApStarted == true || wifiClientConnected == true)
       {
         espBoilerplate.setHostname(device[0].name); //Set mDNS name

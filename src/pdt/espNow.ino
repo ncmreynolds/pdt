@@ -148,7 +148,7 @@
           {
             if(shareLocationByEspNow())
             {
-              if(currentBeacon != maximumNumberOfDevices) //There is a current beacon
+              if(currentlyTrackedBeacon != maximumNumberOfDevices) //There is a current beacon
               {
                 device[0].nextEspNowLocationUpdate = newEspNowLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
               }
@@ -177,6 +177,68 @@
           }
         #endif
       }
+      for(uint8_t index = 1; index < numberOfDevices; index++)  //Degrade quality if location updates missed, this INCLUDES this device!
+      {
+        if(device[index].hasGpsFix == true && //Thing has fix!
+            device[index].espNowUpdateHistory > 0x00 && //Not already offline
+            device[index].nextEspNowLocationUpdate != 0 &&  //Thing has shared when to expect the location update
+            millis() - device[index].lastEspNowLocationUpdate > (device[index].nextEspNowLocationUpdate + (device[index].nextEspNowLocationUpdate>>3))) //Allow margin of 1/8 the expected interval
+        {
+          device[index].lastEspNowLocationUpdate = millis();  //A failed update is an 'update'
+          device[index].espNowUpdateHistory = device[index].espNowUpdateHistory >> 1; //Reduce update history quality
+          //device[index].nextEspNowLocationUpdate = device[index].nextEspNowLocationUpdate >> 1; //Halve the timeout
+          #ifdef ACT_AS_TRACKER
+            if(index == currentlyTrackedBeacon)
+            {
+              localLog(F("Currently tracked beacon "));
+            }
+            else
+          #else
+            if(index == closestTracker)
+            {
+              localLog(F("Closest tracker "));
+            }
+            else
+          #endif
+          {
+            localLog(F("Device "));
+          }
+          localLog(index);
+          if(device[index].espNowOnline == true && device[index].espNowUpdateHistory < sensitivityValues[trackerSensitivity])
+          {
+            localLogLn(F(" ESPNow gone offline"));
+            device[index].espNowOnline = false;
+            #ifdef ACT_AS_TRACKER
+              if(index == currentlyTrackedBeacon) //Need to stop tracking this beacon
+              {
+                currentlyTrackedBeacon = maximumNumberOfDevices;
+                distanceToCurrentBeacon = effectivelyUnreachable;
+                distanceToCurrentBeaconChanged = true;
+                #ifdef SUPPORT_BEEPER
+                  endRepeatingBeep();
+                #endif
+                #ifdef SUPPORT_DISPLAY
+                  if(currentDisplayState == displayState::distance) //Clear distance if showing
+                  {
+                    displayDistanceToBeacon();
+                  }
+                #endif
+              }
+            #else
+              if(index == closestTracker) //Need to stop tracking this beacon
+              {
+                closestTracker = maximumNumberOfDevices;
+                distanceToClosestTracker = effectivelyUnreachable;
+              }
+            #endif
+          }
+          else
+          {
+            localLog(F(" dropped EspNow packet, signal quality now:0x"));
+            localLogLn(String(device[index].espNowUpdateHistory,HEX));
+          }
+        }
+      }
     }
   }
   bool appendEspNowChecksum()
@@ -192,7 +254,7 @@
     }
     else
     {
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
         if(waitForBufferSpace(31))
         {
           SERIAL_DEBUG_PORT.println(F("EspNow packet too large to send"));
@@ -209,7 +271,7 @@
     uint16_t packetChecksum = (espNowReceiveBuffer[espNowReceiveBufferSize - 2] << 8) + espNowReceiveBuffer[espNowReceiveBufferSize - 1];
     if(expectedChecksum != packetChecksum)
     {
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
         if(waitForBufferSpace(52))
         {
           SERIAL_DEBUG_PORT.printf_P(PSTR("EspNow packet checksum invalid, expected %04X got %04X\r\n"), expectedChecksum, packetChecksum);
@@ -232,6 +294,7 @@
     */
     MsgPack::Unpacker unpacker;
     unpacker.feed(espNowReceiveBuffer, espNowReceiveBufferSize);
+    uint8_t _remoteMacAddress[6] = {0, 0, 0, 0, 0, 0};  //MAC address of the remote device
     if(unpacker.isUInt7() || unpacker.isUInt8())
     {
       unpacker.unpack(_remoteMacAddress[0]);
@@ -257,7 +320,7 @@
                   uint8_t deviceIndex = identifyDevice(_remoteMacAddress);
                   if(deviceIndex < maximumNumberOfDevices)
                   {
-                    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                    #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                       if(waitForBufferSpace(80))
                       {
                         SERIAL_DEBUG_PORT.printf_P(PSTR("EspNow RX %02x:%02x:%02x:%02x:%02x:%02x device %u "),
@@ -265,7 +328,6 @@
                           deviceIndex);
                       }
                     #endif
-                    device[deviceIndex].lastRssi = lastRssi;
                     if(messagetype == locationUpdateId)
                     {
                       device[deviceIndex].lastEspNowLocationUpdate = millis();  //Only location updates matter for deciding when something has disappeared
@@ -278,7 +340,7 @@
                       unpacker.unpack(device[deviceIndex].nextEspNowLocationUpdate);
                       if(device[deviceIndex].hdop < minimumViableHdop)
                       {
-                        if(device[deviceIndex].hasFix == false)
+                        if(device[deviceIndex].hasGpsFix == false)
                         {
                           #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                             if(waitForBufferSpace(40))
@@ -286,10 +348,10 @@
                               SERIAL_DEBUG_PORT.printf_P(PSTR("Device %u got GPS fix\r\n"), deviceIndex);
                             }
                           #endif
-                          device[deviceIndex].hasFix = true;
+                          device[deviceIndex].hasGpsFix = true;
                         }
                       }
-                      else if(device[deviceIndex].hasFix == true)
+                      else if(device[deviceIndex].hasGpsFix == true)
                       {
                         #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                           if(waitForBufferSpace(40))
@@ -297,24 +359,23 @@
                             SERIAL_DEBUG_PORT.printf_P(PSTR("Device %u lost GPS fix\r\n"), deviceIndex);
                           }
                         #endif
-                        device[deviceIndex].hasFix = false;
+                        device[deviceIndex].hasGpsFix = false;
                       }
-                      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                      #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                         if(waitForBufferSpace(80))
                         {
-                            SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) RSSI:%.1f next update:%us update history:%04x\r\n",
+                            SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) next update:%us update history:%04x\r\n",
                             device[deviceIndex].latitude,
                             device[deviceIndex].longitude,
                             device[deviceIndex].course,
                             device[deviceIndex].speed,
                             device[deviceIndex].hdop,
                             device[deviceIndex].distanceTo,
-                            device[deviceIndex].lastRssi,
                             device[deviceIndex].nextEspNowLocationUpdate/1000,
                             device[deviceIndex].espNowUpdateHistory);
                         }
                       #endif
-                      if(device[deviceIndex].espNowOnline == false && countBits(device[deviceIndex].espNowUpdateHistory) > 7)   //7 bits in in total to go online
+                      if(device[deviceIndex].espNowOnline == false && countBits(device[deviceIndex].espNowUpdateHistory) > countBits(sensitivityValues[trackerSensitivity]))   //7 bits in in total to go online
                       {
                         localLog(F("Device "));
                         localLog(deviceIndex);
@@ -360,18 +421,18 @@
                                       device[deviceIndex].name = new char[receivedDeviceName.length() + 1];
                                       receivedDeviceName.toCharArray(device[deviceIndex].name, receivedDeviceName.length() + 1);
                                     }
-                                    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                    #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                       if(waitForBufferSpace(60))
                                       {
-                                        SERIAL_DEBUG_PORT.printf_P(PSTR("info type:%02x version:%u.%u.%u name:'%s' up:%s battery voltage:%.1fv RSSI:%.1f"),
+                                        SERIAL_DEBUG_PORT.printf_P(PSTR("info type:%02x version:%u.%u.%u name:'%s' up:%s battery voltage:%.1fv"),
                                           device[deviceIndex].typeOfDevice,
                                           device[deviceIndex].majorVersion,
                                           device[deviceIndex].minorVersion,
                                           device[deviceIndex].patchVersion,
                                           device[deviceIndex].name,
                                           printableUptime(device[deviceIndex].uptime/1000).c_str(),
-                                          device[deviceIndex].supplyVoltage,
-                                          device[deviceIndex].lastRssi);
+                                          device[deviceIndex].supplyVoltage
+                                          );
                                       }
                                     #endif
                                     if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
@@ -384,7 +445,7 @@
                                         {
                                           device[deviceIndex].numberOfStartingHits = unpackerTemp;
                                           #if defined(ACT_AS_TRACKER)
-                                            currentBeaconStateChanged = true;
+                                            currentlyTrackedBeaconStateChanged = true;
                                           #endif
                                         }
                                         if(unpacker.isUInt7() || unpacker.isUInt8())  //Starting stun
@@ -394,7 +455,7 @@
                                           {
                                             device[deviceIndex].numberOfStartingStunHits = unpackerTemp;
                                             #if defined(ACT_AS_TRACKER)
-                                              currentBeaconStateChanged = true;
+                                              currentlyTrackedBeaconStateChanged = true;
                                             #endif
                                           }
                                           if(unpacker.isUInt7() || unpacker.isUInt8())  //Current hits
@@ -404,7 +465,7 @@
                                               {
                                                 device[deviceIndex].currentNumberOfHits = unpackerTemp;
                                                 #if defined(ACT_AS_TRACKER)
-                                                  currentBeaconStateChanged = true;
+                                                  currentlyTrackedBeaconStateChanged = true;
                                                 #endif
                                               }
                                               if(unpacker.isUInt7() || unpacker.isUInt8())  //Current hits
@@ -414,10 +475,10 @@
                                                 {
                                                   device[deviceIndex].currentNumberOfStunHits = unpackerTemp;
                                                   #if defined(ACT_AS_TRACKER)
-                                                    currentBeaconStateChanged = true;
+                                                    currentlyTrackedBeaconStateChanged = true;
                                                   #endif
                                                 }
-                                                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                                #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                                   if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
                                                   {
                                                     if(waitForBufferSpace(60))
@@ -434,7 +495,7 @@
                                               }
                                               else
                                               {
-                                                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                                #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                                   if(waitForBufferSpace(40))
                                                   {
                                                     SERIAL_DEBUG_PORT.print(F("Unexpected type for current stun: "));
@@ -445,7 +506,7 @@
                                             }
                                             else
                                             {
-                                              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                              #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                                 if(waitForBufferSpace(40))
                                                 {
                                                   SERIAL_DEBUG_PORT.print(F("Unexpected type for current hits: "));
@@ -456,7 +517,7 @@
                                           }
                                           else
                                           {
-                                            #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                            #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                               if(waitForBufferSpace(40))
                                               {
                                                 SERIAL_DEBUG_PORT.print(F("Unexpected type for starting stun: "));
@@ -467,7 +528,7 @@
                                         }
                                         else
                                         {
-                                          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                          #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                             if(waitForBufferSpace(40))
                                             {
                                               SERIAL_DEBUG_PORT.print(F("Unexpected type for starting hits: "));
@@ -492,7 +553,7 @@
                                       unpacker.unpack(receivedEspNowLocationInterval2);
                                       unpacker.unpack(receivedEspNowPerimiter3);
                                       unpacker.unpack(receivedEspNowLocationInterval3);
-                                      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                      #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                         if(waitForBufferSpace(75))
                                         {
                                           SERIAL_DEBUG_PORT.printf_P(PSTR(" intervals: default %us, %um %us, %um %us, %um %us"),
@@ -522,7 +583,7 @@
                                         espNowPerimiter3 = receivedEspNowPerimiter3;
                                         espNowLocationInterval3 = receivedEspNowLocationInterval3;
                                         saveConfigurationSoon = millis();
-                                        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                        #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                           if(waitForBufferSpace(75))
                                           {
                                             SERIAL_DEBUG_PORT.print(F(" syncing\r\n"));
@@ -531,7 +592,7 @@
                                       }
                                       else
                                       {
-                                        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                        #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                           if(waitForBufferSpace(75))
                                           {
                                             SERIAL_DEBUG_PORT.print(F(" matches\r\n"));
@@ -542,7 +603,7 @@
                                   }
                                   else
                                   {
-                                    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                    #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                       if(waitForBufferSpace(40))
                                       {
                                         SERIAL_DEBUG_PORT.print(F("Unexpected type for name: "));
@@ -553,7 +614,7 @@
                                 }
                                 else
                                 {
-                                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                  #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                     if(waitForBufferSpace(40))
                                     {
                                       SERIAL_DEBUG_PORT.print(F("Unexpected type for supply voltage: "));
@@ -564,7 +625,7 @@
                               }
                               else
                               {
-                                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                                #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                   if(waitForBufferSpace(40))
                                   {
                                     SERIAL_DEBUG_PORT.print(F("Unexpected type for uptime: "));
@@ -575,7 +636,7 @@
                             }
                             else
                             {
-                              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                              #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                                 if(waitForBufferSpace(40))
                                 {
                                   SERIAL_DEBUG_PORT.print(F("Unexpected type for patch version: "));
@@ -586,7 +647,7 @@
                           }
                           else
                           {
-                            #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                            #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                               if(waitForBufferSpace(40))
                               {
                                 SERIAL_DEBUG_PORT.print(F("Unexpected type for minor version: "));
@@ -597,7 +658,7 @@
                         }
                         else
                         {
-                          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                          #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                             if(waitForBufferSpace(40))
                             {
                               SERIAL_DEBUG_PORT.print(F("Unexpected type for major version: "));
@@ -608,7 +669,7 @@
                       }
                       else
                       {
-                        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                        #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                           if(waitForBufferSpace(40))
                           {
                             SERIAL_DEBUG_PORT.print(F("Unexpected deviceType type: "));
@@ -619,7 +680,7 @@
                     }
                     else
                     {
-                      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                      #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                         if(waitForBufferSpace(40))
                         {
                           SERIAL_DEBUG_PORT.print(F("Unexpected message type: "));
@@ -631,7 +692,7 @@
                 }
                 else
                 {
-                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                  #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                     if(waitForBufferSpace(40))
                     {
                       SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -642,7 +703,7 @@
               }
               else
               {
-                #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                   if(waitForBufferSpace(40))
                   {
                     SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -653,7 +714,7 @@
             }
             else
             {
-              #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                 if(waitForBufferSpace(40))
                 {
                   SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -664,7 +725,7 @@
           }
           else
           {
-            #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
               if(waitForBufferSpace(40))
               {
                 SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -675,7 +736,7 @@
         }
         else
         {
-          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
             if(waitForBufferSpace(40))
             {
               SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -686,7 +747,7 @@
       }
       else
       {
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
           if(waitForBufferSpace(40))
           {
             SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -697,7 +758,7 @@
     }
     else
     {
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
         if(waitForBufferSpace(40))
         {
           SERIAL_DEBUG_PORT.print(F("Unexpected type: "));
@@ -705,7 +766,7 @@
         }
       #endif
     }
-    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+    #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
       //if(waitForBufferSpace(40))
       //{
         //SERIAL_DEBUG_PORT.println(F("Processing received packet done"));
@@ -725,7 +786,7 @@
       else
       {
         espNowTxPacketsDropped++;
-        if(espNowSendResult == ESP_ERR_ESPNOW_CHAN || WiFi.channel() != espNowChannel) //Channel has changed, move peer address
+        if(WiFi.channel() != espNowChannel) //Channel has changed, move peer address
         {
           if(deleteBroadcastPeer())
           {
@@ -776,7 +837,7 @@
     /*
     if(espNowTxBusy)
     {
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
         if(waitForBufferSpace(80))
         {
           SERIAL_DEBUG_PORT.println(F("Cannot share location, EspNow busy"));
@@ -809,14 +870,16 @@
         #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
           if(waitForBufferSpace(80))
           {
-            SERIAL_DEBUG_PORT.printf_P(PSTR("ESPNow TX %02x:%02x:%02x:%02x:%02x:%02x location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f next update:%us\r\n"),
+            SERIAL_DEBUG_PORT.printf_P(PSTR("ESPNow TX %02x:%02x:%02x:%02x:%02x:%02x location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f next update:%us channel:%u\r\n"),
               device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
               device[0].latitude,
               device[0].longitude,
               device[0].course,
               device[0].speed,
               device[0].hdop,
-              device[0].nextEspNowLocationUpdate/1000);
+              device[0].nextEspNowLocationUpdate/1000,
+              espNowChannel
+              );
           }
         #endif
         return true;
@@ -890,7 +953,7 @@
               device[0].numberOfStartingStunHits
               );
             #else
-              SERIAL_DEBUG_PORT.printf("ESPNow TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv intervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+              SERIAL_DEBUG_PORT.printf("ESPNow TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv intervals: default %us, %um %us, %um %us, %um %us  channel:%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
               device[0].typeOfDevice,
               device[0].majorVersion,
               device[0].minorVersion,
@@ -904,7 +967,8 @@
               espNowPerimiter2,
               espNowLocationInterval2/1000,
               espNowPerimiter3,
-              espNowLocationInterval3/1000
+              espNowLocationInterval3/1000,
+              espNowChannel
               );
             #endif
           }

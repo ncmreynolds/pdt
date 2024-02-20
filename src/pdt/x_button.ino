@@ -45,10 +45,10 @@
           }
           else if(currentTrackingMode == trackingMode::fixed)
           {
-            currentBeacon++;
-            if(currentBeacon == numberOfDevices)
+            currentlyTrackedBeacon++;
+            if(currentlyTrackedBeacon == numberOfDevices)
             {
-              currentBeacon = 0;
+              currentlyTrackedBeacon = maximumNumberOfDevices;
               currentTrackingMode = trackingMode::nearest;
             }
             displayTrackingMode();
@@ -242,6 +242,10 @@
         if(buttonLongPress == false) //This is a short press
         {
           localLogLn(F("Button: short press"));
+          if(peripheralsEnabled == false)
+          {
+            peripheralPowerOn();
+          }
           ledPulse();
         }
         else
