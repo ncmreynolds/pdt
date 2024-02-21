@@ -97,16 +97,18 @@
             response->print(F(" Features: <b>"));
             response->print(deviceFeatures(device[0].typeOfDevice));
             response->printf_P(PSTR("</b><li>Built: <b>%s %s</b>"), __TIME__, __DATE__);
-            response->printf_P(PSTR(" Board: <b>%s</b> PCB Variant: <b>"), ARDUINO_BOARD);
+            response->printf_P(PSTR(" Board: <b>%s</b></li><li>PCB Variant: <b>"), ARDUINO_BOARD);
             #if HARDWARE_VARIANT == C3PDT
               response->print(F("C3 PDT v1"));
             #elif HARDWARE_VARIANT == C3TrackedSensor
               response->print(F("C3 Trackable sensor v1"));
             #elif HARDWARE_VARIANT == C3LoRaBeacon
               response->print(F("C3 LoRa beacon v1"));
+            #elif HARDWARE_VARIANT == CYDTracker
+              response->print(F("ESP32 CYD"));
             #endif
             #ifdef ESP_IDF_VERSION_MAJOR
-              response->print(F("</b> ESP-IDF: <b>v"));
+              response->print(F("</b></li><li>ESP-IDF: <b>v"));
               #ifdef ESP_IDF_VERSION_MINOR
                 response->print(ESP_IDF_VERSION_MAJOR);
                 response->print('.');
@@ -149,8 +151,9 @@
             {
               response->print(F("<li>Filesystem: <b>not mounted</b> "));
             }
+            response->print(F("</b></li>"));
             #if defined(ESP32)
-              response->print(F(" Free heap: <b>"));
+              response->print(F("<li>Free heap: <b>"));
               response->print(ESP.getFreeHeap()/1024);
               response->print(F("KB</b></li>"));
             #endif
@@ -183,13 +186,13 @@
             {
               response->print(F("Not set"));
             }
-            response->print(F("</b> uptime: <b>"));
+            response->print(F("</b></li><li>Uptime: <b>"));
             response->print(printableUptime(millis()/1000));
             response->print(F("</b></li>"));
             #if defined(ESP32)
               #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
                 #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-                  response->print(F("Restart reason core 0: <b>"));
+                  response->print(F("<li>Restart reason core 0: <b>"));
                   response->print(es32ResetReason(0));
                   response->print(F("</b> Restart reason core 1: <b>"));
                   response->print(es32ResetReason(1));
@@ -203,7 +206,7 @@
                   #error Target CONFIG_IDF_TARGET is not supported
                 #endif
               #else // ESP32 Before IDF 4.0
-                response->print(F("Restart reason core 0: <b>"));
+                response->print(F("<li>Restart reason core 0: <b>"));
                 response->print(es32ResetReason(0));
                 response->print(F("</b> Restart reason core 1: <b>"));
                 response->print(es32ResetReason(1));
@@ -320,7 +323,11 @@
                   response->print(loRaTxPackets);
                   response->print(F(" TX"));
                   response->printf_P(PSTR(" Duty cycle: %.02f%%"),calculatedLoRaDutyCycle);
-                  response->print(F("</b></li>"));
+                  response->print(F("</b></li><li>Dropped: <b>"));
+                  response->print(loRaRxPacketsDropped);
+                  response->print(F(" RX / "));
+                  response->print(loRaTxPacketsDropped);
+                  response->print(F(" TX</b></li>"));
                   response->print(F("<li>Update interval: <b>"));
                   response->print(device[0].nextLoRaLocationUpdate/1000);
                   response->print(F("s</b></li>"));
@@ -819,7 +826,7 @@
               response->printf_P(PSTR("<div class=\"six columns\"><label for=\"bottomLadderResistor\">Bottom ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\"></div></div>"), bottomLadderResistor);
             #endif
             #if defined(ACT_AS_TRACKER)
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Tracker</h3></div></div>"));
+              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Tracking</h3></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"maximumEffectiveRange\">Maximum effective range</label><select class=\"u-full-width\" id=\"maximumEffectiveRange\" name=\"maximumEffectiveRange\">"));
               response->print(F("<option value=\"50\""));response->print(maximumEffectiveRange == 50 ? " selected>":">");response->print(F("50m</option>"));
               response->print(F("<option value=\"75\""));response->print(maximumEffectiveRange == 75 ? " selected>":">");response->print(F("75m</option>"));
@@ -831,12 +838,15 @@
               response->print(F("<option value=\"9999\""));response->print(maximumEffectiveRange == 9999 ? " selected>":">");response->print(F("9999m</option>"));
               response->print(F("<option value=\""));response->print(effectivelyUnreachable);response->print('"');response->print(maximumEffectiveRange == effectivelyUnreachable ? " selected>":">");response->print(F("Unlimited</option>"));
               response->print(F("</select></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"trackerSensitivity\">Sensitivity</label><select class=\"u-full-width\" id=\"trackerSensitivity\" name=\"trackerSensitivity\">"));
-              response->print(F("<option value=\"0\""));response->print(trackerSensitivity == 0 ? " selected>":">");response->print(F("Low</option>"));
-              response->print(F("<option value=\"1\""));response->print(trackerSensitivity == 1 ? " selected>":">");response->print(F("Medium</option>"));
-              response->print(F("<option value=\"2\""));response->print(trackerSensitivity == 2 ? " selected>":">");response->print(F("High</option>"));
-              response->print(F("</select></div></div>"));
             #endif
+            #if defined(ACT_AS_BEACON)
+              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Location tracking</h3></div></div>"));
+            #endif
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"trackingSensitivity\">Sensitivity</label><select class=\"u-full-width\" id=\"trackingSensitivity\" name=\"trackingSensitivity\">"));
+            response->print(F("<option value=\"0\""));response->print(trackingSensitivity == 0 ? " selected>":">");response->print(F("Low</option>"));
+            response->print(F("<option value=\"1\""));response->print(trackingSensitivity == 1 ? " selected>":">");response->print(F("Medium</option>"));
+            response->print(F("<option value=\"2\""));response->print(trackingSensitivity == 2 ? " selected>":">");response->print(F("High</option>"));
+            response->print(F("</select></div></div>"));
             #ifdef SUPPORT_BEEPER
               #if defined(ACT_AS_TRACKER)
                 response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Beeper</h3></div></div>"));
@@ -1067,17 +1077,19 @@
                   //localLogLn(F("disabled"));
                 }
               }
-              if(request->hasParam("beepOnPress", true))
-              {
-                if(request->getParam("beepOnPress", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              #ifdef SUPPORT_BUTTON
+                if(request->hasParam("beepOnPress", true))
                 {
-                  beepOnPress = true;
+                  if(request->getParam("beepOnPress", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                  {
+                    beepOnPress = true;
+                  }
+                  else
+                  {
+                    beepOnPress = false;
+                  }
                 }
-                else
-                {
-                  beepOnPress = false;
-                }
-              }
+              #endif
             #endif
             #ifdef SUPPORT_VIBRATION
               if(request->hasParam("vibrationEnabled", true))
@@ -1209,9 +1221,9 @@
               }
             #endif
             #if defined(ACT_AS_TRACKER)    
-              if(request->hasParam("trackerSensitivity", true))
+              if(request->hasParam("trackingSensitivity", true))
               {
-                trackerSensitivity = request->getParam("trackerSensitivity", true)->value().toInt();
+                trackingSensitivity = request->getParam("trackingSensitivity", true)->value().toInt();
                 //localLog(F("maximumEffectiveRange: "));
                 //localLogLn(maximumEffectiveRange);
               }
@@ -2810,12 +2822,20 @@
           #endif
           response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Devices</h2></div></div>"));
           response->print(F("<div class=\"row\"><div class=\"twelve columns\">"));
-          response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th>Info</th></tr></thead><tbody>"));
+          #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+          response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>ESP-Now signal quality</th><th>LoRa signal quality</th><th>Info</th></tr></thead><tbody>"));
+          #elif defined(SUPPORT_ESPNOW)
+          response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>ESP-Now signal quality</th><th>Info</th></tr></thead><tbody>"));
+          #elif defined(SUPPORT_LORA)
+          response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>LoRa signal quality</th><th>Info</th></tr></thead><tbody>"));
+          #endif
           for(uint8_t index = 0; index < numberOfDevices; index++)
           {
             if(index > 0)
             {
-              #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+              #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+                response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>%04x</td><td>"),
+              #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
               #else
                 response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td></td><td>"),
@@ -2832,7 +2852,8 @@
                 device[index].distanceTo,
                 device[index].courseTo,
                 #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-                  ((device[index].loRaUpdateHistory > device[index].espNowUpdateHistory) ? device[index].loRaUpdateHistory : device[index].espNowUpdateHistory));
+                  device[index].espNowUpdateHistory,
+                  device[index].loRaUpdateHistory);
                 #elif  defined(SUPPORT_ESPNOW)
                   device[index].espNowUpdateHistory);
                 #elif  defined(SUPPORT_LORA)
@@ -2841,7 +2862,12 @@
             }
             else
             {
+              #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+              response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>----</td><td>This device"),
+              #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
               response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>This device"),
+              #endif
+              #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                 (device[index].name == nullptr) ? "n/a" : device[index].name,
                 device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
                 deviceFeatures(device[index].typeOfDevice).c_str(),
@@ -2852,6 +2878,7 @@
                 device[index].latitude,
                 device[index].longitude
                 );
+              #endif
             }
               #ifdef ACT_AS_TRACKER
                 if(index == currentlyTrackedBeacon)
@@ -3219,6 +3246,7 @@
       #else
         adminWebServer->begin();
       #endif
+      localLogLn(F("OK"));
     }
   }
 #endif

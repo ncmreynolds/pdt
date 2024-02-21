@@ -75,14 +75,17 @@ void setup() {
   #ifdef SUPPORT_ESPNOW
     setupEspNow();
   #endif
-  #ifdef SUPPORT_LORA
-    setupLoRa();  //Needs to be before SPI display
+  #if defined(SUPPORT_DISPLAY) && defined(SUPPORT_LORA)
+    setupLoRa();  //Needs to be before SPI display!
   #endif
   #ifdef SUPPORT_DISPLAY
     setupDisplay();  //Needs to be after LoRa
   #endif
   #ifdef SUPPORT_LVGL
     setupLvgl();
+  #endif
+  #if defined(SUPPORT_LVGL) && defined(SUPPORT_LORA)
+    setupLoRa();  //Needs to be after LVGL and touchscreen!
   #endif
   #ifdef SUPPORT_GPS
     setupGps();

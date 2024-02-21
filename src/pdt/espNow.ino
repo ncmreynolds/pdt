@@ -204,7 +204,7 @@
             localLog(F("Device "));
           }
           localLog(index);
-          if(device[index].espNowOnline == true && device[index].espNowUpdateHistory < sensitivityValues[trackerSensitivity])
+          if(device[index].espNowOnline == true && device[index].espNowUpdateHistory < sensitivityValues[trackingSensitivity])
           {
             localLogLn(F(" ESPNow gone offline"));
             device[index].espNowOnline = false;
@@ -375,11 +375,11 @@
                             device[deviceIndex].espNowUpdateHistory);
                         }
                       #endif
-                      if(device[deviceIndex].espNowOnline == false && countBits(device[deviceIndex].espNowUpdateHistory) > countBits(sensitivityValues[trackerSensitivity]))   //7 bits in in total to go online
+                      if(device[deviceIndex].espNowOnline == false && countBits(device[deviceIndex].espNowUpdateHistory) > countBits(sensitivityValues[trackingSensitivity]))   //7 bits in in total to go online
                       {
                         localLog(F("Device "));
                         localLog(deviceIndex);
-                        localLogLn(F(" gone online"));
+                        localLogLn(F(" EspNow gone online"));
                         device[deviceIndex].espNowOnline = true;
                       }
                     }

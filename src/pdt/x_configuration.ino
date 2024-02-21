@@ -66,8 +66,8 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   #endif
   #if defined(ACT_AS_TRACKER)
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
-    configuration["trackerSensitivity"] = trackerSensitivity;
-    configuration["priority"] = priority;
+    configuration["trackingSensitivity"] = trackingSensitivity;
+    configuration["trackerPriority"] = trackerPriority;
   #endif
   #if defined(SUPPORT_ESPNOW)
     configuration["espNowEnabled"] = espNowEnabled;
@@ -107,6 +107,12 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["displayTimeout"] = displayTimeout;
     configuration["minimumBrightnessLevel"] = minimumBrightnessLevel;
     configuration["maximumBrightnessLevel"] = maximumBrightnessLevel;
+    #ifdef SUPPORT_TOUCHSCREEN
+      configuration["touchScreenMinimumX"] = touchScreenMinimumX;
+      configuration["touchScreenMaximumX"] = touchScreenMaximumX;
+      configuration["touchScreenMinimumY"] = touchScreenMinimumY;
+      configuration["touchScreenMaximumY"] = touchScreenMaximumY;
+    #endif
   #endif
   configuration["loggingBufferSize"] = loggingBufferSize;
   configuration["logFlushThreshold"] = logFlushThreshold;
@@ -196,7 +202,8 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     #endif
     #if defined(ACT_AS_TRACKER)
       maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
-      trackerSensitivity = configuration["trackerSensitivity"] | 1;
+      trackingSensitivity = configuration["trackingSensitivity"] | 1;
+      trackerPriority = configuration["trackerPriority"];
     #endif
     #if defined(SUPPORT_FTM)
       ftmEnabled = configuration["ftmEnabled"] | true;
@@ -373,7 +380,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       strlcpy(timeZone,default_timeZone,strlen(default_timeZone) + 1);
     }
     #ifdef SUPPORT_BEEPER
-      beeperEnabled = configuration["beeperEnabled"] | true;
+      beeperEnabled = configuration["beeperEnabled"] | false;
       #ifdef SUPPORT_BUTTON
         beepOnPress = configuration["beepOnPress"] | true;
       #endif
@@ -383,6 +390,12 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       vibrationLevel = configuration["vibrationLevel"] | 100;
     #endif
     #if defined(SUPPORT_LVGL)
+      #ifdef SUPPORT_TOUCHSCREEN
+        touchScreenMinimumX = configuration["touchScreenMinimumX"] | 0;
+        touchScreenMaximumX = configuration["touchScreenMaximumX"] | 0;
+        touchScreenMinimumY = configuration["touchScreenMinimumY"] | 0;
+        touchScreenMaximumY = configuration["touchScreenMaximumY"] | 0;
+      #endif
       units = configuration["units"] | 0;
       dateFormat = configuration["dateFormat"] | 0;
       displayTimeout = configuration["displayTimeout"] | 0;
@@ -488,10 +501,8 @@ void printConfiguration()
     {
       localLogLn(F("<none>"));
     }
-    localLog(F("wifiClientTimeout: "));
-    localLogLn(wifiClientTimeout);
-    localLog(F("wiFiClientInactivityTimer: "));
-    localLogLn(wiFiClientInactivityTimer);
+    localLog(F("wifiClientTimeout: ")); localLogLn(wifiClientTimeout);
+    localLog(F("wiFiClientInactivityTimer: ")); localLogLn(wiFiClientInactivityTimer);
     localLog(F("startWiFiApOnBoot: "));
     if(startWiFiApOnBoot)
     {
@@ -501,8 +512,7 @@ void printConfiguration()
     {
       localLogLn(F("disabled"));
     }
-    localLog(F("softApChannel: "));
-    localLogLn(softApChannel);
+    localLog(F("softApChannel: ")); localLogLn(softApChannel);
     localLog(F("AP SSID: "));
     if(APSSID != nullptr)
     {
@@ -585,10 +595,8 @@ void printConfiguration()
     #endif
   #endif
   #if defined(ENABLE_OTA_UPDATE)
-    localLog(F("otaEnabled: "));
-    localLogLn(otaEnabled);
-    localLog(F("otaAuthenticationEnabled: "));
-    localLogLn(otaAuthenticationEnabled);
+    localLog(F("otaEnabled: ")); localLogLn(otaEnabled);
+    localLog(F("otaAuthenticationEnabled: ")); localLogLn(otaAuthenticationEnabled);
   #endif
   #ifdef SUPPORT_GPS
     localLog(F("useGpsForTimeSync: "));
@@ -601,122 +609,84 @@ void printConfiguration()
       localLogLn(F("disabled"));
     }
     #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
-      localLog(F("gpsStationaryTimeout: "));
-      localLogLn(gpsStationaryTimeout);
-      localLog(F("gpsCheckInterval: "));
-      localLogLn(gpsCheckInterval);
+      localLog(F("gpsStationaryTimeout: ")); localLogLn(gpsStationaryTimeout);
+      localLog(F("gpsCheckInterval: ")); localLogLn(gpsCheckInterval);
     #endif
   #endif
   #if defined(ACT_AS_TRACKER)
-    localLog(F("maximumEffectiveRange: "));
-    localLogLn(maximumEffectiveRange);
-    localLog(F("trackerSensitivity: "));
-    localLogLn(sensitivityValues[trackerSensitivity]);
+    localLog(F("maximumEffectiveRange: ")); localLogLn(maximumEffectiveRange);
+    localLog(F("trackingSensitivity: ")); localLogLn(sensitivityValues[trackingSensitivity]);
+    localLog(F("trackerPriority: ")); localLogLn(trackerPriority);
   #endif
   #if defined(SUPPORT_FTM)
-    localLog(F("ftmEnabled: "));
-    localLogLn(ftmEnabled);
+    localLog(F("ftmEnabled: ")); localLogLn(ftmEnabled);
     if(ftmSSID != nullptr)
     {
-      localLog(F("ftmSSID: "));
-      localLogLn(ftmSSID);
+      localLog(F("ftmSSID: ")); localLogLn(ftmSSID);
     }
-    localLog(F("ftmHideSSID: "));
-    localLogLn(ftmHideSSID);
+    localLog(F("ftmHideSSID: ")); localLogLn(ftmHideSSID);
     if(ftmPSK != nullptr)
     {
-      localLog(F("ftmPSK: "));
-      localLogLn(ftmPSK);
+      localLog(F("ftmPSK: ")); localLogLn(ftmPSK);
     }
   #endif
   #if defined(SUPPORT_ESPNOW)
-    localLog(F("espNowEnabled: "));
-    localLogLn(espNowEnabled);
-    localLog(F("espNowPreferredChannel: "));
-    localLogLn(espNowPreferredChannel);
-    localLog(F("espNowDeviceInfoInterval: "));
-    localLogLn(espNowDeviceInfoInterval);
-    localLog(F("defaultEspNowLocationInterval: "));
-    localLogLn(defaultEspNowLocationInterval);
-    localLog(F("espNowPerimiter1: "));
-    localLogLn(espNowPerimiter1);
-    localLog(F("espNowLocationInterval1: "));
-    localLogLn(espNowLocationInterval1);
-    localLog(F("espNowPerimiter2: "));
-    localLogLn(espNowPerimiter2);
-    localLog(F("espNowLocationInterval2: "));
-    localLogLn(espNowLocationInterval2);
-    localLog(F("espNowPerimiter3: "));
-    localLogLn(espNowPerimiter3);
-    localLog(F("espNowLocationInterval3: "));
-    localLogLn(espNowLocationInterval3);
+    localLog(F("espNowEnabled: ")); localLogLn(espNowEnabled);
+    localLog(F("espNowPreferredChannel: ")); localLogLn(espNowPreferredChannel);
+    localLog(F("espNowDeviceInfoInterval: ")); localLogLn(espNowDeviceInfoInterval);
+    localLog(F("defaultEspNowLocationInterval: ")); localLogLn(defaultEspNowLocationInterval);
+    localLog(F("espNowPerimiter1: ")); localLogLn(espNowPerimiter1);
+    localLog(F("espNowLocationInterval1: ")); localLogLn(espNowLocationInterval1);
+    localLog(F("espNowPerimiter2: ")); localLogLn(espNowPerimiter2);
+    localLog(F("espNowLocationInterval2: ")); localLogLn(espNowLocationInterval2);
+    localLog(F("espNowPerimiter3: ")); localLogLn(espNowPerimiter3);
+    localLog(F("espNowLocationInterval3: ")); localLogLn(espNowLocationInterval3);
   #endif
   #if defined(SUPPORT_LORA)
-    localLog(F("loRaEnabled: "));
-    localLogLn(loRaEnabled);
-    localLog(F("loRaDeviceInfoInterval: "));
-    localLogLn(loRaDeviceInfoInterval);
-    localLog(F("defaultLoRaLocationInterval: "));
-    localLogLn(defaultLoRaLocationInterval);
-    localLog(F("loRaPerimiter1: "));
-    localLogLn(loRaPerimiter1);
-    localLog(F("loRaLocationInterval1: "));
-    localLogLn(loRaLocationInterval1);
-    localLog(F("loRaPerimiter2: "));
-    localLogLn(loRaPerimiter2);
-    localLog(F("loRaLocationInterval2: "));
-    localLogLn(loRaLocationInterval2);
-    localLog(F("loRaPerimiter3: "));
-    localLogLn(loRaPerimiter3);
-    localLog(F("loRaLocationInterval3: "));
-    localLogLn(loRaLocationInterval3);
-    localLog(F("rssiAttenuation: "));
-    localLogLn(rssiAttenuation);
-    localLog(F("rssiAttenuationBaseline: "));
-    localLogLn(rssiAttenuationBaseline);
-    localLog(F("rssiAttenuationPerimeter: "));
-    localLogLn(rssiAttenuationPerimeter);
+    localLog(F("loRaEnabled: ")); localLogLn(loRaEnabled);
+    localLog(F("loRaDeviceInfoInterval: ")); localLogLn(loRaDeviceInfoInterval);
+    localLog(F("defaultLoRaLocationInterval: ")); localLogLn(defaultLoRaLocationInterval);
+    localLog(F("loRaPerimiter1: ")); localLogLn(loRaPerimiter1);
+    localLog(F("loRaLocationInterval1: ")); localLogLn(loRaLocationInterval1);
+    localLog(F("loRaPerimiter2: ")); localLogLn(loRaPerimiter2);
+    localLog(F("loRaLocationInterval2: ")); localLogLn(loRaLocationInterval2);
+    localLog(F("loRaPerimiter3: ")); localLogLn(loRaPerimiter3);
+    localLog(F("loRaLocationInterval3: ")); localLogLn(loRaLocationInterval3);
+    localLog(F("rssiAttenuation: ")); localLogLn(rssiAttenuation);
+    localLog(F("rssiAttenuationBaseline: ")); localLogLn(rssiAttenuationBaseline);
+    localLog(F("rssiAttenuationPerimeter: ")); localLogLn(rssiAttenuationPerimeter);
   #endif
   #ifdef SUPPORT_BATTERY_METER
-    localLog(F("enableBatteryMonitor: "));
-    localLogLn(enableBatteryMonitor);
-    localLog(F("topLadderResistor: "));
-    localLogLn(topLadderResistor);
-    localLog(F("bottomLadderResistor: "));
-    localLogLn(bottomLadderResistor);
+    localLog(F("enableBatteryMonitor: ")); localLogLn(enableBatteryMonitor);
+    localLog(F("topLadderResistor: ")); localLogLn(topLadderResistor);
+    localLog(F("bottomLadderResistor: ")); localLogLn(bottomLadderResistor);
   #endif
   #ifdef SUPPORT_BEEPER
-    localLog(F("beeperEnabled: "));
-    localLogLn(beeperEnabled);
+    localLog(F("beeperEnabled: ")); localLogLn(beeperEnabled);
     #ifdef SUPPORT_BUTTON
-      localLog(F("beepOnPress: "));
-      localLogLn(beepOnPress);
+      localLog(F("beepOnPress: ")); localLogLn(beepOnPress);
     #endif
   #endif
   #ifdef SUPPORT_VIBRATION
-    localLog(F("vibrationEnabled: "));
-    localLogLn(vibrationEnabled);
-    localLog(F("vibrationLevel: "));
-    localLogLn(vibrationLevel);
+    localLog(F("vibrationEnabled: ")); localLogLn(vibrationEnabled);
+    localLog(F("vibrationLevel: ")); localLogLn(vibrationLevel);
   #endif
   #if defined(SUPPORT_LVGL)
-    localLog(F("units: "));
-    localLogLn(units);
-    localLog(F("dateFormat: "));
-    localLogLn(dateFormat);
-    localLog(F("displayTimeout: "));
-    localLogLn(displayTimeout);
-    localLog(F("minimumBrightnessLevel: "));
-    localLogLn(minimumBrightnessLevel);
-    localLog(F("maximumBrightnessLevel: "));
-    localLogLn(maximumBrightnessLevel);
+    #ifdef SUPPORT_TOUCHSCREEN
+      localLog(F("touchScreenMinimumX: ")); localLogLn(touchScreenMinimumX);
+      localLog(F("touchScreenMaximumX: ")); localLogLn(touchScreenMaximumX);
+      localLog(F("touchScreenMinimumY: ")); localLogLn(touchScreenMinimumY);
+      localLog(F("touchScreenMaximumY: ")); localLogLn(touchScreenMaximumY);
+    #endif
+    localLog(F("units: ")); localLogLn(units);
+    localLog(F("dateFormat: ")); localLogLn(dateFormat);
+    localLog(F("displayTimeout: ")); localLogLn(displayTimeout);
+    localLog(F("minimumBrightnessLevel: ")); localLogLn(minimumBrightnessLevel);
+    localLog(F("maximumBrightnessLevel: ")); localLogLn(maximumBrightnessLevel);
   #endif
-  localLog(F("loggingBufferSize: "));
-  localLogLn(loggingBufferSize);
-  localLog(F("logFlushThreshold: "));
-  localLogLn(logFlushThreshold);
-  localLog(F("logFlushInterval: "));
-  localLogLn(logFlushInterval);
+  localLog(F("loggingBufferSize: ")); localLogLn(loggingBufferSize);
+  localLog(F("logFlushThreshold: ")); localLogLn(logFlushThreshold);
+  localLog(F("logFlushInterval: ")); localLogLn(logFlushInterval);
   #ifdef SUPPORT_HACKING
     localLog(F("gameLength: "));
     localLogLn(gameLength);

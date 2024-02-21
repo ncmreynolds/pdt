@@ -29,7 +29,7 @@
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
-#define PDT_PATCH_VERSION 6
+#define PDT_PATCH_VERSION 7
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -38,7 +38,6 @@
 #define SERIAL_DEBUG
 #define SERIAL_LOG
 
-#define SUPPORT_WIFI
 #define USE_LITTLEFS
 
 #if HARDWARE_VARIANT == C3PDT
@@ -52,6 +51,7 @@
   //#define DEBUG_GPS
   #define SUPPORT_LORA
   #define DEBUG_LORA
+  #define SUPPORT_WIFI
   #define SUPPORT_ESPNOW
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
@@ -64,6 +64,7 @@
   #define SUPPORT_LED
   #define SUPPORT_GPS
   //#define DEBUG_GPS
+  #define SUPPORT_WIFI
   #define SUPPORT_LORA
   #define DEBUG_LORA
   #define SUPPORT_BATTERY_METER
@@ -84,18 +85,23 @@
   #define DEBUG_LORA
   #define SUPPORT_BATTERY_METER
   //#define SUPPORT_FTM
+  #define SUPPORT_WIFI
   #define SUPPORT_ESPNOW
   #define DEBUG_ESPNOW
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == CYDTracker
+  //#define SUPPORT_BEEPER
   #define ACT_AS_TRACKER
   #define SUPPORT_GPS
   //#define DEBUG_GPS
-  //#define SUPPORT_LORA
-  //#define DEBUG_LORA
+  #define SUPPORT_WIFI
   #define SUPPORT_ESPNOW
   #define DEBUG_ESPNOW
+  #define SUPPORT_LORA
+  #define DEBUG_LORA
   #define SUPPORT_LVGL
+  #define SUPPORT_TOUCHSCREEN
+  #define SUPPORT_TOUCHSCREEN_BITBANG //Use bitbang code
   #define DEBUG_LVGL
   #define ENABLE_LOCAL_WEBSERVER
 #endif
@@ -274,7 +280,7 @@
   uint8_t defaultLoRaSpreadingFactor = 7;
   uint32_t defaultLoRaSignalBandwidth = 250E3; //125E3; //Supported values are 7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3(default), 250E3, and 500E3.
   // Each nibble of the SX127x SyncWord must be strictly below 8 to be compatible with SX126x
-  // Each nibble of the SX127x SynchWord must be different from each other and from 0 or you might experience a slight loss of sensitivity
+  // Each nibble of the SX127x SyncWord must be different from each other and from 0 or you might experience a slight loss of sensitivity
   // Translation from SX127x to SX126x : 0xYZ -> 0xY4Z4 : if you do not set the two 4 you might lose sensitivity
   // There is more to it, but this should be enough to setup your networks and hopefully the official response will be more complete.
   uint8_t loRaSyncWord = 0x12;  //Don't use 0x34 as that is LoRaWAN, valid options are 0x12, 0x56, 0x78
@@ -291,198 +297,6 @@
   #if defined(USE_SSD1331)
     #include "ssd1306.h"
   #endif
-#endif
-/*
- * 
- * Block of iuncludes for LVGL on CYD
- * 
- */
-#ifdef SUPPORT_LVGL
-  #include <TFT_eSPI.h>
-  TFT_eSPI tft = TFT_eSPI();
-  int fontSize = 2, x = 0, y = 0;
-  uint8_t screenRotation = 0;
-  
-  #include <XPT2046_Touchscreen.h>
-  // The CYD touch uses some non default SPI pins
-  
-  #define XPT2046_IRQ 36
-  #define XPT2046_MOSI 32
-  #define XPT2046_MISO 39
-  #define XPT2046_CLK 25
-  #define XPT2046_CS 33
-  SPIClass touchscreenSPI = SPIClass(VSPI);
-  XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
-  uint16_t touchScreenMinimumX = 200, touchScreenMaximumX = 3700, touchScreenMinimumY = 240,touchScreenMaximumY = 3800;
-  
-  #include <lvgl.h>
-
-  enum class deviceState: std::int8_t {
-    starting,
-    detectingGpsPins,
-    detectingGpsBaudRate,
-    gpsDetected,
-    gpsLocked,
-    tracking
-  };
-  deviceState currentDeviceState = deviceState::starting;
-
-  //Screen resolution
-  static const uint16_t screenWidth  = 240;
-  static const uint16_t screenHeight = 320;
-  static const uint8_t bufferFraction = 16;
-  
-  static lv_disp_draw_buf_t draw_buf;
-  //static lv_color_t buf[(screenWidth * screenHeight) / 10];
-  lv_color_t *buf;
-  
-  //Tab view
-  static lv_obj_t * tabview;
-  static const char tabLabel_1[] = "Home";
-  static const char tabLabel_2[] = "GPS";
-  static const char tabLabel_3[] = "Settings";
-  static const char tabLabel_4[] = "Info";
-  lv_obj_t * tab1 = nullptr;
-  lv_obj_t * tab2 = nullptr;
-  lv_obj_t * tab3 = nullptr;
-  lv_obj_t * tab4 = nullptr;
-  uint8_t tabHeight = 40;
-  //Tab 1
-  lv_obj_t * status_spinner = nullptr;
-  lv_obj_t * status_label = nullptr;
-  static const char statusLabel_0[] PROGMEM = "Starting";
-  static const char statusLabel_1[] PROGMEM = "Detecting hardware";
-  static const char statusLabel_2[] PROGMEM = "Calibrating hardware";
-  static const char statusLabel_3[] PROGMEM = "Getting location";
-  static const char statusLabel_4[] PROGMEM = "Scanning";
-  
-  static lv_style_t style_meter;
-  static uint8_t meterDiameter = 100;
-  static const uint8_t meterSpacing = 8;
-  
-  static lv_obj_t * meter0;
-  static lv_meter_indicator_t * needle0;
-  static lv_obj_t * meter0label0;
-  
-  static lv_obj_t * meter1;
-  static lv_meter_indicator_t * needle1;
-  static lv_obj_t * meter1label0;
-  
-  static lv_obj_t * chart0;
-  static lv_chart_series_t * chart0ser0;
-  #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-    static lv_chart_series_t * chart0ser1;
-  #endif
-  static lv_obj_t * chart0label0;
-  
-  static lv_obj_t * chart1;
-  static lv_chart_series_t * chart1ser0;
-  static lv_chart_series_t * chart1ser1;
-  static lv_obj_t * chart1label0;
-
-  static const uint16_t chartX = 220, chartY = 50;
-  static const uint8_t chartSpacing = 18, chartLabelSpacing = 2, chartPoints = 16;
-
-  //Tab 2
-  uint32_t lastLvglTabUpdate = 0;
-  uint32_t lvglTabUpdateInterval = 500;
-  lv_obj_t * tab2table = nullptr;
-  static const char statusTableLabel_0[] PROGMEM = "Date";
-  static const char statusTableLabel_1[] PROGMEM = "Time";
-  static const char statusTableLabel_2[] PROGMEM = "Satellites";
-  static const char statusTableLabel_3[] PROGMEM = "HDOP";
-  static const char statusTableLabel_4[] PROGMEM = "Lat";
-  static const char statusTableLabel_5[] PROGMEM = "Lon";
-  static const char statusTableLabel_6[] PROGMEM = "Speed";
-  static const char statusTableLabel_7[] PROGMEM = "Course";
-  static const char statusTableLabel_8[] PROGMEM = "Bearing";
-  static const char statusTableLabel_Unknown[] = "??";
-  //Tab 3
-  lv_obj_t * units_dd = nullptr;
-  lv_obj_t * dateFormat_dd = nullptr;
-  lv_obj_t * sensitivity_dd = nullptr;
-  lv_obj_t * priority_dd = nullptr;
-  lv_obj_t * displayTimeout_dd = nullptr;
-  #ifdef SUPPORT_BEEPER
-    lv_obj_t * beeper_dd = nullptr;
-  #endif
-  lv_obj_t * displayBrightness_slider = nullptr;
-
-  //Backlight management
-  uint32_t backlightLastSet = 0;
-  uint32_t backlightChangeInterval = 10;
-  const uint8_t absoluteMinimumBrightnessLevel = 16;
-  const uint8_t absoluteMaximumBrightnessLevel = 255;
-  uint8_t minimumBrightnessLevel = absoluteMinimumBrightnessLevel;
-  uint8_t maximumBrightnessLevel = absoluteMaximumBrightnessLevel;
-  uint8_t lastBrightnessLevel = 128;
-  #define LDR_PIN 34
-  #define LCD_BACK_LIGHT_PIN 21
-  // use first channel of 16 channels (started from zero)
-  #define LEDC_CHANNEL_0     0
-  // use 12 bit precission for LEDC timer
-  #define LEDC_TIMER_12_BIT  12
-  // use 5000 Hz as a LEDC base frequency
-  #define LEDC_BASE_FREQ     500
-  
-  //Display updates
-  //uint32_t lastDisplayUpdate = 0;
-  //uint32_t displayUpdateInterval = 250;
-  
-  //User interface
-  
-  uint8_t units = 0;
-  uint8_t dateFormat = 0;
-  uint8_t priority = 0;
-  uint8_t displayTimeout = 0;
-  uint32_t displayTimeouts[] = {0, 60000, 60000 * 5, 60000 * 15}; //No/1/5/15 minute timeouts on screen
-  
-  //Power saving
-  
-  //#include "esp_pm.h"
-  bool uiActive = false;
-  /*
-   * 
-   * Sadly these function prototypes end up here because of build system aggro
-   * 
-   */
-  void flushDisplay( lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p )
-  {
-      uint32_t w = ( area->x2 - area->x1 + 1 );
-      uint32_t h = ( area->y2 - area->y1 + 1 );
-  
-      tft.startWrite();
-      tft.setAddrWindow( area->x1, area->y1, w, h );
-      tft.pushColors( ( uint16_t * )&color_p->full, w * h, true );
-      tft.endWrite();
-  
-      lv_disp_flush_ready( disp_drv );
-  }
-  void readTouchscreen(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
-  {
-    if(touchscreen.touched())
-    {
-      TS_Point touchpoint = touchscreen.getPoint();
-      //Some very basic auto calibration so it doesn't go out of range
-      if(touchpoint.x < touchScreenMinimumX) touchScreenMinimumX = touchpoint.x;
-      if(touchpoint.x > touchScreenMaximumX) touchScreenMaximumX = touchpoint.x;
-      if(touchpoint.y < touchScreenMinimumY) touchScreenMinimumY = touchpoint.y;
-      if(touchpoint.y > touchScreenMaximumY) touchScreenMaximumY = touchpoint.y;
-      //Map this to the pixel position
-      data->point.x = map(touchpoint.x,touchScreenMinimumX,touchScreenMaximumX,1,screenWidth); // Touchscreen X calibration
-      data->point.y = map(touchpoint.y,touchScreenMinimumY,touchScreenMaximumY,1,screenHeight); // Touchscreen Y calibration
-      data->state = LV_INDEV_STATE_PR;
-
-      //SERIAL_DEBUG_PORT.print( "Touch x " );
-      //SERIAL_DEBUG_PORT.print( data->point.x );
-      //SERIAL_DEBUG_PORT.print( " y " );
-      //SERIAL_DEBUG_PORT.println( data->point.y );
-    }
-    else
-    {
-      data->state = LV_INDEV_STATE_REL;
-    }
-  }
 #endif
 /*
 
@@ -571,168 +385,148 @@
    Pin configurations
 
 */
-//#if defined(ARDUINO_ESP32C3_DEV)
-  // NUM_DIGITAL_PINS        22
-  // NUM_ANALOG_INPUTS       6
-  // SS    = 7
-  // MOSI  = 6
-  // MISO  = 5
-  // SCK   = 4
-  // SDA = 8
-  // SCL = 9
-  // TX = 21
-  // RX = 20
-  // A0 = 0
-  // A1 = 1;
-  // A2 = 2;
-  // A3 = 3;
-  // A4 = 4;
-  // A5 = 5;
-  #ifdef SUPPORT_SOFT_POWER_OFF
-    #if HARDWARE_VARIANT == C3LoRaBeacon
-      const int8_t softPowerOffPin = 1; //Keeping this high keeps the PCB powered up. Low powers it off
-      bool softPowerOffPinInverted = false;  //Is GPIO inverted
-    #endif
+#ifdef SUPPORT_SOFT_POWER_OFF
+  #if HARDWARE_VARIANT == C3LoRaBeacon
+    const int8_t softPowerOffPin = 1; //Keeping this high keeps the PCB powered up. Low powers it off
+    bool softPowerOffPinInverted = false;  //Is GPIO inverted
   #endif
-  #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
-    #if HARDWARE_VARIANT == C3LoRaBeacon
-      const int8_t peripheralPowerOffPin = 3; //Switches GPS and other peripherals on/off
-      bool peripheralPowerOffPinInverted = false;  //Is GPIO inverted
-    #endif
+#endif
+#ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+  #if HARDWARE_VARIANT == C3LoRaBeacon
+    const int8_t peripheralPowerOffPin = 3; //Switches GPS and other peripherals on/off
+    bool peripheralPowerOffPinInverted = false;  //Is GPIO inverted
   #endif
-  #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
-    bool debugPortAvailable = true;
-    uint16_t debugPortStartingBufferSize = 0;
-    uint32_t serialBufferCheckTime = 0;
-    #if ARDUINO_USB_CDC_ON_BOOT == 1
-      #pragma message "USB CDC configured on boot for debug messages"
-      #define SERIAL_DEBUG_PORT Serial
-    #else
-      #if defined(ARDUINO_ESP32C3_DEV)
-        #pragma message "Configuring USB CDC for debug messages"
-        #define SERIAL_DEBUG_PORT USBSerial
-      #else
-        #define SERIAL_DEBUG_PORT Serial
-      #endif
-    #endif
+#endif
+#if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
+  bool debugPortAvailable = true;
+  uint16_t debugPortStartingBufferSize = 0;
+  uint32_t serialBufferCheckTime = 0;
+  #if ARDUINO_USB_CDC_ON_BOOT == 1
+    #pragma message "USB CDC configured on boot for debug messages"
+    #define SERIAL_DEBUG_PORT Serial
   #else
-  #endif
-  #ifdef SUPPORT_GPS
-    #if ARDUINO_USB_CDC_ON_BOOT == 1
-      #define GPS_PORT Serial0
+    #if defined(ARDUINO_ESP32C3_DEV)
+      #pragma message "Configuring USB CDC for debug messages"
+      #define SERIAL_DEBUG_PORT USBSerial
     #else
-      #if defined(ARDUINO_ESP32C3_DEV)
-        #define GPS_PORT Serial
-      #else
-        #define GPS_PORT Serial1
-      #endif
-    #endif
-    #if HARDWARE_VARIANT == C3PDT
-      const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
-      const int8_t TXPin = -1;              //No TX pin
-    #elif HARDWARE_VARIANT == C3TrackedSensor
-      const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
-      const int8_t TXPin = -1;              //No TX pin
-    #elif HARDWARE_VARIANT == C3LoRaBeacon
-      const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
-      const int8_t TXPin = -1;              //No TX pin
-    #elif HARDWARE_VARIANT == CYDTracker
-      const int8_t RXPin = 27;              //GPS needs an RX pin, but it can be moved wherever, within reason
-      const int8_t TXPin = -1;              //No TX pin
+      #pragma message "Configuring Hardware UART for debug messages"
+      #define SERIAL_DEBUG_PORT Serial
     #endif
   #endif
-  #ifdef SUPPORT_LORA
-    #if HARDWARE_VARIANT == C3PDT
-      const int8_t loRaCSpin = 7;          // LoRa radio chip select
-      const int8_t loRaResetPin = 8;       // LoRa radio reset
-      const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
-    #elif HARDWARE_VARIANT == C3TrackedSensor
-      const int8_t loRaCSpin = 7;          // LoRa radio chip select
-      const int8_t loRaResetPin = 8;       // LoRa radio reset
-      const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
-    #elif HARDWARE_VARIANT == C3LoRaBeacon
-      const int8_t loRaCSpin = 7;          // LoRa radio chip select
-      const int8_t loRaResetPin = 2;       // LoRa radio reset
-      const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
-    #elif HARDWARE_VARIANT == CYDTracker
-      const int8_t loRaCSpin = 7;          // LoRa radio chip select
-      const int8_t loRaResetPin = 8;       // LoRa radio reset
-      const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+#endif
+#ifdef SUPPORT_GPS
+  #if ARDUINO_USB_CDC_ON_BOOT == 1
+    #define GPS_PORT Serial0
+  #else
+    #if defined(ARDUINO_ESP32C3_DEV)
+      #define GPS_PORT Serial
+    #else
+      #define GPS_PORT Serial1
     #endif
   #endif
-  #ifdef SUPPORT_DISPLAY
+  #if HARDWARE_VARIANT == C3PDT
+    const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
+    const int8_t TXPin = -1;              //No TX pin
+  #elif HARDWARE_VARIANT == C3TrackedSensor
+    const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
+    const int8_t TXPin = -1;              //No TX pin
+  #elif HARDWARE_VARIANT == C3LoRaBeacon
+    const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
+    const int8_t TXPin = -1;              //No TX pin
+  #elif HARDWARE_VARIANT == CYDTracker
+    const int8_t RXPin = 35;              //GPS needs an RX pin, but it can be moved wherever, within reason
+    const int8_t TXPin = -1;              //No TX pin
+  #endif
+#endif
+#ifdef SUPPORT_LORA
+  #if HARDWARE_VARIANT == C3PDT
+    const int8_t loRaCSpin = 7;          // LoRa radio chip select
+    const int8_t loRaResetPin = 8;       // LoRa radio reset
+    const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+  #elif HARDWARE_VARIANT == C3TrackedSensor
+    const int8_t loRaCSpin = 7;          // LoRa radio chip select
+    const int8_t loRaResetPin = 8;       // LoRa radio reset
+    const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+  #elif HARDWARE_VARIANT == C3LoRaBeacon
+    const int8_t loRaCSpin = 7;          // LoRa radio chip select
+    const int8_t loRaResetPin = 2;       // LoRa radio reset
+    const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+  #elif HARDWARE_VARIANT == CYDTracker
+    const int8_t loRaCSpin = 5;//16;         // LoRa radio chip select
+    const int8_t loRaResetPin = 22;//4;       // LoRa radio reset
+    const int8_t loRaIrqPin = 27;//35;//17;        // change for your board; must be a hardware interrupt pin
+  #endif
+#endif
+#ifdef SUPPORT_DISPLAY
+  #if HARDWARE_VARIANT == C3PDT
     const uint8_t displayCSpin = 1;
     const uint8_t displayResetPin = 3;
     const uint8_t displayDCpin = 2;
   #endif
-  #ifdef SUPPORT_BATTERY_METER
-    bool enableBatteryMonitor = true;
-    #if HARDWARE_VARIANT == C3PDT
-      int8_t voltageMonitorPin = A0;    
-      float ADCpeakVoltage = 2.5;
-      float topLadderResistor = 330.0;
-      float bottomLadderResistor = 89; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
-    #elif HARDWARE_VARIANT == C3TrackedSensor
-      int8_t voltageMonitorPin = A0;    
-      float ADCpeakVoltage = 2.5;
-      float topLadderResistor = 330.0;
-      float bottomLadderResistor = 104; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
-    #elif HARDWARE_VARIANT == C3LoRaBeacon
-      int8_t voltageMonitorPin = 0;
-      float ADCpeakVoltage = 1.3;
-      float topLadderResistor = 330.0;
-      float bottomLadderResistor = 104; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
-    #endif
-    float chargingVoltage = 4.19;
-  #endif
-  #ifdef SUPPORT_BEEPER
-    uint8_t beeperChannel = 0;
-    #ifdef ACT_AS_TRACKER
-      int8_t beeperPin = 21;
-    #else
-      int8_t beeperPin = 3;
-    #endif
-  #endif
-  #ifdef SUPPORT_LED
-    #if HARDWARE_VARIANT == C3TrackedSensor
-      int8_t ledPin = 2;
-      bool ledPinInverted = false;
-    #elif HARDWARE_VARIANT == C3LoRaBeacon
-      int8_t ledPin = TX;
-      bool ledPinInverted = false;
-    #endif
-  #endif
-  #ifdef SUPPORT_VIBRATION
-    int8_t vibrationPin = 9;
-    bool vibrationPinInverted = false;
-    //void vibrationOn(uint32_t ontime, uint32_t offtime);
-  #endif
-  #ifdef SUPPORT_BUTTON
-    #if HARDWARE_VARIANT == C3PDT
-      int8_t buttonPin = 9;
-    #elif HARDWARE_VARIANT == C3TrackedSensor
-      int8_t buttonPin = 21;
-    #elif HARDWARE_VARIANT == C3LoRaBeacon
-      int8_t buttonPin = 9;
-    #endif
-    uint32_t buttonPushTime = 0;
-    uint32_t buttonDebounceTime = 50;
-    uint32_t buttonLongPressTime = 1500;
-    bool buttonHeld = false;
-    bool buttonLongPress = false;
-    #ifdef SUPPORT_BEEPER
-      bool beepOnPress = false;
-    #endif
-  #endif
-/*
-#else
-  #ifdef SUPPORT_LORA
-    const int8_t loRaCSpin = 15;          // LoRa radio chip select
-    const int8_t loRaResetPin = 16;       // LoRa radio reset
-    const int8_t loRaIrqPin = 5;         // change for your board; must be a hardware interrupt pin
+#endif
+#ifdef SUPPORT_BATTERY_METER
+  bool enableBatteryMonitor = true;
+  float chargingVoltage = 4.19;
+  #if HARDWARE_VARIANT == C3PDT
+    int8_t voltageMonitorPin = A0;    
+    float ADCpeakVoltage = 2.5;
+    float topLadderResistor = 330.0;
+    float bottomLadderResistor = 89; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
+  #elif HARDWARE_VARIANT == C3TrackedSensor
+    int8_t voltageMonitorPin = A0;    
+    float ADCpeakVoltage = 2.5;
+    float topLadderResistor = 330.0;
+    float bottomLadderResistor = 104; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
+  #elif HARDWARE_VARIANT == C3LoRaBeacon
+    int8_t voltageMonitorPin = 0;
+    float ADCpeakVoltage = 1.3;
+    float topLadderResistor = 330.0;
+    float bottomLadderResistor = 104; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
   #endif
 #endif
-*/
+#ifdef SUPPORT_BEEPER
+  uint8_t beeperChannel = 0;
+  #if HARDWARE_VARIANT == C3PDT
+    int8_t beeperPin = 21;
+  #elif HARDWARE_VARIANT == C3TrackedSensor
+    int8_t beeperPin = 3;
+  #elif HARDWARE_VARIANT == CYDTracker
+    int8_t beeperPin = 26;
+  #endif
+#endif
+#ifdef SUPPORT_LED
+  #if HARDWARE_VARIANT == C3TrackedSensor
+    int8_t ledPin = 2;
+    bool ledPinInverted = false;
+  #elif HARDWARE_VARIANT == C3LoRaBeacon
+    int8_t ledPin = TX;
+    bool ledPinInverted = false;
+  #endif
+#endif
+#ifdef SUPPORT_VIBRATION
+  int8_t vibrationPin = 9;
+  bool vibrationPinInverted = false;
+  //void vibrationOn(uint32_t ontime, uint32_t offtime);
+#endif
+#ifdef SUPPORT_BUTTON
+  #if HARDWARE_VARIANT == C3PDT
+    int8_t buttonPin = 9;
+  #elif HARDWARE_VARIANT == C3TrackedSensor
+    int8_t buttonPin = 21;
+  #elif HARDWARE_VARIANT == C3LoRaBeacon
+    int8_t buttonPin = 9;
+  #elif HARDWARE_VARIANT == CYDTracker
+    int8_t buttonPin = 0;
+  #endif
+  uint32_t buttonPushTime = 0;
+  uint32_t buttonDebounceTime = 50;
+  uint32_t buttonLongPressTime = 1500;
+  bool buttonHeld = false;
+  bool buttonLongPress = false;
+  #ifdef SUPPORT_BEEPER
+    bool beepOnPress = false;
+  #endif
+#endif
 /*
 
    Variables, depending on supported features
@@ -800,11 +594,11 @@ uint32_t restartTimer = 0;  //Used to schedule a restart
 #if defined __has_include
   #if __has_include("credentials.h")
     #include "credentials.h"
-    #pragma message "Using external default WiFi credentials"
+    //#pragma message "Using external default WiFi credentials"
   #else
     #define WIFI_SSID "Your WiFi SSID"
     #define WIFI_PSK "Your WiFi PSK"
-    #pragma message "Using default WiFi credentials from sketch"
+    //#pragma message "Using default WiFi credentials from sketch"
   #endif
 #endif
 #if defined(SUPPORT_WIFI)
@@ -888,7 +682,9 @@ const uint16_t loggingYieldTime = 100;
     volatile uint8_t loRaReceiveBufferSize = 0;
     volatile float lastLoRaRssi = 0.0;
     volatile uint32_t loRaTxPackets = 0;
+    volatile uint32_t loRaTxPacketsDropped = 0;
     volatile uint32_t loRaRxPackets = 0;
+    volatile uint32_t loRaRxPacketsDropped = 0;
   #else
     volatile uint32_t loRaTxStartTime = 0; //Used to calculate TX time for each packet
     volatile bool loRaTxBusy = false;
@@ -897,7 +693,9 @@ const uint16_t loggingYieldTime = 100;
     volatile uint8_t loRaReceiveBufferSize = 0;
     volatile float lastLoRaRssi = 0.0;
     volatile uint32_t loRaTxPackets = 0;
+    volatile uint32_t loRaTxPacketsDropped = 0;
     volatile uint32_t loRaRxPackets = 0;
+    volatile uint32_t loRaRxPacketsDropped = 0;
   #endif
   uint8_t loRaSendBuffer[maxLoRaBufferSize];
   uint8_t loRaReceiveBuffer[maxLoRaBufferSize];
@@ -947,6 +745,298 @@ const uint16_t loggingYieldTime = 100;
   uint32_t displayTimeout = 30000;
 #endif
 /*
+ * 
+ * Block of iuncludes for LVGL on CYD
+ * 
+ */
+#ifdef SUPPORT_LVGL
+  #include <TFT_eSPI.h>
+  TFT_eSPI tft = TFT_eSPI();
+  #include <lvgl.h>
+
+  uint8_t screenRotation = 0;
+
+  #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
+    #include <XPT2046_Touchscreen.h>
+    // The CYD touch uses some non default SPI pins
+    #define XPT2046_IRQ 36
+    #define XPT2046_MOSI 32
+    #define XPT2046_MISO 39
+    #define XPT2046_CLK 25
+    #define XPT2046_CS 33
+    #ifndef SUPPORT_TOUCHSCREEN_BITBANG
+      SPIClass touchscreenSPI = SPIClass(VSPI);
+      XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
+    #endif
+    #ifdef SUPPORT_TOUCHSCREEN_BITBANG
+      #define XPT2046_CMD_READ_X  0xD0 // Command for XPT2046 to read X position    #define XPT2046_MOSI 32
+      #define XPT2046_CMD_READ_Y  0x90 // Command for XPT2046 to read Y position
+      uint32_t lastCheckForTouch = 0;
+    #endif
+    uint16_t touchScreenMinimumX = 0, touchScreenMaximumX = 0, touchScreenMinimumY = 0,touchScreenMaximumY = 0;
+    bool touchscreenInitialised = false;
+  #endif
+  
+  enum class deviceState: std::int8_t {
+    starting,
+    detectingGpsPins,
+    detectingGpsBaudRate,
+    gpsDetected,
+    gpsLocked,
+    tracking
+  };
+  deviceState currentLvglUiState = deviceState::starting;
+
+  //Screen resolution
+  static const uint16_t screenWidth  = 240;
+  static const uint16_t screenHeight = 320;
+  static const uint8_t bufferFraction = 16;
+  
+  static lv_disp_draw_buf_t draw_buf;
+  //static lv_color_t buf[(screenWidth * screenHeight) / 10];
+  lv_color_t *buf;
+  
+  //Tab view
+  static lv_obj_t * tabview;
+  static const char tabLabel_1[] = "Home";
+  static const char tabLabel_2[] = "GPS";
+  static const char tabLabel_3[] = "Settings";
+  static const char tabLabel_4[] = "Info";
+  lv_obj_t * tab1 = nullptr;
+  lv_obj_t * tab2 = nullptr;
+  lv_obj_t * tab3 = nullptr;
+  //lv_obj_t * tab4 = nullptr;
+  uint8_t tabHeight = 40;
+  //Tab 1
+  lv_obj_t * status_spinner = nullptr;
+  lv_obj_t * status_label = nullptr;
+  static const char statusLabel_0[] PROGMEM = "Starting";
+  static const char statusLabel_1[] PROGMEM = "Detecting hardware";
+  static const char statusLabel_2[] PROGMEM = "Calibrating hardware";
+  static const char statusLabel_3[] PROGMEM = "Getting location";
+  static const char statusLabel_4[] PROGMEM = "Scanning";
+  
+  static lv_style_t style_meter;
+  static uint8_t meterDiameter = 100;
+  static const uint8_t meterSpacing = 8;
+  
+  static lv_obj_t * meter0;
+  static lv_meter_indicator_t * needle0;
+  static lv_obj_t * meter0label0;
+  
+  static lv_obj_t * meter1;
+  static lv_meter_indicator_t * needle1;
+  static lv_obj_t * meter1label0;
+  
+  static lv_obj_t * chart0;
+  static lv_chart_series_t * chart0ser0;
+  #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+    static lv_chart_series_t * chart0ser1;
+  #endif
+  static lv_obj_t * chart0label0;
+  
+  static lv_obj_t * chart1;
+  static lv_chart_series_t * chart1ser0;
+  static lv_chart_series_t * chart1ser1;
+  static lv_obj_t * chart1label0;
+
+  static const uint16_t chartX = 220, chartY = 50;
+  static const uint8_t chartSpacing = 18, chartLabelSpacing = 2, chartPoints = 16;
+
+  //Tab 2
+  uint32_t lastLvglTabUpdate = 0;
+  uint32_t lvglTabUpdateInterval = 500;
+  lv_obj_t * tab2table = nullptr;
+  static const char statusTableLabel_0[] PROGMEM = "Date";
+  static const char statusTableLabel_1[] PROGMEM = "Time";
+  static const char statusTableLabel_2[] PROGMEM = "Satellites";
+  static const char statusTableLabel_3[] PROGMEM = "HDOP";
+  static const char statusTableLabel_4[] PROGMEM = "Lat";
+  static const char statusTableLabel_5[] PROGMEM = "Lon";
+  static const char statusTableLabel_6[] PROGMEM = "Speed";
+  static const char statusTableLabel_7[] PROGMEM = "Course";
+  static const char statusTableLabel_8[] PROGMEM = "Bearing";
+  static const char statusTableLabel_Unknown[] = "??";
+  //Tab 3
+  lv_obj_t * units_dd = nullptr;
+  lv_obj_t * dateFormat_dd = nullptr;
+  lv_obj_t * sensitivity_dd = nullptr;
+  lv_obj_t * priority_dd = nullptr;
+  lv_obj_t * displayTimeout_dd = nullptr;
+  #ifdef SUPPORT_BEEPER
+    lv_obj_t * beeper_dd = nullptr;
+  #endif
+  lv_obj_t * displayBrightness_slider = nullptr;
+
+  //Backlight management
+  uint32_t backlightLastSet = 0;
+  uint32_t backlightChangeInterval = 10;
+  const uint8_t absoluteMinimumBrightnessLevel = 16;
+  const uint8_t absoluteMaximumBrightnessLevel = 255;
+  uint8_t minimumBrightnessLevel = 64;
+  uint8_t maximumBrightnessLevel = 192;
+  uint8_t lastBrightnessLevel = 128;
+  #define LDR_PIN 34
+  #define LCD_BACK_LIGHT_PIN 21
+  // use first channel of 16 channels (started from zero)
+  #define LEDC_CHANNEL_0     1
+  // use 12 bit precission for LEDC timer
+  #define LEDC_TIMER_12_BIT  12
+  // use 5000 Hz as a LEDC base frequency
+  #define LEDC_BASE_FREQ     500
+  
+  //Display updates
+  //uint32_t lastDisplayUpdate = 0;
+  //uint32_t displayUpdateInterval = 250;
+  
+  //User interface
+  
+  uint8_t units = 0;
+  uint8_t dateFormat = 0;
+  uint8_t displayTimeout = 0;
+  uint32_t displayTimeouts[] = {0, 60000, 60000 * 5, 60000 * 15}; //No/1/5/15 minute timeouts on screen
+  
+  //Power saving
+  
+  //#include "esp_pm.h"
+  bool uiActive = false;
+  /*
+   * 
+   * Sadly these function prototypes end up here because of build system aggro
+   * 
+   */
+  void flushDisplay( lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p )
+  {
+      uint32_t w = ( area->x2 - area->x1 + 1 );
+      uint32_t h = ( area->y2 - area->y1 + 1 );
+  
+      tft.startWrite();
+      tft.setAddrWindow( area->x1, area->y1, w, h );
+      tft.pushColors( ( uint16_t * )&color_p->full, w * h, true );
+      tft.endWrite();
+  
+      lv_disp_flush_ready( disp_drv );
+  }
+  #ifdef SUPPORT_TOUCHSCREEN
+    #ifdef SUPPORT_TOUCHSCREEN_BITBANG
+      int readSPI(byte command)
+      {
+          int result = 0;
+          for (int i = 7; i >= 0; i--) {
+              digitalWrite(XPT2046_MOSI, command & (1 << i));
+              digitalWrite(XPT2046_CLK, HIGH);
+              delayMicroseconds(10);
+              digitalWrite(XPT2046_CLK, LOW);
+              delayMicroseconds(10);
+          }
+          for (int i = 11; i >= 0; i--) {
+              digitalWrite(XPT2046_CLK, HIGH);
+              delayMicroseconds(10);
+              result |= (digitalRead(XPT2046_MISO) << i);
+              digitalWrite(XPT2046_CLK, LOW);
+              delayMicroseconds(10);
+          }
+          return result;
+      }
+    #endif
+    void readTouchscreen(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
+    {
+      #ifdef SUPPORT_TOUCHSCREEN_BITBANG
+        //if(millis() - lastCheckForTouch > 500)
+        {
+          //lastCheckForTouch = millis();
+          if(digitalRead(XPT2046_IRQ) == LOW)
+          {
+            digitalWrite(XPT2046_CS, LOW);
+            int x = readSPI(XPT2046_CMD_READ_X);
+            int y = readSPI(XPT2046_CMD_READ_Y);
+            digitalWrite(XPT2046_CS, HIGH);
+            if(x != 0)
+            {
+              bool touchOutOfRange = false;
+              if(millis() < 10E3)
+              {
+                if(touchScreenMinimumX == 0 && touchScreenMaximumX == 0 && touchScreenMinimumY == 0 && touchScreenMaximumY == 0)  //No touch calibration data
+                {
+                  touchScreenMinimumX = x;
+                  touchScreenMaximumX = x;
+                  touchScreenMinimumY = y;
+                  touchScreenMaximumY = y;
+                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+                    SERIAL_DEBUG_PORT.println("Touch calibration started");
+                  #endif
+                }
+                else
+                {
+                  if(x < touchScreenMinimumX){ touchScreenMinimumX = x; touchOutOfRange = true;}
+                  if(x > touchScreenMaximumX){ touchScreenMaximumX = x; touchOutOfRange = true;}
+                  if(y < touchScreenMinimumY){ touchScreenMinimumY = y; touchOutOfRange = true;}
+                  if(y > touchScreenMaximumY){ touchScreenMaximumY = y; touchOutOfRange = true;}
+                }
+                if(touchOutOfRange == true)  //Recalibration is underway
+                {
+                  saveConfigurationSoon = millis();
+                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+                    SERIAL_DEBUG_PORT.printf_P(PSTR("Touch x(%04u-%04u):%03u y(%04u-%04u):%03u\r\n"), touchScreenMinimumX, touchScreenMaximumX, data->point.x, touchScreenMinimumY, touchScreenMaximumY, data->point.y);
+                  #endif
+                }
+              }
+              x = map(x, touchScreenMaximumX, touchScreenMinimumX, 0, screenWidth);
+              y = map(y, touchScreenMinimumY, touchScreenMaximumY, 0, screenHeight);
+              if (x > screenWidth){x = screenWidth;}
+              if (x < 0){x = 0;}
+              if (y > screenHeight){y = screenHeight;}
+              if (y < 0){y = 0;}
+              /*
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+                SERIAL_DEBUG_PORT.print(" maps to X: ");
+                SERIAL_DEBUG_PORT.print(x);
+                SERIAL_DEBUG_PORT.print(", Y: ");
+                SERIAL_DEBUG_PORT.println(y);
+              #endif
+              */
+              if (x != screenWidth && y != screenHeight)
+              {
+                data->point.x = x;
+                data->point.y = y;
+                data->state = LV_INDEV_STATE_PR;
+                return;
+              }
+            }
+          }
+        }
+        data->state = LV_INDEV_STATE_REL;
+    #else
+        if(touchscreen.touched())
+        {
+          TS_Point touchpoint = touchscreen.getPoint();
+          //Some very basic auto calibration so it doesn't go out of range
+          bool touchOutOfRange = false;
+          if(touchpoint.x < touchScreenMinimumX){ touchScreenMinimumX = touchpoint.x; touchOutOfRange = true;}
+          if(touchpoint.x > touchScreenMaximumX){ touchScreenMaximumX = touchpoint.x; touchOutOfRange = true;}
+          if(touchpoint.y < touchScreenMinimumY){ touchScreenMinimumY = touchpoint.y; touchOutOfRange = true;}
+          if(touchpoint.y > touchScreenMaximumY){ touchScreenMaximumY = touchpoint.y; touchOutOfRange = true;}
+          //Map this to the pixel position
+          data->point.x = map(touchpoint.x,touchScreenMinimumX,touchScreenMaximumX,1,screenWidth);
+          data->point.y = map(touchpoint.y,touchScreenMinimumY,touchScreenMaximumY,1,screenHeight);
+          data->state = LV_INDEV_STATE_PR;
+          if(touchOutOfRange == true)  //Recalibration is underway
+          {
+            saveConfigurationSoon = millis();
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+              SERIAL_DEBUG_PORT.printf_P(PSTR("Touch x(%04u-%04u):%03u y(%04u-%04u):%03u\r\n"), touchScreenMinimumX, touchScreenMaximumX, data->point.x, touchScreenMinimumY, touchScreenMaximumY, data->point.y);
+            #endif
+          }
+        }
+        else
+        {
+          data->state = LV_INDEV_STATE_REL;
+        }
+      #endif
+    }
+  #endif
+#endif
+/*
 
    GPS support variables
 
@@ -985,14 +1075,14 @@ const uint16_t loggingYieldTime = 100;
     #ifdef SUPPORT_ESPNOW
       bool espNowOnline = false;
       uint32_t lastEspNowLocationUpdate = 0;  // Used to track packet loss
-      uint16_t nextEspNowLocationUpdate = 0;  // Used to track packet loss
-      uint16_t espNowUpdateHistory = 0xffff;  // Rolling bitmask of packets received/not received based on expected arrival times
+      uint16_t nextEspNowLocationUpdate = 60E3;  // Used to track packet loss
+      uint16_t espNowUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
     #endif
     #ifdef SUPPORT_LORA
       bool loRaOnline = false;
       uint32_t lastLoRaLocationUpdate = 0;  // Used to track packet loss
-      uint16_t nextLoRaLocationUpdate = 0;  // Used to track packet loss
-      uint16_t loRaUpdateHistory = 0xffff;  // Rolling bitmask of packets received/not received based on expected arrival times
+      uint16_t nextLoRaLocationUpdate = 60E3;  // Used to track packet loss
+      uint16_t loRaUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
     #endif
     double latitude = 0;  //Location info
     double longitude = 0;
@@ -1013,10 +1103,12 @@ const uint16_t loggingYieldTime = 100;
   deviceLocationInfo device[maximumNumberOfDevices];
   uint8_t numberOfDevices = 0;
   double effectivelyUnreachable = 1E10;
+  uint8_t trackingSensitivity = 1;
+  uint16_t sensitivityValues[3] = {0x0FFF, 0x00FF, 0x000F};
   #if defined(ACT_AS_TRACKER)
     double maximumEffectiveRange = 99;
-    uint8_t trackerSensitivity = 1;
-    uint16_t sensitivityValues[3] = {0x0FFF, 0x00FF, 0x000F};
+    uint8_t trackerPriority = 0;
+    //uint16_t priorityValues[3] = {0x0FFF, 0x00FF, 0x000F};
     uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
     bool distanceToCurrentBeaconChanged = false;
     uint32_t lastDistanceChangeUpdate = 0;
@@ -1065,7 +1157,7 @@ const uint16_t loggingYieldTime = 100;
   uint16_t beeperTone = 1400;
   const uint16_t beeperButtonTone = 900;  //Button push tone
   const uint16_t beeperButtonOnTime = 25; //Button push on time
-  bool beeperEnabled = true;
+  bool beeperEnabled = false;
 #endif
 #ifdef SUPPORT_LED
   TaskHandle_t ledManagementTask = NULL;

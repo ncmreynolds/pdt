@@ -28,9 +28,13 @@
     //This block of code is to handle multiprocessor ESP32s
     #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
       #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-        portENTER_CRITICAL(&loRaRxSynch); //
+        #if defined(LORA_ASYNC_METHODS)
+          portENTER_CRITICAL(&loRaRxSynch); //
+        #endif
       #elif CONFIG_IDF_TARGET_ESP32S3
-        portENTER_CRITICAL(&loRaRxSynch);
+        #if defined(LORA_ASYNC_METHODS)
+          portENTER_CRITICAL(&loRaRxSynch);
+        #endif
       #endif
     #endif
     if(loRaRxBusy == true || loRaReceiveBufferSize > 0)  //Already dealing with a LoRa packet
@@ -38,9 +42,13 @@
       //This block of code is to handle multiprocessor ESP32s
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
         #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portEXIT_CRITICAL(&loRaRxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portEXIT_CRITICAL(&loRaRxSynch);
+          #endif
         #elif CONFIG_IDF_TARGET_ESP32S3
-          portEXIT_CRITICAL(&loRaRxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portEXIT_CRITICAL(&loRaRxSynch);
+          #endif
         #endif
       #endif
       if(loRaRxBusy == true)  //Already dealing with a LoRa packet
@@ -61,6 +69,7 @@
         }
         #endif
       }
+      loRaRxPacketsDropped++;
       return;
     }
     loRaRxBusy = true;
@@ -124,9 +133,13 @@
     //This block of code is to handle multiprocessor ESP32s
     #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
       #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-        portEXIT_CRITICAL(&loRaRxSynch);
+        #if defined(LORA_ASYNC_METHODS)
+          portEXIT_CRITICAL(&loRaRxSynch);
+        #endif
       #elif CONFIG_IDF_TARGET_ESP32S3
-        portEXIT_CRITICAL(&loRaRxSynch);
+        #if defined(LORA_ASYNC_METHODS)
+          portEXIT_CRITICAL(&loRaRxSynch);
+        #endif
       #endif
     #endif
   }
@@ -143,9 +156,13 @@
       //This block of code is to handle multiprocessor ESP32s
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
         #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portENTER_CRITICAL(&loRaTxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portENTER_CRITICAL(&loRaTxSynch);
+          #endif
         #elif CONFIG_IDF_TARGET_ESP32S3
-          portENTER_CRITICAL(&loRaTxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portENTER_CRITICAL(&loRaTxSynch);
+          #endif
         #endif
       #endif
       loRaTxTime += millis() - loRaTxStartTime; //Calculate the time spent sending for duty cycle
@@ -154,9 +171,13 @@
       //This block of code is to handle multiprocessor ESP32s
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
         #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portEXIT_CRITICAL(&loRaTxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portEXIT_CRITICAL(&loRaTxSynch);
+          #endif
         #elif CONFIG_IDF_TARGET_ESP32S3
-          portEXIT_CRITICAL(&loRaTxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portEXIT_CRITICAL(&loRaTxSynch);
+          #endif
         #endif
       #endif
     }
@@ -174,7 +195,17 @@
     localLog(F("Configuring LoRa radio: "));
     if(loRaEnabled == true)
     {
-      LoRa.setPins(loRaCSpin, loRaResetPin, loRaIrqPin);// set CS, reset, IRQ pin
+      #if defined(LVGL) && defined(SUPPORT_TOUCHSCREEN)
+        LoRa.setSPI(touchscreenSPI);
+      #endif
+      if(loRaIrqPin != -1)
+      {
+        LoRa.setPins(loRaCSpin, loRaResetPin, loRaIrqPin);  //Set CS, Reset & IRQ pin
+      }
+      else
+      {
+        LoRa.setPins(loRaCSpin, loRaResetPin);  //Set CS & Reset only
+      }
       if (LoRa.begin(868E6) == true)  //For EU, US is 915E6, Asia 433E6
       {
         LoRa.setTxPower(defaultLoRaTxPower);
@@ -203,7 +234,7 @@
   }
   void manageLoRa()
   {
-    if(loRaEnabled == true)
+    if(loRaEnabled == true && loRaInitialised == true)
     {
       #ifdef LORA_ASYNC_METHODS
         if(loRaTxComplete == true && loRaTxBusy == true)
@@ -225,52 +256,53 @@
         {
           processLoRaPacket();
         }
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+        else
+        {
+          SERIAL_DEBUG_PORT.println(F("Dropped LoRa packet: bad checksum"));
+        }
+        #endif
         loRaReceiveBufferSize = 0;
       }
       if(millis() - lastLoRaDeviceInfoSendTime > loRaDeviceInfoInterval)
       {
         lastLoRaDeviceInfoSendTime = millis();
-        shareDeviceInfo();
+        shareDeviceInfoByLoRa();
         calculateLoRaDutyCycle();
       }
-      #ifdef SUPPORT_GPS
       if(millis() - lastLoRaLocationSendTime > device[0].nextLoRaLocationUpdate)
       {
         lastLoRaLocationSendTime = millis();
-        if(loRaInitialised)
-        {
-          #if defined(ACT_AS_TRACKER)
-            if(numberOfBeacons() > 0)  //Only share ocation if there are some beacons
+        #if defined(ACT_AS_TRACKER)
+          if(numberOfBeacons() > 0)  //Only share ocation if there are some beacons
+          {
+            shareLocation();
+            calculateLoRaDutyCycle();
+            if(currentlyTrackedBeacon != maximumNumberOfDevices) //There is a current beacon
+            {
+              device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
+            }
+          }
+          else
+          {
+            device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(effectivelyUnreachable, 0);
+          }
+        #elif defined(ACT_AS_BEACON)
+            if(numberOfTrackers() > 0)
             {
               shareLocation();
               calculateLoRaDutyCycle();
-              if(currentlyTrackedBeacon != maximumNumberOfDevices) //There is a current beacon
+              if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
               {
-                device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
+                device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
               }
             }
             else
             {
               device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(effectivelyUnreachable, 0);
             }
-          #elif defined(ACT_AS_BEACON)
-              if(numberOfTrackers() > 0)
-              {
-                shareLocation();
-                calculateLoRaDutyCycle();
-                if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
-                {
-                  device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
-                }
-              }
-              else
-              {
-                device[0].nextLoRaLocationUpdate = newLoRaLocationSharingInterval(effectivelyUnreachable, 0);
-              }
-          #endif
-        }
+        #endif
       }
-      #endif
       for(uint8_t index = 1; index < numberOfDevices; index++)  //Degrade quality if location updates missed, this INCLUDES this device!
       {
         if(device[index].hasGpsFix == true && //Thing has fix!
@@ -298,9 +330,9 @@
             localLog(F("Device "));
           }
           localLog(index);
-          if(device[index].loRaOnline == true && device[index].loRaUpdateHistory < sensitivityValues[trackerSensitivity])  //7 bits in the least significant section
+          if(device[index].loRaOnline == true && device[index].loRaUpdateHistory < sensitivityValues[trackingSensitivity])  //7 bits in the least significant section
           {
-            localLogLn(F(" gone offline"));
+            localLogLn(F(" LoRa gone offline"));
             device[index].loRaOnline = false;
             #ifdef ACT_AS_TRACKER
               if(index == currentlyTrackedBeacon) //Need to stop tracking this beacon
@@ -423,99 +455,101 @@
       }
     }
   }
-  #if defined(SUPPORT_BATTERY_METER)
-    void shareDeviceInfo()
+  void shareDeviceInfoByLoRa()
+  {
+    if(loRaTxBusy)
     {
-      if(loRaTxBusy)
-      {
-        return;
-      }
-      loRaTxBusy = true;
-      MsgPack::Packer packer;
-      packer.pack(device[0].id[0]);
-      packer.pack(device[0].id[1]);
-      packer.pack(device[0].id[2]);
-      packer.pack(device[0].id[3]);
-      packer.pack(device[0].id[4]);
-      packer.pack(device[0].id[5]);
-      packer.pack(deviceStatusUpdateId);
-      packer.pack(device[0].typeOfDevice);
-      packer.pack(device[0].majorVersion);
-      packer.pack(device[0].minorVersion);
-      packer.pack(device[0].patchVersion);
-      packer.pack(millis());
-      packer.pack(device[0].supplyVoltage);
-      packer.pack(device[0].name);
-      #ifdef ACT_AS_SENSOR
-        packer.pack(device[0].numberOfStartingHits);
-        packer.pack(device[0].numberOfStartingStunHits);
-        packer.pack(device[0].currentNumberOfHits);
-        packer.pack(device[0].currentNumberOfStunHits);
-      #else
-        packer.pack(defaultLoRaLocationInterval);
-        packer.pack(loRaPerimiter1);
-        packer.pack(loRaLocationInterval1);
-        packer.pack(loRaPerimiter2);
-        packer.pack(loRaLocationInterval2);
-        packer.pack(loRaPerimiter3);
-        packer.pack(loRaLocationInterval3);
-      #endif
-      if(packer.size() < maxLoRaBufferSize)
-      {
-        memcpy(loRaSendBuffer, packer.data(),packer.size());
-        loRaSendBufferSize = packer.size();
-        if(transmitLoRaBuffer())
-        {  
-          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-            if(waitForBufferSpace(80))
-            {
-              #ifdef ACT_AS_SENSOR
-              SERIAL_DEBUG_PORT.printf("LoRa   TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
-                device[0].typeOfDevice,
-                device[0].majorVersion,
-                device[0].minorVersion,
-                device[0].patchVersion,
-                device[0].name,
-                printableUptime(millis()/1000).c_str(),
-                device[0].supplyVoltage,
-                device[0].currentNumberOfHits,
-                device[0].numberOfStartingHits,
-                device[0].currentNumberOfStunHits,
-                device[0].numberOfStartingStunHits
-                );
-              #else
-                SERIAL_DEBUG_PORT.printf("LoRa   TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv intervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
-                device[0].typeOfDevice,
-                device[0].majorVersion,
-                device[0].minorVersion,
-                device[0].patchVersion,
-                device[0].name,
-                printableUptime(millis()/1000).c_str(),
-                device[0].supplyVoltage,
-                defaultLoRaLocationInterval/1000,
-                loRaPerimiter1,
-                loRaLocationInterval1/1000,
-                loRaPerimiter2,
-                loRaLocationInterval2/1000,
-                loRaPerimiter3,
-                loRaLocationInterval3/1000
-                );
-              #endif
-            }
-          #endif
-        }
+      return;
+    }
+    loRaTxBusy = true;
+    MsgPack::Packer packer;
+    packer.pack(device[0].id[0]);
+    packer.pack(device[0].id[1]);
+    packer.pack(device[0].id[2]);
+    packer.pack(device[0].id[3]);
+    packer.pack(device[0].id[4]);
+    packer.pack(device[0].id[5]);
+    packer.pack(deviceStatusUpdateId);
+    packer.pack(device[0].typeOfDevice);
+    packer.pack(device[0].majorVersion);
+    packer.pack(device[0].minorVersion);
+    packer.pack(device[0].patchVersion);
+    packer.pack(millis());
+    packer.pack(device[0].supplyVoltage);
+    packer.pack(device[0].name);
+    #ifdef ACT_AS_SENSOR
+      packer.pack(device[0].numberOfStartingHits);
+      packer.pack(device[0].numberOfStartingStunHits);
+      packer.pack(device[0].currentNumberOfHits);
+      packer.pack(device[0].currentNumberOfStunHits);
+    #else
+      packer.pack(defaultLoRaLocationInterval);
+      packer.pack(loRaPerimiter1);
+      packer.pack(loRaLocationInterval1);
+      packer.pack(loRaPerimiter2);
+      packer.pack(loRaLocationInterval2);
+      packer.pack(loRaPerimiter3);
+      packer.pack(loRaLocationInterval3);
+    #endif
+    if(packer.size() < maxLoRaBufferSize)
+    {
+      memcpy(loRaSendBuffer, packer.data(),packer.size());
+      loRaSendBufferSize = packer.size();
+      if(transmitLoRaBuffer())
+      {  
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+          if(waitForBufferSpace(80))
+          {
+            #ifdef ACT_AS_SENSOR
+            SERIAL_DEBUG_PORT.printf("LoRa   TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+              device[0].typeOfDevice,
+              device[0].majorVersion,
+              device[0].minorVersion,
+              device[0].patchVersion,
+              device[0].name,
+              printableUptime(millis()/1000).c_str(),
+              device[0].supplyVoltage,
+              device[0].currentNumberOfHits,
+              device[0].numberOfStartingHits,
+              device[0].currentNumberOfStunHits,
+              device[0].numberOfStartingStunHits
+              );
+            #else
+              SERIAL_DEBUG_PORT.printf("LoRa   TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv intervals: default %us, %um %us, %um %us, %um %us\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+              device[0].typeOfDevice,
+              device[0].majorVersion,
+              device[0].minorVersion,
+              device[0].patchVersion,
+              device[0].name,
+              printableUptime(millis()/1000).c_str(),
+              device[0].supplyVoltage,
+              defaultLoRaLocationInterval/1000,
+              loRaPerimiter1,
+              loRaLocationInterval1/1000,
+              loRaPerimiter2,
+              loRaLocationInterval2/1000,
+              loRaPerimiter3,
+              loRaLocationInterval3/1000
+              );
+            #endif
+          }
+        #endif
       }
     }
-  #endif
+  }
   bool transmitLoRaBuffer()
   {
     if(appendLoRaChecksum()) //Add the checksum, if there is space
     {
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
         #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portENTER_CRITICAL(&loRaTxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portENTER_CRITICAL(&loRaTxSynch);
+          #endif
         #elif CONFIG_IDF_TARGET_ESP32S3
-          portENTER_CRITICAL(&loRaTxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portENTER_CRITICAL(&loRaTxSynch);
+          #endif
         #endif
       #endif
       LoRa.beginPacket(); //Start a new packet
@@ -533,9 +567,13 @@
       //This block of code is to handle multiprocessor ESP32s
       #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
         #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
-          portEXIT_CRITICAL(&loRaTxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portEXIT_CRITICAL(&loRaTxSynch);
+          #endif
         #elif CONFIG_IDF_TARGET_ESP32S3
-          portEXIT_CRITICAL(&loRaTxSynch);
+          #if defined(LORA_ASYNC_METHODS)
+            portEXIT_CRITICAL(&loRaTxSynch);
+          #endif
         #endif
       #endif
       return true;
@@ -680,11 +718,11 @@
                             device[deviceIndex].loRaUpdateHistory);
                         }
                       #endif
-                      if(device[deviceIndex].loRaOnline == false && countBits(device[deviceIndex].loRaUpdateHistory) > countBits(sensitivityValues[trackerSensitivity]))   //7 bits in in total to go online
+                      if(device[deviceIndex].loRaOnline == false && countBits(device[deviceIndex].loRaUpdateHistory) > countBits(sensitivityValues[trackingSensitivity]))   //7 bits in in total to go online
                       {
                         localLog(F("Device "));
                         localLog(deviceIndex);
-                        localLogLn(F(" gone online"));
+                        localLogLn(F(" LoRa gone online"));
                         device[deviceIndex].loRaOnline = true;
                       }
                     }

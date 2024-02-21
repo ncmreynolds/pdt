@@ -13,7 +13,9 @@
     tft.init();
     tft.setRotation(screenRotation); //Rotation is not fixed
     setupBacklight();
-    setupTouchscreen();
+    #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
+      setupTouchscreen();
+    #endif
     //Start configuring LVGL
     buf = new lv_color_t[(screenWidth * screenHeight) / bufferFraction];  //Do this at runtime to save static space!
     lv_init();
@@ -26,13 +28,18 @@
     disp_drv.flush_cb = flushDisplay; //Assign callback to update the display itself
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register( &disp_drv );
-  
-    // Initialize the touchscreen input device driver
-    static lv_indev_drv_t indev_drv;
-    lv_indev_drv_init( &indev_drv );
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = readTouchscreen;
-    lv_indev_t * my_indev = lv_indev_drv_register( &indev_drv );
+
+    #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
+      if(touchscreenInitialised == true)
+      {
+        // Initialize the touchscreen input device driver
+        static lv_indev_drv_t indev_drv;
+        lv_indev_drv_init( &indev_drv );
+        indev_drv.type = LV_INDEV_TYPE_POINTER;
+        indev_drv.read_cb = readTouchscreen;
+        lv_indev_t * my_indev = lv_indev_drv_register( &indev_drv );
+      }
+    #endif
   
     //Create the tabs
     localLogLn(F("OK"));
@@ -55,18 +62,18 @@
     tab1 = lv_tabview_add_tab(tabview, tabLabel_1);
     tab2 = lv_tabview_add_tab(tabview, tabLabel_2);
     tab3 = lv_tabview_add_tab(tabview, tabLabel_3);
-    tab4 = lv_tabview_add_tab(tabview, tabLabel_4);
+    //tab4 = lv_tabview_add_tab(tabview, tabLabel_4);
     
     createTab1();
     createTab2();
     createTab3();
-    createTab4();
+    //createTab4();
     
     lv_obj_clear_flag(lv_tabview_get_content(tabview), LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(tab1, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(tab2, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(tab3, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(tab4, LV_OBJ_FLAG_SCROLLABLE);
+    //lv_obj_clear_flag(tab4, LV_OBJ_FLAG_SCROLLABLE);
   }
   void createTab1()
   {
@@ -322,7 +329,7 @@
     #elif defined(SUPPORT_LORA)
       if(currentlyTrackedBeacon != maximumNumberOfDevices)
       {
-        lv_chart_set_next_value(chart0, chart0ser1, countBits(device[currentlyTrackedBeacon].loRaUpdateHistory));
+        lv_chart_set_next_value(chart0, chart0ser0, countBits(device[currentlyTrackedBeacon].loRaUpdateHistory));
       }
       else
       {
@@ -513,7 +520,7 @@
     lv_obj_align(sensitivity_dd, LV_ALIGN_TOP_MID, leftColumnX, objectY);
     lv_obj_set_width(sensitivity_dd, columnWidth);
     lv_obj_add_event_cb(sensitivity_dd, sensitivity_dd_event_handler, LV_EVENT_ALL, NULL);
-    lv_dropdown_set_selected(sensitivity_dd, trackerSensitivity);
+    lv_dropdown_set_selected(sensitivity_dd, trackingSensitivity);
   
     //Priority dropdown
     lv_obj_t * priority_dd = lv_dropdown_create(tab3);
@@ -523,7 +530,7 @@
     lv_obj_align(priority_dd, LV_ALIGN_TOP_MID, rightColumnX, objectY);
     lv_obj_set_width(priority_dd, columnWidth);
     lv_obj_add_event_cb(priority_dd, priority_dd_event_handler, LV_EVENT_ALL, NULL);
-    lv_dropdown_set_selected(priority_dd, priority);
+    lv_dropdown_set_selected(priority_dd, trackerPriority);
   
     //Next row
     objectY += dropdownSpacing;
@@ -571,7 +578,14 @@
       lv_obj_align(beeper_dd, LV_ALIGN_TOP_MID, rightColumnX, objectY);
       lv_obj_set_width(beeper_dd, columnWidth);
       lv_obj_add_event_cb(beeper_dd, beeper_dd_event_handler, LV_EVENT_ALL, NULL);
-      lv_dropdown_set_selected(beeper_dd, beeper);
+      if(beeperEnabled == false)
+      {
+        lv_dropdown_set_selected(beeper_dd, 0);
+      }
+      else
+      {
+        lv_dropdown_set_selected(beeper_dd, 1);
+      }
     #endif
   
     //Next row
@@ -631,7 +645,7 @@
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t * obj = lv_event_get_target(e);
     if(code == LV_EVENT_VALUE_CHANGED) {
-      trackerSensitivity = (uint8_t)lv_dropdown_get_selected(obj);
+      trackingSensitivity = (uint8_t)lv_dropdown_get_selected(obj);
       saveConfigurationSoon = millis();
       char buf[32];
       lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
@@ -645,7 +659,7 @@
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t * obj = lv_event_get_target(e);
     if(code == LV_EVENT_VALUE_CHANGED) {
-      priority = (uint8_t)lv_dropdown_get_selected(obj);
+      trackerPriority = (uint8_t)lv_dropdown_get_selected(obj);
       saveConfigurationSoon = millis();
       char buf[32];
       lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
@@ -674,7 +688,14 @@
       lv_event_code_t code = lv_event_get_code(e);
       lv_obj_t * obj = lv_event_get_target(e);
       if(code == LV_EVENT_VALUE_CHANGED) {
-        beep = (uint8_t)lv_dropdown_get_selected(obj);
+        if((uint8_t)lv_dropdown_get_selected(obj) == 0)
+        {
+          beeperEnabled = false;
+        }
+        else
+        {
+          beeperEnabled = true;
+        }
         saveConfigurationSoon = millis();
         char buf[32];
         lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
@@ -697,15 +718,14 @@
       #endif
     }
   }
+  /*
   void createTab4(void)
   {
-    /*
       //Create the table
       tab2table = lv_table_create(tab2);
       lv_table_set_row_cnt(tab2table, 9);
       lv_table_set_col_cnt(tab2table, 2);
   
-      /*Fill the first column*/
       lv_table_set_cell_value(tab2table, 0, 0, statusTableLabel_0);
       lv_table_set_cell_value(tab2table, 1, 0, statusTableLabel_1);
       lv_table_set_cell_value(tab2table, 2, 0, statusTableLabel_2);
@@ -716,7 +736,6 @@
       lv_table_set_cell_value(tab2table, 7, 0, statusTableLabel_7);
       lv_table_set_cell_value(tab2table, 8, 0, statusTableLabel_8);
   
-      /*Fill the second column*/
       lv_table_set_cell_value(tab2table, 0, 1, statusTableLabel_Unknown);
       lv_table_set_cell_value(tab2table, 1, 1, statusTableLabel_Unknown);
       lv_table_set_cell_value(tab2table, 2, 1, statusTableLabel_Unknown);
@@ -733,50 +752,49 @@
       lv_obj_center(tab2table);
       //lv_obj_clear_flag(tab2table, LV_OBJ_FLAG_SCROLLABLE);
   
-      /*Add an event callback to to apply some custom drawing*/
       //lv_obj_add_event_cb(tab2table, draw_part_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
-      */
   }
+  */
   void manageLVGL()
   {
-    if(currentDeviceState == deviceState::starting)
+    if(currentLvglUiState == deviceState::starting)
     {
       if(millis() > 10E3)
       {
         lv_label_set_text(status_label, statusLabel_1);
-        currentDeviceState = deviceState::detectingGpsPins;
+        currentLvglUiState = deviceState::detectingGpsPins;
       }
     }
-    else if(currentDeviceState == deviceState::detectingGpsPins)
+    else if(currentLvglUiState == deviceState::detectingGpsPins)
     {
       if(millis() > 12E3)
       {
         lv_label_set_text(status_label, statusLabel_2);
-        currentDeviceState = deviceState::detectingGpsBaudRate;
+        currentLvglUiState = deviceState::detectingGpsBaudRate;
       }
     }
-    else if(currentDeviceState == deviceState::detectingGpsBaudRate)
+    else if(currentLvglUiState == deviceState::detectingGpsBaudRate)
     {
       if(millis() > 14E3)
       {
         lv_label_set_text(status_label, statusLabel_3);
-        currentDeviceState = deviceState::gpsDetected;
+        currentLvglUiState = deviceState::gpsDetected;
       }
     }
-    else if(currentDeviceState == deviceState::gpsDetected)
+    else if(currentLvglUiState == deviceState::gpsDetected)
     {
       if(millis() > 16E3 && device[0].hasGpsFix == true)
       {
         lv_label_set_text(status_label, statusLabel_4);
-        currentDeviceState = deviceState::gpsLocked;
+        currentLvglUiState = deviceState::gpsLocked;
       }
     }
-    else if(currentDeviceState == deviceState::gpsLocked)
+    else if(currentLvglUiState == deviceState::gpsLocked)
     {
       if(device[0].hasGpsFix == false)  //Lost location
       {
         lv_label_set_text(status_label, statusLabel_3);
-        currentDeviceState == deviceState::gpsDetected;
+        currentLvglUiState == deviceState::gpsDetected;
       }
       else
       {
@@ -784,24 +802,24 @@
         {
           hideStatusSpinner();
           showMeters();
-          currentDeviceState = deviceState::tracking;
+          currentLvglUiState = deviceState::tracking;
         }
       }
     }
-    else if(currentDeviceState == deviceState::tracking)
+    else if(currentLvglUiState == deviceState::tracking)
     {
       if(device[0].hasGpsFix == false)  //Lost location
       {
         hideMeters();
         showStatusSpinner();
         lv_label_set_text(status_label, statusLabel_3);
-        currentDeviceState = deviceState::gpsDetected;
+        currentLvglUiState = deviceState::gpsDetected;
       }
       else if(currentlyTrackedBeacon == maximumNumberOfDevices) //Lost all beacons
       {
         hideMeters();
         showStatusSpinner();
-        currentDeviceState = deviceState::gpsLocked;
+        currentLvglUiState = deviceState::gpsLocked;
       }
     }
     if(displayTimeout != 0  && lv_disp_get_inactive_time(NULL) > displayTimeouts[displayTimeout])  //Active in the last second
@@ -865,10 +883,31 @@
       }
     }
   }
-  void setupTouchscreen()
-  {
-    touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS); //Start SPI for touchscreen
-    touchscreen.begin(touchscreenSPI); //Initialise the touchscreen
-    touchscreen.setRotation(screenRotation); //Rotation is not fixed
-  }
+  #ifdef SUPPORT_TOUCHSCREEN
+    #if defined(SUPPORT_TOUCHSCREEN_BITBANG)
+      void setupTouchscreen()
+      {
+        localLog(F("Starting bitbang touchscreen: "));
+        pinMode(XPT2046_MOSI, OUTPUT);
+        pinMode(XPT2046_MISO, INPUT);
+        pinMode(XPT2046_CLK, OUTPUT);
+        pinMode(XPT2046_CS, OUTPUT);
+        pinMode(XPT2046_IRQ, INPUT);
+        digitalWrite(XPT2046_CS, HIGH);
+        digitalWrite(XPT2046_CLK, LOW);
+        localLog(F("OK"));
+        touchscreenInitialised = true;
+      }
+    #else
+      void setupTouchscreen()
+      {
+        localLog(F("Starting touchscreen: "));
+        touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS); //Start SPI for touchscreen
+        touchscreen.begin(touchscreenSPI); //Initialise the touchscreen
+        touchscreen.setRotation(screenRotation); //Rotation is not fixed
+        localLog(F("OK"));
+        touchscreenInitialised = true;
+      }
+    #endif
+  #endif
 #endif

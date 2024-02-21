@@ -160,7 +160,8 @@
         }
         #if defined(SUPPORT_LORA)
           device[0].lastLoRaLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
-        #elif defined(SUPPORT_ESPNOW)
+        #endif
+        #if defined(SUPPORT_ESPNOW)
           device[0].lastEspNowLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
         #endif
         device[0].latitude = gps.location.lat();
