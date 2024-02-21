@@ -595,15 +595,14 @@
   
     //Display brightness slider
     displayBrightness_slider = lv_slider_create(tab3);
-    lv_slider_set_mode(displayBrightness_slider, LV_SLIDER_MODE_RANGE);
-    lv_slider_set_value(displayBrightness_slider, maximumBrightnessLevel, LV_ANIM_OFF);
-    lv_slider_set_left_value(displayBrightness_slider, minimumBrightnessLevel, LV_ANIM_OFF);
-    lv_slider_set_range(displayBrightness_slider, absoluteMinimumBrightnessLevel , absoluteMaximumBrightnessLevel);
     lv_obj_set_width(displayBrightness_slider, 160);
-  
+    lv_obj_align(displayBrightness_slider, LV_ALIGN_TOP_MID, 0, objectY+10);
+    lv_slider_set_mode(displayBrightness_slider, LV_SLIDER_MODE_RANGE);
+    lv_slider_set_range(displayBrightness_slider, absoluteMinimumBrightnessLevel , absoluteMaximumBrightnessLevel);
+    lv_slider_set_value(displayBrightness_slider, maximumBrightnessLevel, LV_ANIM_OFF);
+    lv_slider_set_left_value(displayBrightness_slider, minimumBrightnessLevel, LV_ANIM_OFF);  
     lv_obj_add_event_cb(displayBrightness_slider, displayBrightness_slider_event_cb, LV_EVENT_ALL, NULL);
     lv_obj_refresh_ext_draw_size(displayBrightness_slider);
-    lv_obj_align(displayBrightness_slider, LV_ALIGN_TOP_MID, 0, objectY+10);
     objectY += dropdownSpacing;
   }
   static void units_dd_event_handler(lv_event_t * e)
