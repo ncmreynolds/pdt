@@ -338,8 +338,8 @@
     #endif
     if(currentlyTrackedBeacon != maximumNumberOfDevices)
     {
-      lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 50));
-      lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 50));
+      lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].espNowUpdateHistory)/16);
+      lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].loRaUpdateHistory)/16);
     }
     else
     {
@@ -560,13 +560,7 @@
     lv_obj_align(displayTimeout_dd, LV_ALIGN_TOP_MID, leftColumnX, objectY);
     lv_obj_set_width(displayTimeout_dd, columnWidth);
     lv_obj_add_event_cb(displayTimeout_dd, displayTimeout_dd_event_handler, LV_EVENT_ALL, NULL);
-    for(uint8_t index = 0; index < 3; index++)
-    {
-      if(displayTimeout == displayTimeouts[index])
-      {
-        lv_dropdown_set_selected(displayTimeout_dd, index);
-      }
-    }
+    lv_dropdown_set_selected(displayTimeout_dd, displayTimeout);
   
     //Beeper dropdown
     #ifdef SUPPORT_BEEPER
@@ -673,7 +667,7 @@
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t * obj = lv_event_get_target(e);
     if(code == LV_EVENT_VALUE_CHANGED) {
-      displayTimeout = displayTimeouts[(uint8_t)lv_dropdown_get_selected(obj)];
+      displayTimeout = (uint8_t)lv_dropdown_get_selected(obj);
       saveConfigurationSoon = millis();
       char buf[32];
       lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
@@ -822,24 +816,27 @@
         currentLvglUiState = deviceState::gpsLocked;
       }
     }
-    if(displayTimeout != 0  && lv_disp_get_inactive_time(NULL) > displayTimeouts[displayTimeout])  //Active in the last second
+    if(displayTimeouts[displayTimeout] > 0)
     {
-      if(uiActive == true)
+      if(millis() - lastUiActivity > displayTimeouts[displayTimeout])
       {
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-          SERIAL_DEBUG_PORT.println(F("UI inactive"));
-        #endif
-        uiActive = false;
+        if(uiActive == true)
+        {
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F("LvglUi inactive"));
+          #endif
+          uiActive = false;
+        }
       }
-    }
-    else
-    {
-      if(uiActive == false)
+      else
       {
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-          SERIAL_DEBUG_PORT.println(F("UI active"));
-        #endif
-        uiActive = true;
+        if(uiActive == false)
+        {
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F("LvglUi active"));
+          #endif
+          uiActive = true;
+        }
       }
     }
     lv_task_handler();
@@ -855,31 +852,25 @@
     if(millis() - backlightLastSet > backlightChangeInterval)
     {
       backlightLastSet = millis();
-      uint8_t wantedBrightnessLevel;
-      if(uiActive == false)
+      uint8_t wantedBrightnessLevel = map(1024 - analogRead(LDR_PIN), 0, 1024, minimumBrightnessLevel, maximumBrightnessLevel);
+      if(abs((int16_t)currentBrightnessLevel - (int16_t)wantedBrightnessLevel) > 20)
       {
-        wantedBrightnessLevel = minimumBrightnessLevel;
+        if(wantedBrightnessLevel > currentBrightnessLevel)
+        {
+          currentBrightnessLevel++;
+        }
+        else if(wantedBrightnessLevel < currentBrightnessLevel)
+        {
+          currentBrightnessLevel--;
+        }
+      }
+      if(uiActive == true)
+      {
+        ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * currentBrightnessLevel);
       }
       else
       {
-        wantedBrightnessLevel = map(1024 - analogRead(LDR_PIN), 0, 1024, minimumBrightnessLevel, maximumBrightnessLevel);
-      }
-      if(abs((int16_t)lastBrightnessLevel - (int16_t)wantedBrightnessLevel) > 20)
-      {
-        if(wantedBrightnessLevel > lastBrightnessLevel)
-        {
-          lastBrightnessLevel++;
-        }
-        else if(wantedBrightnessLevel < lastBrightnessLevel)
-        {
-          lastBrightnessLevel--;
-        }
-        ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * lastBrightnessLevel);
-        /*
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-          SERIAL_DEBUG_PORT.printf(PSTR("Backlight set to %u\r\n"), lastBrightnessLevel);
-        #endif
-        */
+        ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * uiInactiveBrightnessLevel);
       }
     }
   }

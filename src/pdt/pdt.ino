@@ -1,4 +1,4 @@
-/*
+d/*
 
    Sketch to work as a personal data transmitter device and associated tracker
 
@@ -29,7 +29,7 @@
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
-#define PDT_PATCH_VERSION 7
+#define PDT_PATCH_VERSION 8
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -871,11 +871,12 @@ const uint16_t loggingYieldTime = 100;
   //Backlight management
   uint32_t backlightLastSet = 0;
   uint32_t backlightChangeInterval = 10;
+  const uint8_t uiInactiveBrightnessLevel = 4;
   const uint8_t absoluteMinimumBrightnessLevel = 16;
   const uint8_t absoluteMaximumBrightnessLevel = 255;
   uint8_t minimumBrightnessLevel = 64;
   uint8_t maximumBrightnessLevel = 192;
-  uint8_t lastBrightnessLevel = 128;
+  uint8_t currentBrightnessLevel = 128;
   #define LDR_PIN 34
   #define LCD_BACK_LIGHT_PIN 21
   // use first channel of 16 channels (started from zero)
@@ -893,13 +894,10 @@ const uint16_t loggingYieldTime = 100;
   
   uint8_t units = 0;
   uint8_t dateFormat = 0;
-  uint8_t displayTimeout = 0;
-  uint32_t displayTimeouts[] = {0, 60000, 60000 * 5, 60000 * 15}; //No/1/5/15 minute timeouts on screen
-  
-  //Power saving
-  
-  //#include "esp_pm.h"
-  bool uiActive = false;
+  uint8_t displayTimeout = 2;
+  uint32_t displayTimeouts[] = {0, 60E3, 60E3 * 5, 60E3 * 15}; //No/1/5/15 minute timeouts on screen
+  bool uiActive = true;
+  uint32_t lastUiActivity = 0;
   /*
    * 
    * Sadly these function prototypes end up here because of build system aggro
@@ -962,7 +960,7 @@ const uint16_t loggingYieldTime = 100;
                   touchScreenMaximumX = x;
                   touchScreenMinimumY = y;
                   touchScreenMaximumY = y;
-                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+                  #if defined(SERIAL_DEBUG) && defined(DEBUG_TOUCHSCREEN)
                     SERIAL_DEBUG_PORT.println("Touch calibration started");
                   #endif
                 }
@@ -976,7 +974,7 @@ const uint16_t loggingYieldTime = 100;
                 if(touchOutOfRange == true)  //Recalibration is underway
                 {
                   saveConfigurationSoon = millis();
-                  #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+                  #if defined(SERIAL_DEBUG) && defined(DEBUG_TOUCHSCREEN)
                     SERIAL_DEBUG_PORT.printf_P(PSTR("Touch x(%04u-%04u):%03u y(%04u-%04u):%03u\r\n"), touchScreenMinimumX, touchScreenMaximumX, data->point.x, touchScreenMinimumY, touchScreenMaximumY, data->point.y);
                   #endif
                 }
@@ -987,19 +985,18 @@ const uint16_t loggingYieldTime = 100;
               if (x < 0){x = 0;}
               if (y > screenHeight){y = screenHeight;}
               if (y < 0){y = 0;}
-              /*
-              #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_TOUCHSCREEN)
                 SERIAL_DEBUG_PORT.print(" maps to X: ");
                 SERIAL_DEBUG_PORT.print(x);
                 SERIAL_DEBUG_PORT.print(", Y: ");
                 SERIAL_DEBUG_PORT.println(y);
               #endif
-              */
               if (x != screenWidth && y != screenHeight)
               {
                 data->point.x = x;
                 data->point.y = y;
                 data->state = LV_INDEV_STATE_PR;
+                lastUiActivity = millis();
                 return;
               }
             }
@@ -1103,8 +1100,12 @@ const uint16_t loggingYieldTime = 100;
   deviceLocationInfo device[maximumNumberOfDevices];
   uint8_t numberOfDevices = 0;
   double effectivelyUnreachable = 1E10;
-  uint8_t trackingSensitivity = 1;
-  uint16_t sensitivityValues[3] = {0x0FFF, 0x00FF, 0x000F};
+  #if defined(ACT_AS_TRACKER)
+    uint8_t trackingSensitivity = 2;
+  #else
+    uint8_t trackingSensitivity = 3;
+  #endif
+  uint16_t sensitivityValues[4] = {0x0FFF, 0x00FF, 0x000F, 0x0007};
   #if defined(ACT_AS_TRACKER)
     double maximumEffectiveRange = 99;
     uint8_t trackerPriority = 0;
