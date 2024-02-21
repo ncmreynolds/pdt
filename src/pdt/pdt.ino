@@ -1,4 +1,4 @@
-d/*
+/*
 
    Sketch to work as a personal data transmitter device and associated tracker
 
