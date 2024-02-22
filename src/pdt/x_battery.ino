@@ -4,10 +4,10 @@
     if(enableBatteryMonitor == true)
     {
       localLog(F("Configuring battery monitor: "));
-      #if HARDWARE_VARIANT == C3PDT
+      #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
         analogReadResolution(12);
         analogSetAttenuation(ADC_11db); //Set ADC to read up to 2500mV
-      #elif HARDWARE_VARIANT == C3TrackedSensor
+      #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
         analogReadResolution(12);
         analogSetAttenuation(ADC_11db); //Set ADC to read up to 2500mV
       #elif HARDWARE_VARIANT == C3LoRaBeacon
@@ -32,9 +32,9 @@
   }
   void checkBatteryVoltage()
   {
-    #if HARDWARE_VARIANT == C3PDT
+    #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
       device[0].supplyVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/ADCpeakVoltage;
-    #elif HARDWARE_VARIANT == C3TrackedSensor
+    #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
       device[0].supplyVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor)/ADCpeakVoltage;
     #elif HARDWARE_VARIANT == C3LoRaBeacon
       device[0].supplyVoltage = (ADCpeakVoltage*float(analogRead(0))/4095.0)*((topLadderResistor+bottomLadderResistor)/bottomLadderResistor);

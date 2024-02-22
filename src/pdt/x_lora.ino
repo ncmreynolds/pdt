@@ -224,7 +224,6 @@
       else
       {
         localLogLn(F("failed"));
-        loRaInitialised = false;
       }
     }
     else

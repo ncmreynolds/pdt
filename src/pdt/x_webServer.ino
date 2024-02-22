@@ -98,9 +98,9 @@
             response->print(deviceFeatures(device[0].typeOfDevice));
             response->printf_P(PSTR("</b><li>Built: <b>%s %s</b>"), __TIME__, __DATE__);
             response->printf_P(PSTR(" Board: <b>%s</b></li><li>PCB Variant: <b>"), ARDUINO_BOARD);
-            #if HARDWARE_VARIANT == C3PDT
+            #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
               response->print(F("C3 PDT v1"));
-            #elif HARDWARE_VARIANT == C3TrackedSensor
+            #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
               response->print(F("C3 Trackable sensor v1"));
             #elif HARDWARE_VARIANT == C3LoRaBeacon
               response->print(F("C3 LoRa beacon v1"));

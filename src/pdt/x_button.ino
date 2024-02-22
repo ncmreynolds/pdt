@@ -3,7 +3,7 @@
   {
     pinMode(buttonPin, INPUT_PULLUP);
   }
-  #if defined(ACT_AS_TRACKER) && HARDWARE_VARIANT == C3PDT
+  #if defined(ACT_AS_TRACKER) && (HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon)
     void checkButton()
     {
       if(digitalRead(buttonPin) == false && buttonHeld == false)// && millis() - buttonPushTime > buttonDebounceTime) //Handle single button pushes, which don't do anything
@@ -174,7 +174,7 @@
         }
       }
     }
-  #elif defined(ACT_AS_BEACON) && HARDWARE_VARIANT == C3TrackedSensor
+  #elif defined(ACT_AS_BEACON) && HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
     void checkButton()
     {
       if(digitalRead(buttonPin) == false && buttonHeld == false)// && millis() - buttonPushTime > buttonDebounceTime) //Handle single button pushes, which don't do anything

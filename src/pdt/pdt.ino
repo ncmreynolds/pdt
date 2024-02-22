@@ -18,18 +18,25 @@
 //Hardware variant supports different PCBs and GPIO usage for different boards. This is not as modular as I would like
 
 #define C3PDT 1
-#define C3TrackedSensor 2
-#define C3LoRaBeacon 3
-#define CYDTracker 4
+#define C3PDTasBeacon 2
+
+#define C3TrackedSensor 3
+#define C3TrackedSensorAsBeacon 4
+
+#define C3LoRaBeacon 5
+
+#define CYDTracker 6
 
 //#define HARDWARE_VARIANT C3PDT
+//#define HARDWARE_VARIANT C3PDTasBeacon
 //#define HARDWARE_VARIANT C3TrackedSensor
+//#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
 //#define HARDWARE_VARIANT C3LoRaBeacon
 #define HARDWARE_VARIANT CYDTracker
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
-#define PDT_PATCH_VERSION 8
+#define PDT_PATCH_VERSION 9
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -55,15 +62,25 @@
   #define SUPPORT_ESPNOW
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
-#elif HARDWARE_VARIANT == C3TrackedSensor
+#elif HARDWARE_VARIANT == C3PDTasBeacon
   #define ACT_AS_BEACON
-  //#define ACT_AS_SENSOR
-  #define SUPPORT_BUTTON
-  #define SUPPORT_BEEPER
-  //#define SUPPORT_VIBRATION
-  #define SUPPORT_LED
   #define SUPPORT_GPS
   //#define DEBUG_GPS
+  #define SUPPORT_WIFI
+  #define SUPPORT_ESPNOW
+  #define DEBUG_ESPNOW
+  #define SUPPORT_LORA
+  #define DEBUG_LORA
+  #define ENABLE_LOCAL_WEBSERVER
+#elif HARDWARE_VARIANT == C3TrackedSensor
+  #define ACT_AS_BEACON
+  #define ACT_AS_SENSOR
+  #define SUPPORT_BUTTON
+  #define SUPPORT_BEEPER
+  #define SUPPORT_VIBRATION
+  #define SUPPORT_LED
+  #define SUPPORT_GPS
+  #define DEBUG_GPS
   #define SUPPORT_WIFI
   #define SUPPORT_ESPNOW
   #define SUPPORT_LORA
@@ -73,6 +90,20 @@
   #define ENABLE_LOCAL_WEBSERVER
   #include <Preferences.h>
   Preferences sensorPersitentData;
+#elif HARDWARE_VARIANT == C3TrackedSensorAsBeacon
+  #define ACT_AS_BEACON
+  #define SUPPORT_BUTTON
+  #define SUPPORT_BEEPER
+  #define SUPPORT_VIBRATION
+  #define SUPPORT_LED
+  #define SUPPORT_GPS
+  #define DEBUG_GPS
+  #define SUPPORT_WIFI
+  #define SUPPORT_ESPNOW
+  #define DEBUG_ESPNOW
+  #define SUPPORT_LORA
+  #define DEBUG_LORA
+  #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3LoRaBeacon
   #define ACT_AS_BEACON
@@ -85,7 +116,7 @@
   //#define DEBUG_GPS
   #define SUPPORT_LORA
   #define DEBUG_LORA
-  #define SUPPORT_BATTERY_METER
+  //#define SUPPORT_BATTERY_METER
   //#define SUPPORT_FTM
   #define SUPPORT_WIFI
   #define SUPPORT_ESPNOW
@@ -427,10 +458,10 @@
       #define GPS_PORT Serial1
     #endif
   #endif
-  #if HARDWARE_VARIANT == C3PDT
+  #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
     const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
     const int8_t TXPin = -1;              //No TX pin
-  #elif HARDWARE_VARIANT == C3TrackedSensor
+  #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
     const int8_t RXPin = 20;              //GPS needs an RX pin, but it can be moved wherever, within reason
     const int8_t TXPin = -1;              //No TX pin
   #elif HARDWARE_VARIANT == C3LoRaBeacon
@@ -442,11 +473,11 @@
   #endif
 #endif
 #ifdef SUPPORT_LORA
-  #if HARDWARE_VARIANT == C3PDT
+  #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
     const int8_t loRaCSpin = 7;          // LoRa radio chip select
     const int8_t loRaResetPin = 8;       // LoRa radio reset
     const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
-  #elif HARDWARE_VARIANT == C3TrackedSensor
+  #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
     const int8_t loRaCSpin = 7;          // LoRa radio chip select
     const int8_t loRaResetPin = 8;       // LoRa radio reset
     const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
@@ -466,7 +497,7 @@
   #endif
 #endif
 #ifdef SUPPORT_DISPLAY
-  #if HARDWARE_VARIANT == C3PDT
+  #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
     const uint8_t displayCSpin = 1;
     const uint8_t displayResetPin = 3;
     const uint8_t displayDCpin = 2;
@@ -475,12 +506,12 @@
 #ifdef SUPPORT_BATTERY_METER
   bool enableBatteryMonitor = true;
   float chargingVoltage = 4.19;
-  #if HARDWARE_VARIANT == C3PDT
+  #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
     int8_t voltageMonitorPin = A0;    
     float ADCpeakVoltage = 2.5;
     float topLadderResistor = 330.0;
     float bottomLadderResistor = 89; //Actually 100k, but the ESP itself has a parallel resistance that effectively lowers it
-  #elif HARDWARE_VARIANT == C3TrackedSensor
+  #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
     int8_t voltageMonitorPin = A0;    
     float ADCpeakVoltage = 2.5;
     float topLadderResistor = 330.0;
@@ -494,16 +525,16 @@
 #endif
 #ifdef SUPPORT_BEEPER
   uint8_t beeperChannel = 0;
-  #if HARDWARE_VARIANT == C3PDT
+  #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
     int8_t beeperPin = 21;
-  #elif HARDWARE_VARIANT == C3TrackedSensor
+  #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
     int8_t beeperPin = 3;
   #elif HARDWARE_VARIANT == CYDTracker
     int8_t beeperPin = 26;
   #endif
 #endif
 #ifdef SUPPORT_LED
-  #if HARDWARE_VARIANT == C3TrackedSensor
+  #if HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
     int8_t ledPin = 2;
     bool ledPinInverted = false;
   #elif HARDWARE_VARIANT == C3LoRaBeacon
@@ -517,9 +548,9 @@
   //void vibrationOn(uint32_t ontime, uint32_t offtime);
 #endif
 #ifdef SUPPORT_BUTTON
-  #if HARDWARE_VARIANT == C3PDT
+  #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
     int8_t buttonPin = 9;
-  #elif HARDWARE_VARIANT == C3TrackedSensor
+  #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
     int8_t buttonPin = 21;
   #elif HARDWARE_VARIANT == C3LoRaBeacon
     int8_t buttonPin = 9;
@@ -762,7 +793,7 @@ const uint16_t loggingYieldTime = 100;
   TFT_eSPI tft = TFT_eSPI();
   #include <lvgl.h>
 
-  uint8_t screenRotation = 0;
+  uint8_t screenRotation = 2;
 
   #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
     #include <XPT2046_Touchscreen.h>
@@ -1167,7 +1198,7 @@ const uint16_t loggingYieldTime = 100;
   uint16_t beeperTone = 1400;
   const uint16_t beeperButtonTone = 900;  //Button push tone
   const uint16_t beeperButtonOnTime = 25; //Button push on time
-  bool beeperEnabled = false;
+  bool beeperEnabled = true;
 #endif
 #ifdef SUPPORT_LED
   TaskHandle_t ledManagementTask = NULL;

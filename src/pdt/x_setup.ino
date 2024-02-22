@@ -86,6 +86,8 @@ void setup() {
   #endif
   #if defined(SUPPORT_LVGL) && defined(SUPPORT_LORA)
     setupLoRa();  //Needs to be after LVGL and touchscreen!
+  #else
+    setupLoRa();  //Here's as good a place as any to start LoRa with no other worries about which library starts SPI
   #endif
   #ifdef SUPPORT_GPS
     setupGps();
