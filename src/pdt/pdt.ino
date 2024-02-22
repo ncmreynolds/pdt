@@ -95,7 +95,8 @@
   //#define SUPPORT_BEEPER
   #define ACT_AS_TRACKER
   #define SUPPORT_GPS
-  //#define DEBUG_GPS
+  #define DEBUG_GPS
+  //#define DEBUG_BEACON_SELECTION
   #define SUPPORT_WIFI
   #define SUPPORT_ESPNOW
   #define DEBUG_ESPNOW

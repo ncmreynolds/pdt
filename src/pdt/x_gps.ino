@@ -20,6 +20,13 @@
   {
     if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout) == pdTRUE) //Take the semaphore to exclude the sentence processing task and udate the data structures
     {
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+        if(millis() - lastGPSstatus > 10000)
+        {
+          lastGPSstatus = millis();
+          showGPSstatus();
+        }
+      #endif
       if(updateLocation())  //Get the latest GPS location stored in device[0], if there's a fix
       {
         if(millis() - lastDistanceCalculation > distanceCalculationInterval)  //Recalculate distances on a short interval
@@ -169,7 +176,6 @@
         device[0].course = gps.course.deg();
         device[0].speed = gps.speed.mps();
         device[0].hdop = gps.hdop.hdop();
-        gpsChars = gps.charsProcessed();
         gpsSentences = gps.passedChecksum();
         gpsErrors = gps.failedChecksum();
         #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
@@ -197,13 +203,6 @@
                 }
               }
             }
-          }
-        #endif
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-          if(millis() - lastGPSstatus > 10000)
-          {
-            lastGPSstatus = millis();
-            showGPSstatus();
           }
         #endif
         return true;
@@ -301,12 +300,12 @@
         {
           device[beaconIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
           device[beaconIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
-          #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_BEACON_SELECTION)
             SERIAL_DEBUG_PORT.printf_P(PSTR("Beacon %u - distance:%01.1f(m) course:%03.1f(deg)"), beaconIndex, device[beaconIndex].distanceTo, device[beaconIndex].courseTo);
           #endif
           if(beaconIndex == currentlyTrackedBeacon)
           {
-            #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_BEACON_SELECTION)
               SERIAL_DEBUG_PORT.println(F(" - tracking"));
             #endif
             if(distanceToCurrentBeacon != (uint32_t)device[beaconIndex].distanceTo)
@@ -335,7 +334,7 @@
           }
           else
           {
-            #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_BEACON_SELECTION)
               SERIAL_DEBUG_PORT.println();
             #endif
           }
@@ -563,9 +562,8 @@
     {
       //if(xSemaphoreTake(gpsSemaphore, gpsSemaphoreTimeout) == pdTRUE)
       {
-        //SERIAL_DEBUG_PORT.print(F("GPS - Chars:"));
-        //SERIAL_DEBUG_PORT.print(gps.charsProcessed());
-        SERIAL_DEBUG_PORT.print(F("GPS"));
+        SERIAL_DEBUG_PORT.print(F("GPS Chars:"));
+        SERIAL_DEBUG_PORT.print(gps.charsProcessed());
         if(gps.passedChecksum() > 0)
         {
           SERIAL_DEBUG_PORT.print(F(" Valid:"));

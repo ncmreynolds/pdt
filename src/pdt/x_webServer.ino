@@ -256,7 +256,7 @@
               }
             }
             response->print(F("</ul></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Configuration\" style=\"width: 100%;\"></a></div></div>"));
+            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Config\" style=\"width: 100%;\"></a></div></div>"));
             #ifdef SUPPORT_ESPNOW
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>ESP-Now</h2></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>ESP-Now radio: <b>"));
@@ -298,7 +298,7 @@
                 }
               }
               response->print(F("</ul></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/espnowconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"ESP-Now configuration\" style=\"width: 100%;\"></a></div></div>"));
+              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/espnowconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"ESP-Now config\" style=\"width: 100%;\"></a></div></div>"));
             #endif
             #if defined(SUPPORT_LORA)
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>LoRa</h2></div></div>"));
@@ -337,7 +337,7 @@
                 }
               }
               response->print(F("</ul></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/loraconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"LoRa configuration\" style=\"width: 100%;\"></a></div></div>"));
+              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/loraconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"LoRa config\" style=\"width: 100%;\"></a></div></div>"));
             #endif
             #ifdef SUPPORT_FTM
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>FTM (time-of-flight) measurements</h2></div></div>"));
@@ -391,6 +391,9 @@
                 response->print('(');
                 response->print(hdopDescription(device[0].hdop));
                 response->print(F(")</b></li>"));
+                response->print(F("<li>Chars: <b>"));
+                response->print(gpsChars);
+                response->print(F("</b></li>"));
                 response->print(F("<li>Sentences: <b>"));
                 response->print(gpsSentences);
                 response->print(F("</b> Errors: <b>"));
@@ -452,12 +455,12 @@
                 response->print(F("</b> - no fix yet</li>"));
               }
               response->print(F("</ul></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/gpsconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"GPS configuration\" style=\"width: 100%;\"></a></div></div>"));
+              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/gpsconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"GPS config\" style=\"width: 100%;\"></a></div></div>"));
             #endif
             //response->print(F("</b>"));
             #if defined(ACT_AS_SENSOR)
               response->print(F("<h2>Sensor</h2>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/sensorConfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Configure sensor\" style=\"width: 100%;\"></a></div>"));
+              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/sensorConfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Sensor config\" style=\"width: 100%;\"></a></div>"));
               response->print(F("<div class=\"four columns\"><a href =\"/sensorReset\"><input class=\"button-primary\" type=\"button\" value=\"Reset sensor\" style=\"width: 100%;\"></a></div></div>"));
               response->printf_P(PSTR("<li>Current hits: <b>%u/%u</b> stun: <b>%u/%u</b></li>"), device[0].currentNumberOfHits, device[0].numberOfStartingHits, device[0].currentNumberOfStunHits, device[0].numberOfStartingStunHits);
               if(armourValue > 0)
