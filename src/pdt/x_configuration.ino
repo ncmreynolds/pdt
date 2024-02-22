@@ -413,7 +413,11 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
   localLogLn(F("failed"));
   return false;
 }
-
+/*
+ * 
+ * Mostly this sets string based values where they start null, other things are set in the variable declarations
+ * 
+ */
 bool loadDefaultConfiguration()
 {
   localLogLn(F("Loading default configuration"));
@@ -434,14 +438,10 @@ bool loadDefaultConfiguration()
     strlcpy(SSID,default_WiFi_SSID,strlen(default_WiFi_SSID) + 1);
     PSK = new char[strlen(default_WiFi_PSK) + 1];
     strlcpy(PSK,default_WiFi_PSK,strlen(default_WiFi_PSK) + 1);
-    startWiFiClientOnBoot = false;
     APSSID = new char[strlen(device[0].name) + 1];
     strlcpy(APSSID,device[0].name,strlen(device[0].name) + 1);
     APPSK = new char[strlen(default_AP_PSK) + 1];
     strlcpy(APPSK,default_AP_PSK,strlen(default_AP_PSK) + 1);
-    #if defined(ENABLE_LOCAL_WEBSERVER)
-      enableCaptivePortal = true;
-    #endif
   #endif
   timeServer = new char[strlen(default_timeServer) + 1];
   strlcpy(timeServer,default_timeServer,strlen(default_timeServer) + 1);

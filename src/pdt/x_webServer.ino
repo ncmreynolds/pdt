@@ -316,8 +316,7 @@
               {
                 response->print(F("<li>Packets: <b>"));
                 if(loRaInitialised == true)
-                {
-                  
+                {                
                   response->print(loRaRxPackets);
                   response->print(F(" RX / "));
                   response->print(loRaTxPackets);
@@ -334,7 +333,7 @@
                 }
                 else
                 {
-                  response->print(F("<li><b>Not initialised</b></li>"));
+                  response->print(F("Not initialised</b></li>"));
                 }
               }
               response->print(F("</ul></div></div>"));
@@ -448,7 +447,9 @@
               }
               else
               {
-                response->print(F("<li>GPS: <b>No fix</b></li>"));
+                response->print(F("<li>Chars: <b>"));
+                response->print(gpsChars);
+                response->print(F("</b> - no fix yet</li>"));
               }
               response->print(F("</ul></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/gpsconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"GPS configuration\" style=\"width: 100%;\"></a></div></div>"));
@@ -2820,6 +2821,10 @@
           #else
             response->print(F("</div>"));
           #endif
+          if(numberOfDevices == maximumNumberOfDevices)
+          {
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><H3>Warning: maximum number of devices reached!</H3></div></div>"));
+          }
           response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Devices</h2></div></div>"));
           response->print(F("<div class=\"row\"><div class=\"twelve columns\">"));
           #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
@@ -2904,7 +2909,13 @@
                 {
                   response->print(F("Closest tracker"));
                 }
+                #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                 else if(index != 0 && (device[index].loRaOnline == false && device[index].espNowOnline == false))
+                #elif defined(SUPPORT_ESPNOW)
+                else if(index != 0 && device[index].espNowOnline == false)
+                #elif defined(SUPPORT_LORA)
+                else if(index != 0 && device[index].loRaOnline == false)
+                #endif
                 {
                   response->print(F("Offline"));
                 }

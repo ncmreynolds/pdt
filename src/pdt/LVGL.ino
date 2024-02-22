@@ -1,6 +1,9 @@
 #ifdef SUPPORT_LVGL
   void setupLvgl()
   {
+    #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
+      setupTouchscreen();
+    #endif
     localLog(F("Configuring LVGL: "));
     localLog('v');
     localLog(lv_version_major());
@@ -13,9 +16,6 @@
     tft.init();
     tft.setRotation(screenRotation); //Rotation is not fixed
     setupBacklight();
-    #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
-      setupTouchscreen();
-    #endif
     //Start configuring LVGL
     buf = new lv_color_t[(screenWidth * screenHeight) / bufferFraction];  //Do this at runtime to save static space!
     lv_init();

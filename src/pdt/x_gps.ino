@@ -169,6 +169,7 @@
         device[0].course = gps.course.deg();
         device[0].speed = gps.speed.mps();
         device[0].hdop = gps.hdop.hdop();
+        gpsChars = gps.charsProcessed();
         gpsSentences = gps.passedChecksum();
         gpsErrors = gps.failedChecksum();
         #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
@@ -241,6 +242,7 @@
           character = GPS_PORT.read();
           gps.encode(character);  //Process the data
           //SERIAL_DEBUG_PORT.print(character);
+          gpsChars = gps.charsProcessed();
         }
         xSemaphoreGive(gpsSemaphore);
       }

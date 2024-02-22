@@ -57,18 +57,20 @@
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3TrackedSensor
   #define ACT_AS_BEACON
-  #define ACT_AS_SENSOR
+  //#define ACT_AS_SENSOR
   #define SUPPORT_BUTTON
   #define SUPPORT_BEEPER
-  #define SUPPORT_VIBRATION
+  //#define SUPPORT_VIBRATION
   #define SUPPORT_LED
   #define SUPPORT_GPS
   //#define DEBUG_GPS
   #define SUPPORT_WIFI
+  #define SUPPORT_ESPNOW
   #define SUPPORT_LORA
   #define DEBUG_LORA
   #define SUPPORT_BATTERY_METER
-  #define SUPPORT_HACKING
+  //#define SUPPORT_HACKING
+  #define ENABLE_LOCAL_WEBSERVER
   #include <Preferences.h>
   Preferences sensorPersitentData;
   #define ENABLE_LOCAL_WEBSERVER
@@ -452,9 +454,14 @@
     const int8_t loRaResetPin = 2;       // LoRa radio reset
     const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
   #elif HARDWARE_VARIANT == CYDTracker
-    const int8_t loRaCSpin = 5;//16;         // LoRa radio chip select
-    const int8_t loRaResetPin = 22;//4;       // LoRa radio reset
-    const int8_t loRaIrqPin = 27;//35;//17;        // change for your board; must be a hardware interrupt pin
+    //Sd card adaptor
+    //const int8_t loRaCSpin = 5;//16;         // LoRa radio chip select
+    //const int8_t loRaResetPin = 22;//4;       // LoRa radio reset
+    //const int8_t loRaIrqPin = 27;//35;//17;        // change for your board; must be a hardware interrupt pin
+    //Hand soldered
+    const int8_t loRaCSpin = 17;         // LoRa radio chip select
+    const int8_t loRaResetPin = 16;       // LoRa radio reset
+    const int8_t loRaIrqPin = 4;        // change for your board; must be a hardware interrupt pin
   #endif
 #endif
 #ifdef SUPPORT_DISPLAY
@@ -871,8 +878,8 @@ const uint16_t loggingYieldTime = 100;
   //Backlight management
   uint32_t backlightLastSet = 0;
   uint32_t backlightChangeInterval = 10;
-  const uint8_t uiInactiveBrightnessLevel = 4;
-  const uint8_t absoluteMinimumBrightnessLevel = 16;
+  const uint8_t absoluteMinimumBrightnessLevel = 4;
+  const uint8_t uiInactiveBrightnessLevel = absoluteMinimumBrightnessLevel;
   const uint8_t absoluteMaximumBrightnessLevel = 255;
   uint8_t minimumBrightnessLevel = 64;
   uint8_t maximumBrightnessLevel = 192;
@@ -1056,6 +1063,7 @@ const uint16_t loggingYieldTime = 100;
   uint32_t lastDistanceCalculation = 0;
   uint16_t distanceCalculationInterval = 1000;
   uint32_t lastGPSstatus = 0;
+  uint32_t gpsChars = 0;
   uint16_t gpsSentences = 0;
   uint16_t gpsErrors = 0;
   bool useGpsForTimeSync = true;
@@ -1096,7 +1104,7 @@ const uint16_t loggingYieldTime = 100;
     float diameter = 1;
     float height = 1;
   };
-  const uint8_t maximumNumberOfDevices = 4;
+  const uint8_t maximumNumberOfDevices = 16;
   deviceLocationInfo device[maximumNumberOfDevices];
   uint8_t numberOfDevices = 0;
   double effectivelyUnreachable = 1E10;
@@ -1107,7 +1115,7 @@ const uint16_t loggingYieldTime = 100;
   #endif
   uint16_t sensitivityValues[4] = {0x0FFF, 0x00FF, 0x000F, 0x0007};
   #if defined(ACT_AS_TRACKER)
-    double maximumEffectiveRange = 99;
+    double maximumEffectiveRange = 9999;
     uint8_t trackerPriority = 0;
     //uint16_t priorityValues[3] = {0x0FFF, 0x00FF, 0x000F};
     uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
