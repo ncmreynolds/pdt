@@ -545,6 +545,10 @@
       label = lv_label_create(tab3);
       lv_label_set_text(label, "Beeper");
       lv_obj_align(label, LV_ALIGN_TOP_MID, rightColumnX, objectY);
+    #else
+      label = lv_label_create(tab3);
+      lv_label_set_text(label, "Rotation");
+      lv_obj_align(label, LV_ALIGN_TOP_MID, rightColumnX, objectY);
     #endif
   
     //Next row
@@ -579,6 +583,22 @@
       else
       {
         lv_dropdown_set_selected(beeper_dd, 1);
+      }
+    #else
+      lv_obj_t * rotation_dd = lv_dropdown_create(tab3);
+      lv_dropdown_set_options(rotation_dd, "Normal\n"
+                                              "Inverted"
+                                              );
+      lv_obj_align(rotation_dd, LV_ALIGN_TOP_MID, rightColumnX, objectY);
+      lv_obj_set_width(rotation_dd, columnWidth);
+      lv_obj_add_event_cb(rotation_dd, rotation_dd_event_handler, LV_EVENT_ALL, NULL);
+      if(screenRotation == 0)
+      {
+        lv_dropdown_set_selected(rotation_dd, 0);
+      }
+      else
+      {
+        lv_dropdown_set_selected(rotation_dd, 2);
       }
     #endif
   
@@ -694,6 +714,29 @@
         lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
           SERIAL_DEBUG_PORT.printf_P(PSTR("Beeper: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
+        #endif
+      }
+    }
+  #else
+    static void rotation_dd_event_handler(lv_event_t * e)
+    {
+      lv_event_code_t code = lv_event_get_code(e);
+      lv_obj_t * obj = lv_event_get_target(e);
+      if(code == LV_EVENT_VALUE_CHANGED) {
+        if((uint8_t)lv_dropdown_get_selected(obj) == 0)
+        {
+          screenRotation = 0;
+        }
+        else
+        {
+          screenRotation = 2;
+        }
+        saveConfigurationSoon = millis();
+        restartTimer = millis();
+        char buf[32];
+        lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.printf_P(PSTR("Rotation: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
         #endif
       }
     }

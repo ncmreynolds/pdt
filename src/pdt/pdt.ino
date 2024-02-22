@@ -36,7 +36,7 @@
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
-#define PDT_PATCH_VERSION 9
+#define PDT_PATCH_VERSION 10
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -618,9 +618,7 @@ char* timeZone = nullptr;
 //const char* timeZone = "UTC0"; //Use this for UTC
 char timestamp[] = "XX:XX:XX XX-XX-XXXX"; //A string overwritten with the current timestamp for logging.
 uint64_t bootTime = 0; //Use the moment the system got a valid NTP time to calculate the boot time for approximate uptime calculations
-#if defined ENABLE_REMOTE_RESTART
 uint32_t restartTimer = 0;  //Used to schedule a restart
-#endif
 /*
 
    WiFi credentials
@@ -793,7 +791,7 @@ const uint16_t loggingYieldTime = 100;
   TFT_eSPI tft = TFT_eSPI();
   #include <lvgl.h>
 
-  uint8_t screenRotation = 2;
+  uint8_t screenRotation = 0; //0 = USB at bottom, 1 = USB on right, 2 = USB at top, 3 = USB on left
 
   #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
     #include <XPT2046_Touchscreen.h>
@@ -902,6 +900,7 @@ const uint16_t loggingYieldTime = 100;
   lv_obj_t * sensitivity_dd = nullptr;
   lv_obj_t * priority_dd = nullptr;
   lv_obj_t * displayTimeout_dd = nullptr;
+  lv_obj_t * rotation_dd = nullptr;
   #ifdef SUPPORT_BEEPER
     lv_obj_t * beeper_dd = nullptr;
   #endif
@@ -1032,8 +1031,16 @@ const uint16_t loggingYieldTime = 100;
               #endif
               if (x != screenWidth && y != screenHeight)
               {
-                data->point.x = x;
-                data->point.y = y;
+                if(screenRotation == 0)
+                {
+                  data->point.x = x;
+                  data->point.y = y;
+                }
+                else if(screenRotation == 2)
+                {
+                  data->point.x = screenWidth - x;
+                  data->point.y = screenHeight - y;
+                }
                 data->state = LV_INDEV_STATE_PR;
                 lastUiActivity = millis();
                 return;

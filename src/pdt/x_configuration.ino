@@ -107,6 +107,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["displayTimeout"] = displayTimeout;
     configuration["minimumBrightnessLevel"] = minimumBrightnessLevel;
     configuration["maximumBrightnessLevel"] = maximumBrightnessLevel;
+    configuration["screenRotation"] = screenRotation;
     #ifdef SUPPORT_TOUCHSCREEN
       configuration["touchScreenMinimumX"] = touchScreenMinimumX;
       configuration["touchScreenMaximumX"] = touchScreenMaximumX;
@@ -401,6 +402,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       displayTimeout = configuration["displayTimeout"] | 0;
       minimumBrightnessLevel = configuration["minimumBrightnessLevel"] | absoluteMinimumBrightnessLevel;
       maximumBrightnessLevel = configuration["maximumBrightnessLevel"] | absoluteMaximumBrightnessLevel;
+      screenRotation = configuration["screenRotation"];
     #endif
     #ifdef SUPPORT_HACKING
       gameLength = configuration["gameLength"] | 10 ;
@@ -683,6 +685,7 @@ void printConfiguration()
     localLog(F("displayTimeout: ")); localLogLn(displayTimeout);
     localLog(F("minimumBrightnessLevel: ")); localLogLn(minimumBrightnessLevel);
     localLog(F("maximumBrightnessLevel: ")); localLogLn(maximumBrightnessLevel);
+    localLog(F("screenRotation: ")); localLogLn(screenRotation);
   #endif
   localLog(F("loggingBufferSize: ")); localLogLn(loggingBufferSize);
   localLog(F("logFlushThreshold: ")); localLogLn(logFlushThreshold);
