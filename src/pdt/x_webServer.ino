@@ -279,6 +279,11 @@
                 response->print(F("not set"));
               }
               response->print(F("</b></li>"));
+              response->print(F("<li>Diameter: <b>"));
+              response->print(device[0].diameter);
+              response->print(F("</b></li><li>Diameter: <b>"));
+              response->print(device[0].height);
+              response->print(F("</b></li>"));
               response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/icconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"IC config\" style=\"width: 100%;\"></a></div></div>"));
             #endif
             #ifdef SUPPORT_ESPNOW
@@ -1356,7 +1361,8 @@
               {
                 response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"icDescription\">IC description</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"icDescription\" name=\"icDescription\"></div></div>"));
               }
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"diameter\">Diameter(m)</label><input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"diameter\" name=\"diameter\"></div>"), diameter);
+              response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"height\">Diameter(m)</label><input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"height\" name=\"diameter\"></div>"), device[0].diameter);
+              response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"height\">Height(m)</label><input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"height\" name=\"height\"></div>"), device[0].height);
               response->print(F("</form>"));
               addPageFooter(response);
               //Send response
@@ -1424,9 +1430,16 @@
               }
               if(request->hasParam("diameter", true))
               {
-                if(logFlushThreshold != request->getParam("diameter", true)->value().toInt())
+                if(device[0].diameter != request->getParam("diameter", true)->value().toInt())
                 {
                   device[0].diameter = request->getParam("diameter", true)->value().toInt();
+                }
+              }
+              if(request->hasParam("height", true))
+              {
+                if(device[0].height != request->getParam("height", true)->value().toInt())
+                {
+                  device[0].height = request->getParam("height", true)->value().toInt();
                 }
               }
               saveConfigurationSoon = millis();

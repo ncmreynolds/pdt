@@ -353,7 +353,7 @@
                       unpacker.unpack(device[deviceIndex].speed);
                       unpacker.unpack(device[deviceIndex].hdop);
                       unpacker.unpack(device[deviceIndex].nextEspNowLocationUpdate);
-                      if(device[deviceIndex].hdop < minimumViableHdop)
+                      if(device[deviceIndex].hdop != 0 && device[deviceIndex].latitude != 0 && device[deviceIndex].longitude != 0 && device[deviceIndex].hdop < minimumViableHdop)
                       {
                         if(device[deviceIndex].hasGpsFix == false)
                         {
@@ -707,6 +707,8 @@
                     }
                     else if(messagetype == deviceIcInfoId)
                     {
+                      unpacker.unpack(device[deviceIndex].diameter);
+                      unpacker.unpack(device[deviceIndex].height);
                       if(unpacker.isStr())  //Name
                       {
                         String receivedIcName = String(unpacker.unpackString());
@@ -752,7 +754,9 @@
                           #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                             if(waitForBufferSpace(60))
                             {
-                              SERIAL_DEBUG_PORT.printf_P(PSTR("IC info name:'%s', name:'%s'\r\n"),
+                              SERIAL_DEBUG_PORT.printf_P(PSTR("IC info diameter:%u, height: %u, name:'%s', name:'%s'\r\n"),
+                                device[deviceIndex].diameter,
+                                device[deviceIndex].height,
                                 device[deviceIndex].icName,
                                 device[deviceIndex].icDescription
                                 );
@@ -1086,6 +1090,8 @@
       packer.pack(device[0].id[4]);
       packer.pack(device[0].id[5]);
       packer.pack(deviceIcInfoId);
+      packer.pack(device[0].diameter);
+      packer.pack(device[0].height);
       packer.pack(device[0].icName);
       packer.pack(device[0].icDescription);
       if(packer.size() < maxEspNowBufferSize)

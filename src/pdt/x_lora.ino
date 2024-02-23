@@ -580,6 +580,8 @@
       packer.pack(device[0].id[4]);
       packer.pack(device[0].id[5]);
       packer.pack(deviceIcInfoId);
+      packer.pack(device[0].diameter);
+      packer.pack(device[0].height);
       packer.pack(device[0].icName);
       packer.pack(device[0].icDescription);
       if(packer.size() < maxLoRaBufferSize)
@@ -744,7 +746,7 @@
                       unpacker.unpack(device[deviceIndex].speed);
                       unpacker.unpack(device[deviceIndex].hdop);
                       unpacker.unpack(device[deviceIndex].nextLoRaLocationUpdate);
-                      if(device[deviceIndex].hdop < minimumViableHdop)
+                      if(device[deviceIndex].hdop != 0 && device[deviceIndex].latitude != 0 && device[deviceIndex].longitude != 0 && device[deviceIndex].hdop < minimumViableHdop)
                       {
                         if(device[deviceIndex].hasGpsFix == false)
                         {
@@ -1096,6 +1098,8 @@
                     }
                     else if(messagetype == deviceIcInfoId)
                     {
+                      unpacker.unpack(device[deviceIndex].diameter);
+                      unpacker.unpack(device[deviceIndex].height);
                       if(unpacker.isStr())  //Name
                       {
                         String receivedIcName = String(unpacker.unpackString());

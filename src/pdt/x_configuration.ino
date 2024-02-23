@@ -72,6 +72,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["icName"] = device[0].icName;
     configuration["icDescription"] = device[0].icDescription;
     configuration["diameter"] = device[0].diameter;
+    configuration["height"] = device[0].height;
   #endif
   #if defined(SUPPORT_ESPNOW)
     configuration["espNowEnabled"] = espNowEnabled;
@@ -221,6 +222,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         strlcpy(device[0].icDescription,configuration["icDescription"],strlen(configuration["icDescription"]) + 1);
       }
       device[0].diameter = configuration["diameter"] | 0;
+      device[0].height = configuration["height"] | 0;
     #endif
     #if defined(SUPPORT_FTM)
       ftmEnabled = configuration["ftmEnabled"] | true;
@@ -639,6 +641,7 @@ void printConfiguration()
     localLog(F("icName: ")); localLogLn(device[0].icName);
     localLog(F("icDescription: ")); localLogLn(device[0].icDescription);
     localLog(F("diameter: ")); localLogLn(device[0].diameter);
+    localLog(F("height: ")); localLogLn(device[0].height);
   #endif
   #if defined(SUPPORT_FTM)
     localLog(F("ftmEnabled: ")); localLogLn(ftmEnabled);

@@ -904,9 +904,9 @@
           }
           else
           {
-            lv_label_set_text(icDescription_label, "Nothing useful detected");
+            lv_label_set_text(icDescription_label, "No information available on anomaly");
             #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-              SERIAL_DEBUG_PORT.print(F("CALLBACK icDescription == nullptr -> Nothing useful detected"));
+              //SERIAL_DEBUG_PORT.print(F("CALLBACK icDescription == nullptr -> Nothing useful detected"));
             #endif
           }
           if(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].name != nullptr)
@@ -1043,7 +1043,7 @@
         {
           lv_label_set_text(icDescription_label, "No information available on anomaly");
           #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-            SERIAL_DEBUG_PORT.print(F(" icDescription == nullptr -> No information available on anomaly"));
+            //SERIAL_DEBUG_PORT.print(F(" icDescription == nullptr -> No information available on anomaly"));
           #endif
         }
       }
@@ -1051,7 +1051,7 @@
       {
         lv_label_set_text(icDescription_label, "Nothing useful detected");
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-          SERIAL_DEBUG_PORT.print(F(" indexToPickAftewards == maximumNumberOfDevices -> Nothing useful detected"));
+          //SERIAL_DEBUG_PORT.print(F(" indexToPickAftewards == maximumNumberOfDevices -> Nothing useful detected"));
         #endif
       }
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)

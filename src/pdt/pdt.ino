@@ -123,7 +123,7 @@
   #define DEBUG_ESPNOW
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == CYDTracker
-  #define SUPPORT_BEEPER
+  //#define SUPPORT_BEEPER
   #define ACT_AS_TRACKER
   #define SUPPORT_GPS
   #define DEBUG_GPS
@@ -742,8 +742,6 @@ const uint16_t loggingYieldTime = 100;
   struct deviceInfo {
     uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     char* name = nullptr;
-    char* icName = nullptr;
-    char* icDescription = nullptr;
     bool hasGpsFix = false;
     uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor, 4 = emitter, 8 = FTM beacon
     float supplyVoltage = 0;  // Battery health can be guesstimated from this
@@ -775,8 +773,11 @@ const uint16_t loggingYieldTime = 100;
     uint8_t numberOfStartingStunHits = 0;
     uint8_t currentNumberOfHits = 0;
     uint8_t currentNumberOfStunHits = 0;
-    float diameter = 1;
-    float height = 1;
+    //IC information
+    char* icName = nullptr;
+    char* icDescription = nullptr;
+    uint32_t diameter = 1;
+    uint32_t height = 1;
   };
   const uint8_t maximumNumberOfDevices = 16;
   deviceInfo device[maximumNumberOfDevices];
