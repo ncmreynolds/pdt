@@ -51,6 +51,17 @@
             }
           #endif
         #endif
+        #ifdef SUPPORT_LVGL
+        /*
+        if(currentTrackingMode == trackingMode::furthest)
+        {
+          if(selectFurthestBeacon())
+          {
+            currentTrackingMode = trackingMode::fixed;
+            displayTrackingMode();
+          }
+        }*/
+        #endif
         #ifdef SUPPORT_DISPLAY
           if(currentlyTrackedBeacon != maximumNumberOfDevices && device[currentlyTrackedBeacon].hasGpsFix == true && (distanceToCurrentBeaconChanged == true || millis() - lastDistanceChangeUpdate > 5000)) //Show distance if it changes
           {
@@ -93,8 +104,10 @@
           if(millis() - lastLvglTabUpdate > lvglTabUpdateInterval)
           {
             lastLvglTabUpdate = millis();
-            updateTab1();
-            updateTab2();
+            updateHomeTab();
+            #ifdef LVGL_ADD_GPS_TAB
+              updateGpsTab();
+            #endif
           }
         #endif
       }
@@ -211,6 +224,9 @@
       {
         device[0].hasGpsFix = false;
         lastGPSstateChange = millis();
+        #ifdef LVGL_ADD_SCAN_INFO_TAB
+          findableDevicesChanged = true;
+        #endif
         localLogLn(F("GPS lost fix"));
         #ifdef SUPPORT_LED
           ledSlowBlink();
@@ -354,6 +370,9 @@
               SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
+            #ifdef LVGL_ADD_SCAN_INFO_TAB
+              findableDevicesChanged = true;
+            #endif
           }
         }
         else if(currentTrackingMode == trackingMode::furthest)
@@ -365,6 +384,9 @@
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
             currentTrackingMode = trackingMode::fixed;  //Switch to fixed as 'furthest' needs to fix once chose
+            #ifdef LVGL_ADD_SCAN_INFO_TAB
+              findableDevicesChanged = true;
+            #endif
           }
         }
         else if(currentTrackingMode == trackingMode::fixed)
@@ -397,11 +419,11 @@
         return false;
       }
       #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-      else if(numberOfDevices == 2 && device[1].hasGpsFix == true && (device[1].espNowOnline || device[1].loRaOnline) && device[1].distanceTo < maximumEffectiveRange)
+      else if(numberOfDevices == 2 && device[1].hasGpsFix == true && (device[1].espNowOnline || device[1].loRaOnline) && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_ESPNOW)
-      else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].espNowOnline && device[1].distanceTo < maximumEffectiveRange)
+      else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].espNowOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_LORA)
-      else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].loRaOnline && device[1].distanceTo < maximumEffectiveRange)
+      else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].loRaOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #endif
       {
         if(currentlyTrackedBeacon != 1)  //Only assign this once
@@ -419,11 +441,11 @@
         for(uint8_t index = 1; index < numberOfDevices; index++)
         {
           #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && (device[index].espNowOnline || device[index].loRaOnline) && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && (device[index].espNowOnline || device[index].loRaOnline) && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           #elif defined(SUPPORT_ESPNOW)
-          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].espNowOnline && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].espNowOnline && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           #elif defined(SUPPORT_LORA)
-          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].loRaOnline && device[index].distanceTo < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].loRaOnline && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           #endif
           {
             nearestBeacon = index;
@@ -447,11 +469,11 @@
         return false;
       }
       #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-      else if(numberOfDevices == 2 && device[1].hasGpsFix && (device[1].espNowOnline || device[1].loRaOnline) && device[1].distanceTo < maximumEffectiveRange)
+      else if(numberOfDevices == 2 && device[1].hasGpsFix && (device[1].espNowOnline || device[1].loRaOnline) && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_ESPNOW)
-      else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].espNowOnline && device[1].distanceTo < maximumEffectiveRange)
+      else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].espNowOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_LORA)
-      else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].loRaOnline && device[1].distanceTo < maximumEffectiveRange)
+      else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].loRaOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #endif
       {
         if(currentlyTrackedBeacon != 1)
@@ -469,11 +491,11 @@
         for(uint8_t index = 1; index < numberOfDevices; index++)
         {
           #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && (device[index].espNowOnline || device[index].loRaOnline) && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && (device[index].espNowOnline || device[index].loRaOnline) && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           #elif defined(SUPPORT_ESPNOW)
-          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].espNowOnline && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].espNowOnline && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           #elif defined(SUPPORT_LORA)
-          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].loRaOnline && device[index].distanceTo < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].loRaOnline && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           #endif
           {
             furthestBeacon = index;
@@ -489,6 +511,25 @@
         return false;
       }
       return false;
+    }
+    float rangeToIndicate(uint8_t deviceIndex)
+    {
+      if(trackerPriority == 0)
+      {
+        return device[deviceIndex].distanceTo;
+      }
+      else
+      {
+        if(device[deviceIndex].distanceTo > device[deviceIndex].diameter/2)
+        {
+          return device[deviceIndex].distanceTo - device[deviceIndex].diameter/2;
+        }
+        else
+        {
+          return 0;
+        }
+      }
+      return effectivelyUnreachable;
     }
   #elif defined(ACT_AS_BEACON)
     uint8_t numberOfTrackers()

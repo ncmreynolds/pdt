@@ -256,7 +256,31 @@
               }
             }
             response->print(F("</ul></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Config\" style=\"width: 100%;\"></a></div></div>"));
+            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Config\" style=\"width: 100%;\"></a></div>"));
+            response->print(F("<div class=\"four columns\"><a href =\"/wipe\"><input class=\"button-primary\" type=\"button\" value=\"Wipe\" style=\"width: 100%;\"></a></div></div>"));
+            #ifdef ACT_AS_BEACON
+              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>In-game info</h2></div></div>"));
+              response->print(F("<li>Name: <b>"));
+              if(device[0].icName != nullptr)
+              {
+                response->print(device[0].icName);
+              }
+              else
+              {
+                response->print(F("not set"));
+              }
+              response->print(F("</b></li><li>Description: <b>"));
+              if(device[0].icDescription != nullptr)
+              {
+                response->print(device[0].icDescription);
+              }
+              else
+              {
+                response->print(F("not set"));
+              }
+              response->print(F("</b></li>"));
+              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/icconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"IC config\" style=\"width: 100%;\"></a></div></div>"));
+            #endif
             #ifdef SUPPORT_ESPNOW
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>ESP-Now</h2></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>ESP-Now radio: <b>"));
@@ -1298,6 +1322,128 @@
           }
         #endif
       });
+      #ifdef ACT_AS_BEACON
+        adminWebServer->on("/icconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              AsyncResponseStream *response = request->beginResponseStream("text/html");
+              addPageHeader(response, 0, nullptr);
+              //Start of form
+              response->print(F("<form method=\"POST\">"));
+              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"four columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
+              response->print(F("<h2>In-game configuration</h2>"));
+              if(device[0].icName != nullptr)
+              {
+                response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"icName\">IC name</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"icName\" name=\"icName\"></div></div>"), device[0].icName);
+              }
+              else
+              {
+                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"icName\">IC name</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"icName\" name=\"icName\"></div></div>"));
+              }
+              if(device[0].icDescription != nullptr)
+              {
+                response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"icDescription\">IC description</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"icDescription\" name=\"icDescription\"></div></div>"), device[0].icDescription);
+              }
+              else
+              {
+                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"icDescription\">IC description</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"icDescription\" name=\"icDescription\"></div></div>"));
+              }
+              response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"diameter\">Diameter(m)</label><input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"diameter\" name=\"diameter\"></div>"), diameter);
+              response->print(F("</form>"));
+              addPageFooter(response);
+              //Send response
+              request->send(response);
+          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+          });
+          adminWebServer->on("/icconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+              if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+              {
+            #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              #ifdef DEBUG_FORM_SUBMISSION
+                int params = request->params();
+                localLog(F("Submitted Configuration parameters: "));
+                localLogLn(params);
+                for(int i=0;i<params;i++){
+                  AsyncWebParameter* p = request->getParam(i);
+                  if(p->isFile()){ //p->isPost() is also true
+                    //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
+                  } else if(p->isPost()){
+                    //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
+                    localLog(F("POST["));
+                    localLog(p->name().c_str());
+                    localLog(F("]: "));
+                    localLogLn(p->value().c_str());
+                  } else {
+                    //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
+                  }
+                }
+              #endif
+              //Read the submitted configuration
+              if(request->hasParam("icName", true))
+              {
+                if(device[0].icName != nullptr)
+                {
+                  delete [] device[0].icName;
+                }
+                device[0].icName = new char[request->getParam("icName", true)->value().length() + 1];
+                strlcpy(device[0].icName,request->getParam("icName", true)->value().c_str(),request->getParam("icName", true)->value().length() + 1);
+              }
+              if(request->hasParam("icName", true))
+              {
+                if(device[0].icDescription != nullptr)
+                {
+                  delete [] device[0].icDescription;
+                }
+                device[0].icDescription = new char[request->getParam("icDescription", true)->value().length() + 1];
+                strlcpy(device[0].icDescription,request->getParam("icDescription", true)->value().c_str(),request->getParam("icDescription", true)->value().length() + 1);
+              }
+              if(request->hasParam("diameter", true))
+              {
+                if(logFlushThreshold != request->getParam("diameter", true)->value().toInt())
+                {
+                  device[0].diameter = request->getParam("diameter", true)->value().toInt();
+                }
+              }
+              saveConfigurationSoon = millis();
+              request->redirect("/admin");
+          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+        });
+      #endif
       #ifdef SUPPORT_ESPNOW
           adminWebServer->on("/espnowconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
@@ -2720,10 +2866,10 @@
             #endif
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 0, nullptr);
-            response->print(F("<h2>Restart confirmation</h2>"));
-            response->printf_P(PSTR("<p>Are you sure you want to restart \"%s\"?</p>"),device[0].name);
-            response->print(F("<a href =\"/restartConfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a> "));
-            response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a> "));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Restart confirmation</h2></div></div>"));
+            response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><p>Are you sure you want to restart \"%s\"?</p></div></div>"),device[0].name);
+            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/restartConfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a></div>"));
+            response->print(F("<div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a></div></div>"));
             addPageFooter(response);
             //Send response
             request->send(response);
@@ -2754,10 +2900,10 @@
             localLogLn(request->client()->remoteIP().toString());
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 5, "/admin");
-            response->print(F("<h2>Restart</h2>"));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Restart</h2></div></div>"));
             //Top of page buttons
-            response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
-            response->print(F("<p>This node is restarting in 10s</p>"));
+            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div></div>"));
+            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><p>This node is restarting in 10s</p></div></div>"));
             addPageFooter(response);
             //Send response
             request->send(response);
@@ -2774,6 +2920,78 @@
         #endif
         });
       #endif
+      adminWebServer->on("/wipe", HTTP_GET, [](AsyncWebServerRequest *request){
+      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+        {
+      #endif
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            {
+                return request->requestAuthentication();  //Force basic authentication
+            }
+          #endif
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            {
+                return request->requestAuthentication();  //Force basic authentication
+            }
+          #endif
+          AsyncResponseStream *response = request->beginResponseStream("text/html");
+          addPageHeader(response, 0, nullptr);
+          response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Setting wipe</h2></div></div>"));
+          response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><p>Are you sure you want to wipe all configuration of \"%s\"?</p></div></div>"),device[0].name);
+          response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/wipeconfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a></div>"));
+          response->print(F("<div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a></div></div>"));
+          addPageFooter(response);
+          //Send response
+          request->send(response);
+      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          xSemaphoreGive(webserverSemaphore);
+        }
+        else
+        {
+          AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+          response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
+          request->send(response);
+        }
+      #endif
+      });
+      adminWebServer->on("/wipeconfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
+      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+        {
+      #endif
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            {
+                return request->requestAuthentication();  //Force basic authentication
+            }
+          #endif
+          localLog(F("Web UI wipe requested from "));
+          localLogLn(request->client()->remoteIP().toString());
+          AsyncResponseStream *response = request->beginResponseStream("text/html");
+          addPageHeader(response, 5, "/admin");
+          response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Wipe</h2></div></div>"));
+          //Top of page buttons
+          response->print(F("<div class=\"row\"><div class=\"twelve columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div></div>"));
+          response->print(F("<div class=\"row\"><div class=\"twelve columns\"><p>This node is restarting in 10s</p></div></div>"));
+          addPageFooter(response);
+          //Send response
+          request->send(response);
+          wipeTimer = millis();
+      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          xSemaphoreGive(webserverSemaphore);
+        }
+        else
+        {
+          AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+          response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          request->send(response);
+        }
+      #endif
+      });
       adminWebServer->on("/devices", HTTP_GET, [](AsyncWebServerRequest *request){
         #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
@@ -2842,13 +3060,14 @@
             if(index > 0)
             {
               #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-                response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>%04x</td><td>"),
+                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>%04x</td><td>"),
               #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
-                response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
+                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
               #else
-                response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td></td><td>"),
+                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td></td><td>"),
               #endif
                 (device[index].name == nullptr) ? "n/a" : device[index].name,
+                (device[index].icName == nullptr) ? "" : device[index].icName,
                 device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
                 deviceFeatures(device[index].typeOfDevice).c_str(),
                 device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,

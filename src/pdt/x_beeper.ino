@@ -1,8 +1,13 @@
 #ifdef SUPPORT_BEEPER
   void setupBeeper()
   {
-    pinMode(beeperPin, INPUT);
-    digitalWrite(beeperPin, HIGH);
+    #if HARDWARE_VARIANT == CYDTracker
+      pinMode(beeperPin, OUTPUT);
+      digitalWrite(beeperPin, LOW);
+    #else
+      pinMode(beeperPin, INPUT);
+      digitalWrite(beeperPin, HIGH);
+    #endif
     //localLog(F("Configuring beeper: "));
     //Use a semaphore to control access to global variables
     beeperSemaphore = xSemaphoreCreateBinary();
@@ -10,7 +15,7 @@
     ledcWriteTone(beeperChannel, 0);  //Set an initial tone of nothing
     ledcAttachPin(beeperPin, beeperChannel);
     xSemaphoreGive(beeperSemaphore);
-    xTaskCreate(manageBeeper, "manageBeeper", 512, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
+    xTaskCreate(manageBeeper, "manageBeeper", 768, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
     //localLogLn(F("OK"));
   }
   void makeAsingleBeep(uint16_t frequency, uint16_t duration) //A single beep can override a repeating one

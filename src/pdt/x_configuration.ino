@@ -68,6 +68,10 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["maximumEffectiveRange"] = maximumEffectiveRange;
     configuration["trackingSensitivity"] = trackingSensitivity;
     configuration["trackerPriority"] = trackerPriority;
+  #elif defined(ACT_AS_BEACON)
+    configuration["icName"] = device[0].icName;
+    configuration["icDescription"] = device[0].icDescription;
+    configuration["diameter"] = device[0].diameter;
   #endif
   #if defined(SUPPORT_ESPNOW)
     configuration["espNowEnabled"] = espNowEnabled;
@@ -205,6 +209,18 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
       trackingSensitivity = configuration["trackingSensitivity"] | 1;
       trackerPriority = configuration["trackerPriority"];
+    #elif defined(ACT_AS_BEACON)
+      if(configuration["icName"])
+      {
+        device[0].icName = new char[strlen(configuration["icName"]) + 1];
+        strlcpy(device[0].icName,configuration["icName"],strlen(configuration["icName"]) + 1);
+      }
+      if(configuration["icDescription"])
+      {
+        device[0].icDescription = new char[strlen(configuration["icDescription"]) + 1];
+        strlcpy(device[0].icDescription,configuration["icDescription"],strlen(configuration["icDescription"]) + 1);
+      }
+      device[0].diameter = configuration["diameter"] | 0;
     #endif
     #if defined(SUPPORT_FTM)
       ftmEnabled = configuration["ftmEnabled"] | true;
@@ -619,6 +635,10 @@ void printConfiguration()
     localLog(F("maximumEffectiveRange: ")); localLogLn(maximumEffectiveRange);
     localLog(F("trackingSensitivity: ")); localLogLn(sensitivityValues[trackingSensitivity]);
     localLog(F("trackerPriority: ")); localLogLn(trackerPriority);
+  #elif defined(ACT_AS_BEACON)
+    localLog(F("icName: ")); localLogLn(device[0].icName);
+    localLog(F("icDescription: ")); localLogLn(device[0].icDescription);
+    localLog(F("diameter: ")); localLogLn(device[0].diameter);
   #endif
   #if defined(SUPPORT_FTM)
     localLog(F("ftmEnabled: ")); localLogLn(ftmEnabled);

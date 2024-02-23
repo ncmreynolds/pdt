@@ -62,6 +62,14 @@ void loop()
       printConfiguration();
     #endif
   }
+  if(wipeTimer !=0 && millis() - wipeTimer > 1000)
+  {
+    wipeTimer = 0;
+    localLogLn(F("Wiping now"));
+    flushLog();
+    pdtDeleteFile(configurationFile);
+    restartTimer = millis();
+  }
   #if defined(ENABLE_REMOTE_RESTART)
     if(restartTimer !=0 && millis() - restartTimer > 9000)  //Restart the ESP based off a request in the Web UI
     {

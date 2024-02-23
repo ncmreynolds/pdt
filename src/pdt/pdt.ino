@@ -36,7 +36,7 @@
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 4
-#define PDT_PATCH_VERSION 10
+#define PDT_PATCH_VERSION 12
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -65,7 +65,7 @@
 #elif HARDWARE_VARIANT == C3PDTasBeacon
   #define ACT_AS_BEACON
   #define SUPPORT_GPS
-  //#define DEBUG_GPS
+  #define DEBUG_GPS
   #define SUPPORT_WIFI
   #define SUPPORT_ESPNOW
   #define DEBUG_ESPNOW
@@ -123,7 +123,7 @@
   #define DEBUG_ESPNOW
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == CYDTracker
-  //#define SUPPORT_BEEPER
+  #define SUPPORT_BEEPER
   #define ACT_AS_TRACKER
   #define SUPPORT_GPS
   #define DEBUG_GPS
@@ -134,6 +134,9 @@
   #define SUPPORT_LORA
   #define DEBUG_LORA
   #define SUPPORT_LVGL
+  #define LVGL_ADD_GPS_TAB
+  #define LVGL_ADD_SCAN_INFO_TAB
+  #define LVGL_ADD_SETTINGS_TAB
   #define SUPPORT_TOUCHSCREEN
   #define SUPPORT_TOUCHSCREEN_BITBANG //Use bitbang code
   #define DEBUG_LVGL
@@ -298,8 +301,11 @@
   #include "CRC.h"
   #define LORA_CRC_POLYNOME 0xac9a  //Taken from https://users.ece.cmu.edu/~koopman/crc/
   const uint8_t locationUpdateId = 0x00;    //LoRa packet contains location info from a beacon
-  //const uint8_t trackerLocationUpdateId = 0x01;   //LoRa packet contains location info from a tracker
   const uint8_t deviceStatusUpdateId = 0x10;             //LoRa packet contains device info, shared infrequently
+  const uint8_t deviceIcInfoId = 0x11;             //LoRa packet contains IC game info, shared very infrequently
+  uint8_t typeOfLastLoRaUpdate = deviceIcInfoId;      //Use to cycle through update types
+  uint8_t typeOfLastEspNowUpdate = deviceIcInfoId;      //Use to cycle through update types
+
 #endif
 
 /*
@@ -524,7 +530,7 @@
   #endif
 #endif
 #ifdef SUPPORT_BEEPER
-  uint8_t beeperChannel = 0;
+  uint8_t beeperChannel = 2;
   #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
     int8_t beeperPin = 21;
   #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
@@ -574,7 +580,11 @@
 #if defined(ACT_AS_BEACON)
   const char* default_deviceName = "PDT beacon";
 #else
-  const char* default_deviceName = "PDT tracker";
+  #if HARDWARE_VARIANT == CYDTracker
+    const char* default_deviceName = "CYD tracker";
+  #else
+    const char* default_deviceName = "PDT tracker";
+  #endif
 #endif
 char* configurationComment = nullptr;
 char default_configurationComment[] = "";
@@ -619,6 +629,7 @@ char* timeZone = nullptr;
 char timestamp[] = "XX:XX:XX XX-XX-XXXX"; //A string overwritten with the current timestamp for logging.
 uint64_t bootTime = 0; //Use the moment the system got a valid NTP time to calculate the boot time for approximate uptime calculations
 uint32_t restartTimer = 0;  //Used to schedule a restart
+uint32_t wipeTimer = 0;  //Used to schedule a wipe
 /*
 
    WiFi credentials
@@ -700,6 +711,107 @@ SemaphoreHandle_t loggingSemaphore = NULL;
 const uint16_t loggingSemaphoreTimeout = 50;
 TaskHandle_t loggingManagementTask = NULL;
 const uint16_t loggingYieldTime = 100;
+
+/*
+
+   GPS support variables
+
+*/
+#ifdef SUPPORT_GPS
+  TinyGPSPlus gps;
+  TaskHandle_t gpsManagementTask = NULL;
+  SemaphoreHandle_t gpsSemaphore = NULL;
+  const uint16_t gpsSemaphoreTimeout = 5;
+  const uint16_t gpsYieldTime = 100;
+  const uint8_t excellentHdopThreshold = 1;
+  const uint8_t goodHdopThreshold = 2;
+  const uint8_t normalHdopThreshold = 4;
+  const uint8_t poorHdopThreshold = 6;
+  const uint8_t minimumViableHdop = 10;
+  const uint32_t GPSBaud = 9600;
+  uint32_t lastGpsTimeCheck = 0;
+  uint32_t lastGPSstateChange = 0;
+  uint32_t gpsTimeCheckInterval = 30000;
+  uint32_t lastDistanceCalculation = 0;
+  uint16_t distanceCalculationInterval = 1000;
+  uint32_t lastGPSstatus = 0;
+  uint32_t gpsChars = 0;
+  uint16_t gpsSentences = 0;
+  uint16_t gpsErrors = 0;
+  bool useGpsForTimeSync = true;
+  struct deviceInfo {
+    uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    char* name = nullptr;
+    char* icName = nullptr;
+    char* icDescription = nullptr;
+    bool hasGpsFix = false;
+    uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor, 4 = emitter, 8 = FTM beacon
+    float supplyVoltage = 0;  // Battery health can be guesstimated from this
+    uint32_t uptime = 0;  // Check for reboots
+    uint8_t majorVersion = 0; //Software version
+    uint8_t minorVersion = 0;
+    uint8_t patchVersion = 0;
+    #ifdef SUPPORT_ESPNOW
+      bool espNowOnline = false;
+      uint32_t lastEspNowLocationUpdate = 0;  // Used to track packet loss
+      uint16_t nextEspNowLocationUpdate = 60E3;  // Used to track packet loss
+      uint16_t espNowUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
+    #endif
+    #ifdef SUPPORT_LORA
+      bool loRaOnline = false;
+      uint32_t lastLoRaLocationUpdate = 0;  // Used to track packet loss
+      uint16_t nextLoRaLocationUpdate = 60E3;  // Used to track packet loss
+      uint16_t loRaUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
+    #endif
+    double latitude = 0;  //Location info
+    double longitude = 0;
+    float course = 0;
+    float speed = 0;
+    float hdop = 0;
+    float distanceTo = 0;
+    float courseTo = 0;
+    float lastLoRaRssi = 0; // Can also be used to estimate distance
+    uint8_t numberOfStartingHits = 0;
+    uint8_t numberOfStartingStunHits = 0;
+    uint8_t currentNumberOfHits = 0;
+    uint8_t currentNumberOfStunHits = 0;
+    float diameter = 1;
+    float height = 1;
+  };
+  const uint8_t maximumNumberOfDevices = 16;
+  deviceInfo device[maximumNumberOfDevices];
+  uint8_t numberOfDevices = 0;
+  double effectivelyUnreachable = 1E10;
+  #if defined(ACT_AS_TRACKER)
+    uint8_t trackingSensitivity = 2;
+  #else
+    uint8_t trackingSensitivity = 3;
+  #endif
+  uint16_t sensitivityValues[4] = {0x0FFF, 0x00FF, 0x000F, 0x0007};
+  #if defined(ACT_AS_TRACKER)
+    double maximumEffectiveRange = 9999;
+    uint8_t trackerPriority = 0;
+    uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
+    bool distanceToCurrentBeaconChanged = false;
+    uint32_t lastDistanceChangeUpdate = 0;
+    uint8_t currentlyTrackedBeacon = maximumNumberOfDevices; //max implies none found
+    bool currentlyTrackedBeaconStateChanged = false; //Note when it has been show
+    enum class trackingMode : std::int8_t {
+      nearest,
+      furthest,
+      fixed
+    };
+    trackingMode currentTrackingMode = trackingMode::nearest;
+  #elif defined(ACT_AS_BEACON)
+    uint8_t closestTracker = maximumNumberOfDevices;
+    uint16_t distanceToClosestTracker = effectivelyUnreachable;
+  #endif
+  #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    double smoothedSpeed = 100;
+    uint8_t stationaryThreshold = 1;
+    bool moving = true;
+  #endif
+#endif
 
 
 #if defined(SUPPORT_LORA)
@@ -818,6 +930,7 @@ const uint16_t loggingYieldTime = 100;
     starting,
     detectingGpsPins,
     detectingGpsBaudRate,
+    calibrateScreen,
     gpsDetected,
     gpsLocked,
     tracking
@@ -835,76 +948,94 @@ const uint16_t loggingYieldTime = 100;
   
   //Tab view
   static lv_obj_t * tabview;
-  static const char tabLabel_1[] = "Home";
-  static const char tabLabel_2[] = "GPS";
-  static const char tabLabel_3[] = "Settings";
-  static const char tabLabel_4[] = "Info";
-  lv_obj_t * tab1 = nullptr;
-  lv_obj_t * tab2 = nullptr;
-  lv_obj_t * tab3 = nullptr;
-  //lv_obj_t * tab4 = nullptr;
+  static const char homeTabLabel[] = "Home";
+  static const char gpsTabLabel[] = "GPS";
+  static const char settingsTabLabel[] = "Pref";
+  static const char infoTabLabel[] = "Info";
+  lv_obj_t * homeTab = nullptr;
+  #ifdef LVGL_ADD_GPS_TAB
+    lv_obj_t * gpsTab = nullptr;
+  #endif
+  lv_obj_t * settingsTab = nullptr;
+  #ifdef LVGL_ADD_SCAN_INFO_TAB
+    lv_obj_t * scanInfoTab = nullptr;
+    lv_obj_t * button0 = nullptr; //Nearest
+    static const char button0Label[] PROGMEM = "Nearest";
+    lv_obj_t * button1 = nullptr; //Furthest
+    static const char button1Label[] PROGMEM = "Furthest";
+    lv_obj_t * devices_dd = nullptr;
+    //lv_obj_t * icName_label = nullptr;
+    lv_obj_t * icDescription_label = nullptr;
+    uint32_t lastScanInfoTabUpdate = 0;
+    uint8_t numberOfDevicesInDeviceDropdown = 0;
+    uint8_t selectDeviceDropdownIndices[maximumNumberOfDevices];
+    bool findableDevicesChanged = true;
+  #endif
+  
   uint8_t tabHeight = 40;
-  //Tab 1
-  lv_obj_t * status_spinner = nullptr;
-  lv_obj_t * status_label = nullptr;
-  static const char statusLabel_0[] PROGMEM = "Starting";
-  static const char statusLabel_1[] PROGMEM = "Detecting hardware";
-  static const char statusLabel_2[] PROGMEM = "Calibrating hardware";
-  static const char statusLabel_3[] PROGMEM = "Getting location";
-  static const char statusLabel_4[] PROGMEM = "Scanning";
+  //Home tab
+    lv_obj_t * status_spinner = nullptr;
+    lv_obj_t * status_label = nullptr;
+    static const char statusLabel_0[] PROGMEM = "Starting";
+    static const char statusLabel_1[] PROGMEM = "Detecting hardware";
+    static const char statusLabel_2[] PROGMEM = "Calibrating hardware";
+    static const char statusLabel_3[] PROGMEM = "Touchscreen\ncalibration needed\nTouch top left\nthen bottom right.";
+    static const char statusLabel_4[] PROGMEM = "Getting location";
+    static const char statusLabel_5[] PROGMEM = "Scanning";
+    
+    static lv_style_t style_meter;
+    static uint8_t meterDiameter = 100;
+    static const uint8_t meterSpacing = 8;
+    
+    static lv_obj_t * meter0;
+    static lv_meter_indicator_t * needle0;
+    static lv_obj_t * meter0label0;
+    
+    static lv_obj_t * meter1;
+    static lv_meter_indicator_t * needle1;
+    static lv_obj_t * meter1label0;
+    
+    static lv_obj_t * chart0;
+    static lv_chart_series_t * chart0ser0;
+    #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+      static lv_chart_series_t * chart0ser1;
+    #endif
+    static lv_obj_t * chart0label0;
+    
+    static lv_obj_t * chart1;
+    static lv_chart_series_t * chart1ser0;
+    static lv_chart_series_t * chart1ser1;
+    static lv_obj_t * chart1label0;
   
-  static lv_style_t style_meter;
-  static uint8_t meterDiameter = 100;
-  static const uint8_t meterSpacing = 8;
-  
-  static lv_obj_t * meter0;
-  static lv_meter_indicator_t * needle0;
-  static lv_obj_t * meter0label0;
-  
-  static lv_obj_t * meter1;
-  static lv_meter_indicator_t * needle1;
-  static lv_obj_t * meter1label0;
-  
-  static lv_obj_t * chart0;
-  static lv_chart_series_t * chart0ser0;
-  #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-    static lv_chart_series_t * chart0ser1;
+    static const uint16_t chartX = 220, chartY = 50;
+    static const uint8_t chartSpacing = 18, chartLabelSpacing = 2, chartPoints = 16;
+  //GPS tab
+  #ifdef LVGL_ADD_GPS_TAB
+    uint32_t lastLvglTabUpdate = 0;
+    uint32_t lvglTabUpdateInterval = 500;
+    lv_obj_t * gpsTabtable = nullptr;
+    static const char statusTableLabel_0[] PROGMEM = "Date";
+    static const char statusTableLabel_1[] PROGMEM = "Time";
+    static const char statusTableLabel_2[] PROGMEM = "Satellites";
+    static const char statusTableLabel_3[] PROGMEM = "HDOP";
+    static const char statusTableLabel_4[] PROGMEM = "Lat";
+    static const char statusTableLabel_5[] PROGMEM = "Lon";
+    static const char statusTableLabel_6[] PROGMEM = "Speed";
+    static const char statusTableLabel_7[] PROGMEM = "Course";
+    static const char statusTableLabel_8[] PROGMEM = "Bearing";
+    static const char statusTableLabel_Unknown[] = "??";
   #endif
-  static lv_obj_t * chart0label0;
-  
-  static lv_obj_t * chart1;
-  static lv_chart_series_t * chart1ser0;
-  static lv_chart_series_t * chart1ser1;
-  static lv_obj_t * chart1label0;
-
-  static const uint16_t chartX = 220, chartY = 50;
-  static const uint8_t chartSpacing = 18, chartLabelSpacing = 2, chartPoints = 16;
-
-  //Tab 2
-  uint32_t lastLvglTabUpdate = 0;
-  uint32_t lvglTabUpdateInterval = 500;
-  lv_obj_t * tab2table = nullptr;
-  static const char statusTableLabel_0[] PROGMEM = "Date";
-  static const char statusTableLabel_1[] PROGMEM = "Time";
-  static const char statusTableLabel_2[] PROGMEM = "Satellites";
-  static const char statusTableLabel_3[] PROGMEM = "HDOP";
-  static const char statusTableLabel_4[] PROGMEM = "Lat";
-  static const char statusTableLabel_5[] PROGMEM = "Lon";
-  static const char statusTableLabel_6[] PROGMEM = "Speed";
-  static const char statusTableLabel_7[] PROGMEM = "Course";
-  static const char statusTableLabel_8[] PROGMEM = "Bearing";
-  static const char statusTableLabel_Unknown[] = "??";
-  //Tab 3
-  lv_obj_t * units_dd = nullptr;
-  lv_obj_t * dateFormat_dd = nullptr;
-  lv_obj_t * sensitivity_dd = nullptr;
-  lv_obj_t * priority_dd = nullptr;
-  lv_obj_t * displayTimeout_dd = nullptr;
-  lv_obj_t * rotation_dd = nullptr;
-  #ifdef SUPPORT_BEEPER
-    lv_obj_t * beeper_dd = nullptr;
-  #endif
-  lv_obj_t * displayBrightness_slider = nullptr;
+  //Setting tab
+    lv_obj_t * units_dd = nullptr;
+    lv_obj_t * dateFormat_dd = nullptr;
+    lv_obj_t * sensitivity_dd = nullptr;
+    lv_obj_t * priority_dd = nullptr;
+    lv_obj_t * displayTimeout_dd = nullptr;
+    lv_obj_t * rotation_dd = nullptr;
+    #ifdef SUPPORT_BEEPER
+      lv_obj_t * beeper_dd = nullptr;
+    #endif
+    lv_obj_t * displayBrightness_slider = nullptr;
 
   //Backlight management
   uint32_t backlightLastSet = 0;
@@ -990,7 +1121,7 @@ const uint16_t loggingYieldTime = 100;
             if(x != 0)
             {
               bool touchOutOfRange = false;
-              if(millis() < 10E3)
+              if(currentLvglUiState == deviceState::calibrateScreen)
               {
                 if(touchScreenMinimumX == 0 && touchScreenMaximumX == 0 && touchScreenMinimumY == 0 && touchScreenMaximumY == 0)  //No touch calibration data
                 {
@@ -1080,105 +1211,6 @@ const uint16_t loggingYieldTime = 100;
   #endif
 #endif
 /*
-
-   GPS support variables
-
-*/
-#ifdef SUPPORT_GPS
-  TinyGPSPlus gps;
-  TaskHandle_t gpsManagementTask = NULL;
-  SemaphoreHandle_t gpsSemaphore = NULL;
-  const uint16_t gpsSemaphoreTimeout = 5;
-  const uint16_t gpsYieldTime = 100;
-  const uint8_t excellentHdopThreshold = 1;
-  const uint8_t goodHdopThreshold = 2;
-  const uint8_t normalHdopThreshold = 4;
-  const uint8_t poorHdopThreshold = 6;
-  const uint8_t minimumViableHdop = 10;
-  const uint32_t GPSBaud = 9600;
-  uint32_t lastGpsTimeCheck = 0;
-  uint32_t lastGPSstateChange = 0;
-  uint16_t gpsTimeCheckInterval = 30000;
-  uint32_t lastDistanceCalculation = 0;
-  uint16_t distanceCalculationInterval = 1000;
-  uint32_t lastGPSstatus = 0;
-  uint32_t gpsChars = 0;
-  uint16_t gpsSentences = 0;
-  uint16_t gpsErrors = 0;
-  bool useGpsForTimeSync = true;
-  struct deviceLocationInfo {
-    uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    char* name = nullptr;
-    bool hasGpsFix = false;
-    uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor, 4 = emitter, 8 = FTM beacon
-    float supplyVoltage = 0;  // Battery health can be guesstimated from this
-    uint32_t uptime = 0;  // Check for reboots
-    uint8_t majorVersion = 0; //Software version
-    uint8_t minorVersion = 0;
-    uint8_t patchVersion = 0;
-    #ifdef SUPPORT_ESPNOW
-      bool espNowOnline = false;
-      uint32_t lastEspNowLocationUpdate = 0;  // Used to track packet loss
-      uint16_t nextEspNowLocationUpdate = 60E3;  // Used to track packet loss
-      uint16_t espNowUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
-    #endif
-    #ifdef SUPPORT_LORA
-      bool loRaOnline = false;
-      uint32_t lastLoRaLocationUpdate = 0;  // Used to track packet loss
-      uint16_t nextLoRaLocationUpdate = 60E3;  // Used to track packet loss
-      uint16_t loRaUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
-    #endif
-    double latitude = 0;  //Location info
-    double longitude = 0;
-    float course = 0;
-    float speed = 0;
-    float hdop = 0;
-    float distanceTo = 0;
-    float courseTo = 0;
-    float lastLoRaRssi = 0; // Can also be used to estimate distance
-    uint8_t numberOfStartingHits = 0;
-    uint8_t numberOfStartingStunHits = 0;
-    uint8_t currentNumberOfHits = 0;
-    uint8_t currentNumberOfStunHits = 0;
-    float diameter = 1;
-    float height = 1;
-  };
-  const uint8_t maximumNumberOfDevices = 16;
-  deviceLocationInfo device[maximumNumberOfDevices];
-  uint8_t numberOfDevices = 0;
-  double effectivelyUnreachable = 1E10;
-  #if defined(ACT_AS_TRACKER)
-    uint8_t trackingSensitivity = 2;
-  #else
-    uint8_t trackingSensitivity = 3;
-  #endif
-  uint16_t sensitivityValues[4] = {0x0FFF, 0x00FF, 0x000F, 0x0007};
-  #if defined(ACT_AS_TRACKER)
-    double maximumEffectiveRange = 9999;
-    uint8_t trackerPriority = 0;
-    //uint16_t priorityValues[3] = {0x0FFF, 0x00FF, 0x000F};
-    uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
-    bool distanceToCurrentBeaconChanged = false;
-    uint32_t lastDistanceChangeUpdate = 0;
-    uint8_t currentlyTrackedBeacon = maximumNumberOfDevices; //max implies none found
-    bool currentlyTrackedBeaconStateChanged = false; //Note when it has been show
-    enum class trackingMode : std::int8_t {
-      nearest,
-      furthest,
-      fixed
-    };
-    trackingMode currentTrackingMode = trackingMode::nearest;
-  #elif defined(ACT_AS_BEACON)
-    uint8_t closestTracker = maximumNumberOfDevices;
-    uint16_t distanceToClosestTracker = effectivelyUnreachable;
-  #endif
-  #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
-    double smoothedSpeed = 100;
-    uint8_t stationaryThreshold = 1;
-    bool moving = true;
-  #endif
-#endif
-/*
  * 
  * Peripheral power
  * 
@@ -1205,7 +1237,7 @@ const uint16_t loggingYieldTime = 100;
   uint16_t beeperTone = 1400;
   const uint16_t beeperButtonTone = 900;  //Button push tone
   const uint16_t beeperButtonOnTime = 25; //Button push on time
-  bool beeperEnabled = true;
+  bool beeperEnabled = false;
 #endif
 #ifdef SUPPORT_LED
   TaskHandle_t ledManagementTask = NULL;
@@ -1245,7 +1277,7 @@ const uint16_t loggingYieldTime = 100;
 #ifdef SUPPORT_SOFT_POWER_OFF
   uint32_t powerOffTimer = 0;  //Used to schedule a power off
   #ifdef SUPPORT_GPS
-    uint32_t gpsStationaryTimeout = 60E3;  //Switch off GPS if stationary for 5 minutes
+    uint32_t gpsStationaryTimeout = 0;  //Don't switch off by default
     uint32_t gpsCheckInterval = 300E3;  //Wake up the GPS to see if moving every 5 minutes
   #endif
 #endif

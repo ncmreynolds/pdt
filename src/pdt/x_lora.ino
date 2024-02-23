@@ -265,17 +265,26 @@
       }
       if(millis() - lastLoRaDeviceInfoSendTime > loRaDeviceInfoInterval)
       {
-        lastLoRaDeviceInfoSendTime = millis();
-        shareDeviceInfoByLoRa();
+        lastLoRaDeviceInfoSendTime = millis() - random(100,200);
+        if(typeOfLastLoRaUpdate == deviceIcInfoId)
+        {
+          shareDeviceInfoByLoRa();
+          typeOfLastLoRaUpdate = deviceStatusUpdateId;
+        }
+        else if(typeOfLastLoRaUpdate == deviceStatusUpdateId)
+        {
+          shareIcInfoByLoRa();
+          typeOfLastLoRaUpdate = deviceIcInfoId;
+        }
         calculateLoRaDutyCycle();
       }
       if(millis() - lastLoRaLocationSendTime > device[0].nextLoRaLocationUpdate)
       {
-        lastLoRaLocationSendTime = millis();
+        lastLoRaLocationSendTime = millis() - random(100,200);
         #if defined(ACT_AS_TRACKER)
           if(numberOfBeacons() > 0)  //Only share ocation if there are some beacons
           {
-            shareLocation();
+            shareLocationByLoRa();
             calculateLoRaDutyCycle();
             if(currentlyTrackedBeacon != maximumNumberOfDevices) //There is a current beacon
             {
@@ -289,7 +298,7 @@
         #elif defined(ACT_AS_BEACON)
             if(numberOfTrackers() > 0)
             {
-              shareLocation();
+              shareLocationByLoRa();
               calculateLoRaDutyCycle();
               if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
               {
@@ -333,6 +342,9 @@
           {
             localLogLn(F(" LoRa gone offline"));
             device[index].loRaOnline = false;
+            #ifdef LVGL_ADD_SCAN_INFO_TAB
+              findableDevicesChanged = true;
+            #endif
             #ifdef ACT_AS_TRACKER
               if(index == currentlyTrackedBeacon) //Need to stop tracking this beacon
               {
@@ -405,7 +417,7 @@
     }
     return newInterval;
   }
-  void shareLocation()
+  void shareLocationByLoRa()
   {
     if(loRaTxBusy)
     {
@@ -415,6 +427,7 @@
           SERIAL_DEBUG_PORT.println(F("Cannot share location, LoRa busy"));
         }
       #endif
+      loRaTxPacketsDropped++;
       return;
     }
     loRaTxBusy = true;
@@ -458,6 +471,13 @@
   {
     if(loRaTxBusy)
     {
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+        if(waitForBufferSpace(80))
+        {
+          SERIAL_DEBUG_PORT.println(F("Cannot share device info, LoRa busy"));
+        }
+      #endif
+      loRaTxPacketsDropped++;
       return;
     }
     loRaTxBusy = true;
@@ -533,6 +553,51 @@
             #endif
           }
         #endif
+      }
+    }
+  }
+  void shareIcInfoByLoRa()
+  {
+    if(loRaTxBusy)
+    {
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+        if(waitForBufferSpace(80))
+        {
+          SERIAL_DEBUG_PORT.println(F("Cannot share device IC info, LoRa busy"));
+        }
+      #endif
+      loRaTxPacketsDropped++;
+      return;
+    }
+    if(device[0].icName != nullptr && device[0].icDescription != nullptr)
+    {
+      loRaTxBusy = true;
+      MsgPack::Packer packer;
+      packer.pack(device[0].id[0]);
+      packer.pack(device[0].id[1]);
+      packer.pack(device[0].id[2]);
+      packer.pack(device[0].id[3]);
+      packer.pack(device[0].id[4]);
+      packer.pack(device[0].id[5]);
+      packer.pack(deviceIcInfoId);
+      packer.pack(device[0].icName);
+      packer.pack(device[0].icDescription);
+      if(packer.size() < maxLoRaBufferSize)
+      {
+        memcpy(loRaSendBuffer, packer.data(),packer.size());
+        loRaSendBufferSize = packer.size();
+        if(transmitLoRaBuffer())
+        {  
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+            if(waitForBufferSpace(80))
+            {
+              SERIAL_DEBUG_PORT.printf("LoRa   TX %02x:%02x:%02x:%02x:%02x:%02x IC info name: '%s', desc:'%s'\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+                device[0].icName,
+                device[0].icDescription
+                );
+            }
+          #endif
+        }
       }
     }
   }
@@ -690,6 +755,9 @@
                             }
                           #endif
                           device[deviceIndex].hasGpsFix = true;
+                          #ifdef LVGL_ADD_SCAN_INFO_TAB
+                            findableDevicesChanged = true;
+                          #endif
                         }
                       }
                       else if(device[deviceIndex].hasGpsFix == true)
@@ -701,6 +769,9 @@
                           }
                         #endif
                         device[deviceIndex].hasGpsFix = false;
+                        #ifdef LVGL_ADD_SCAN_INFO_TAB
+                          findableDevicesChanged = true;
+                        #endif
                       }
                       #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
                         if(waitForBufferSpace(80))
@@ -723,6 +794,9 @@
                         localLog(deviceIndex);
                         localLogLn(F(" LoRa gone online"));
                         device[deviceIndex].loRaOnline = true;
+                        #ifdef LVGL_ADD_SCAN_INFO_TAB
+                          findableDevicesChanged = true;
+                        #endif
                       }
                     }
                     else if(messagetype == deviceStatusUpdateId)
@@ -1016,6 +1090,80 @@
                           {
                             SERIAL_DEBUG_PORT.print(F("Unexpected deviceType type: "));
                             SERIAL_DEBUG_PORT.println(messagetype);
+                          }
+                        #endif
+                      }
+                    }
+                    else if(messagetype == deviceIcInfoId)
+                    {
+                      if(unpacker.isStr())  //Name
+                      {
+                        String receivedIcName = String(unpacker.unpackString());
+                        bool storeReceivedIcName = false;
+                        if(device[deviceIndex].icName == nullptr) //First time the name is received
+                        {
+                          storeReceivedIcName = true;
+                        }
+                        else if(receivedIcName.equals(String(device[deviceIndex].icName)) == false) //Check the name hasn't changed
+                        {
+                          delete[] device[deviceIndex].icName;
+                          storeReceivedIcName = true;
+                        }
+                        if(storeReceivedIcName == true)
+                        {
+                          device[deviceIndex].icName = new char[receivedIcName.length() + 1];
+                          receivedIcName.toCharArray(device[deviceIndex].icName, receivedIcName.length() + 1);
+                          #ifdef LVGL_ADD_SCAN_INFO_TAB
+                            findableDevicesChanged = true;
+                          #endif
+                        }
+                        if(unpacker.isStr())  //Desc
+                        {
+                          String receivedIcDescription = String(unpacker.unpackString());
+                          bool storeReceivedIcDescription = false;
+                          if(device[deviceIndex].icDescription == nullptr) //First time the name is received
+                          {
+                            storeReceivedIcDescription = true;
+                          }
+                          else if(receivedIcDescription.equals(String(device[deviceIndex].icDescription)) == false) //Check the name hasn't changed
+                          {
+                            delete[] device[deviceIndex].icDescription;
+                            storeReceivedIcDescription = true;
+                          }
+                          if(storeReceivedIcDescription == true)
+                          {
+                            device[deviceIndex].icDescription = new char[receivedIcDescription.length() + 1];
+                            receivedIcDescription.toCharArray(device[deviceIndex].icDescription, receivedIcDescription.length() + 1);
+                            #ifdef LVGL_ADD_SCAN_INFO_TAB
+                              findableDevicesChanged = true;
+                            #endif
+                          }
+                          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                            if(waitForBufferSpace(60))
+                            {
+                              SERIAL_DEBUG_PORT.printf_P(PSTR("IC info name:'%s', name:'%s'\r\n"),
+                                device[deviceIndex].icName,
+                                device[deviceIndex].icDescription
+                                );
+                            }
+                          #endif
+                        }
+                        else
+                        {
+                          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                            if(waitForBufferSpace(30))
+                            {
+                              SERIAL_DEBUG_PORT.print(F("Unexpected type for IC description"));
+                            }
+                          #endif
+                        }
+                      }
+                      else
+                      {
+                        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                          if(waitForBufferSpace(30))
+                          {
+                            SERIAL_DEBUG_PORT.print(F("Unexpected type for IC name"));
                           }
                         #endif
                       }

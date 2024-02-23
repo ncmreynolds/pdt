@@ -58,33 +58,41 @@
     lv_obj_set_style_border_side(tab_btns, LV_BORDER_SIDE_RIGHT, LV_PART_ITEMS | LV_STATE_CHECKED);
     
     
-    /*Add 3 tabs (the tabs are page (lv_page) and can be scrolled*/
-    tab1 = lv_tabview_add_tab(tabview, tabLabel_1);
-    tab2 = lv_tabview_add_tab(tabview, tabLabel_2);
-    tab3 = lv_tabview_add_tab(tabview, tabLabel_3);
-    //tab4 = lv_tabview_add_tab(tabview, tabLabel_4);
-    
-    createTab1();
-    createTab2();
-    createTab3();
-    //createTab4();
+    createHomeTab();
+    #ifdef LVGL_ADD_SCAN_INFO_TAB
+      createScanInfoTab();
+    #endif
+    #ifdef LVGL_ADD_GPS_TAB
+      createGpsTab();
+    #endif
+    createSettingsTab();
     
     lv_obj_clear_flag(lv_tabview_get_content(tabview), LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(tab1, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(tab2, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(tab3, LV_OBJ_FLAG_SCROLLABLE);
-    //lv_obj_clear_flag(tab4, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(homeTab, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(settingsTab, LV_OBJ_FLAG_SCROLLABLE);
   }
-  void createTab1()
+  void createHomeTab()
   {
+    //Create the tab
+    homeTab = lv_tabview_add_tab(tabview, homeTabLabel);
+
     //Status spinner
-    status_spinner = lv_spinner_create(tab1, 1000, 60);
+    status_spinner = lv_spinner_create(homeTab, 1000, 60);
     lv_obj_set_size(status_spinner, 200, 200);
     lv_obj_center(status_spinner);
   
     //Status label
-    status_label = lv_label_create(tab1);
-    lv_label_set_text(status_label, statusLabel_0);
+    status_label = lv_label_create(homeTab);
+    if(device[0].name != nullptr)
+    {
+      //lv_label_set_text(status_label, (String(statusLabel_0) + "\n" + String(device[0].name)).c_str());
+      lv_label_set_text(status_label, device[0].name);
+    }
+    else
+    {
+      lv_label_set_text(status_label, statusLabel_0);
+    }
+    lv_obj_set_style_text_align(status_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 0 );
     
     //Create meter style
@@ -95,10 +103,10 @@
     lv_style_set_pad_all(&style_meter, 2);
     
     //Create meters
-    meter0 = lv_meter_create(tab1); //Direction
-    meter1 = lv_meter_create(tab1); //Range
-    //meter2 = lv_meter_create(tab1);
-    //meter3 = lv_meter_create(tab1);
+    meter0 = lv_meter_create(homeTab); //Direction
+    meter1 = lv_meter_create(homeTab); //Range
+    //meter2 = lv_meter_create(homeTab);
+    //meter3 = lv_meter_create(homeTab);
   
     //Scale the meters
     lv_obj_set_size(meter0, meterDiameter, meterDiameter);
@@ -165,19 +173,19 @@
     lv_obj_add_flag(meter1, LV_OBJ_FLAG_HIDDEN);
   
     //Meter 0 label
-    meter0label0 = lv_label_create(tab1);
+    meter0label0 = lv_label_create(homeTab);
     lv_obj_align(meter0label0, LV_ALIGN_CENTER, -meterDiameter/2-meterSpacing, -meterDiameter-meterSpacing-14);
     lv_label_set_text(meter0label0, "Direction");
     lv_obj_add_flag(meter0label0, LV_OBJ_FLAG_HIDDEN);
     //Meter 0 label
-    meter1label0 = lv_label_create(tab1);
+    meter1label0 = lv_label_create(homeTab);
     lv_obj_align(meter1label0, LV_ALIGN_CENTER, meterDiameter/2+meterSpacing, -meterDiameter-meterSpacing-14);
     lv_label_set_text(meter1label0, "Range(m)");
     lv_obj_add_flag(meter1label0, LV_OBJ_FLAG_HIDDEN);
   
   
     //Chart 0  
-    chart0 = lv_chart_create(tab1);
+    chart0 = lv_chart_create(homeTab);
     lv_obj_set_size(chart0, chartX, chartY);
     lv_chart_set_point_count(chart0, chartPoints);
     lv_obj_align(chart0, LV_ALIGN_CENTER, 0, chartY/2+chartSpacing);
@@ -200,12 +208,12 @@
     lv_chart_refresh(chart0);
     lv_obj_add_flag(chart0, LV_OBJ_FLAG_HIDDEN);
   
-    chart0label0 = lv_label_create(tab1);
+    chart0label0 = lv_label_create(homeTab);
     lv_obj_align(chart0label0, LV_ALIGN_CENTER, 0, chartLabelSpacing*3);
     lv_label_set_text(chart0label0, "Signal integrity");
     lv_obj_add_flag(chart0label0, LV_OBJ_FLAG_HIDDEN);
   
-    chart1 = lv_chart_create(tab1);
+    chart1 = lv_chart_create(homeTab);
     lv_obj_set_size(chart1, chartX, chartY);
     lv_chart_set_point_count(chart1, chartPoints);
     lv_obj_align(chart1, LV_ALIGN_CENTER, 0, chartY+chartY/2+chartSpacing*2);
@@ -227,7 +235,7 @@
     lv_chart_refresh(chart1); /*Required after direct set*/
     lv_obj_add_flag(chart1, LV_OBJ_FLAG_HIDDEN); 
   
-    chart1label0 = lv_label_create(tab1);
+    chart1label0 = lv_label_create(homeTab);
     lv_obj_align(chart1label0, LV_ALIGN_CENTER, 0, chartY + chartY/2 + chartLabelSpacing);
     lv_label_set_text(chart1label0, "Anomaly amplitude");
     lv_obj_add_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
@@ -264,7 +272,7 @@
     lv_obj_add_flag(chart1, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
   }
-  void updateTab1()
+  void updateHomeTab()
   {
     if(currentlyTrackedBeacon != maximumNumberOfDevices)
     {
@@ -289,16 +297,14 @@
         lv_obj_add_flag(needle0, LV_OBJ_FLAG_HIDDEN);
       }
       */
-      uint32_t rangeToIndicate = device[currentlyTrackedBeacon].distanceTo;
-      if(rangeToIndicate < device[currentlyTrackedBeacon].diameter)
+      if(rangeToIndicate(currentlyTrackedBeacon) < 100) //Limit is 100m on dial
       {
-        rangeToIndicate = 0;
+        lv_meter_set_indicator_value(meter1, needle1, rangeToIndicate(currentlyTrackedBeacon));
       }
-      if(rangeToIndicate > 100)
+      else
       {
-        rangeToIndicate = 100;
+        lv_meter_set_indicator_value(meter1, needle1, 100);
       }
-      lv_meter_set_indicator_value(meter1, needle1, rangeToIndicate);
     }
     else
     {
@@ -347,116 +353,122 @@
       lv_chart_set_next_value(chart1, chart1ser1, 0);
     }
   }
-  void createTab2(void)
-  {
+  #ifdef LVGL_ADD_GPS_TAB
+    void createGpsTab(void)
+    {
+      //Create the tab
+      gpsTab = lv_tabview_add_tab(tabview, gpsTabLabel);
+
       //Create the table
-      tab2table = lv_table_create(tab2);
-      lv_table_set_row_cnt(tab2table, 9);
-      lv_table_set_col_cnt(tab2table, 2);
+      gpsTabtable = lv_table_create(gpsTab);
+      lv_table_set_row_cnt(gpsTabtable, 9);
+      lv_table_set_col_cnt(gpsTabtable, 2);
   
       /*Fill the first column*/
-      lv_table_set_cell_value(tab2table, 0, 0, statusTableLabel_0);
-      lv_table_set_cell_value(tab2table, 1, 0, statusTableLabel_1);
-      lv_table_set_cell_value(tab2table, 2, 0, statusTableLabel_2);
-      lv_table_set_cell_value(tab2table, 3, 0, statusTableLabel_3);
-      lv_table_set_cell_value(tab2table, 4, 0, statusTableLabel_4);
-      lv_table_set_cell_value(tab2table, 5, 0, statusTableLabel_5);
-      lv_table_set_cell_value(tab2table, 6, 0, statusTableLabel_6);
-      lv_table_set_cell_value(tab2table, 7, 0, statusTableLabel_7);
-      lv_table_set_cell_value(tab2table, 8, 0, statusTableLabel_8);
+      lv_table_set_cell_value(gpsTabtable, 0, 0, statusTableLabel_0);
+      lv_table_set_cell_value(gpsTabtable, 1, 0, statusTableLabel_1);
+      lv_table_set_cell_value(gpsTabtable, 2, 0, statusTableLabel_2);
+      lv_table_set_cell_value(gpsTabtable, 3, 0, statusTableLabel_3);
+      lv_table_set_cell_value(gpsTabtable, 4, 0, statusTableLabel_4);
+      lv_table_set_cell_value(gpsTabtable, 5, 0, statusTableLabel_5);
+      lv_table_set_cell_value(gpsTabtable, 6, 0, statusTableLabel_6);
+      lv_table_set_cell_value(gpsTabtable, 7, 0, statusTableLabel_7);
+      lv_table_set_cell_value(gpsTabtable, 8, 0, statusTableLabel_8);
   
       /*Fill the second column*/
-      lv_table_set_cell_value(tab2table, 0, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 1, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 2, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 3, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 4, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 5, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 6, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 7, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 8, 1, statusTableLabel_Unknown);
+      lv_table_set_cell_value(gpsTabtable, 0, 1, statusTableLabel_Unknown);
+      lv_table_set_cell_value(gpsTabtable, 1, 1, statusTableLabel_Unknown);
+      lv_table_set_cell_value(gpsTabtable, 2, 1, statusTableLabel_Unknown);
+      lv_table_set_cell_value(gpsTabtable, 3, 1, statusTableLabel_Unknown);
+      lv_table_set_cell_value(gpsTabtable, 4, 1, statusTableLabel_Unknown);
+      lv_table_set_cell_value(gpsTabtable, 5, 1, statusTableLabel_Unknown);
+      lv_table_set_cell_value(gpsTabtable, 6, 1, statusTableLabel_Unknown);
+      lv_table_set_cell_value(gpsTabtable, 7, 1, statusTableLabel_Unknown);
+      lv_table_set_cell_value(gpsTabtable, 8, 1, statusTableLabel_Unknown);
   
-      lv_table_set_col_width(tab2table, 0, screenWidth/2-10);
-      lv_table_set_col_width(tab2table, 1, screenWidth/2-10);
-      lv_obj_set_height(tab2table, screenHeight - tabHeight);
-      lv_obj_center(tab2table);
-      //lv_obj_clear_flag(tab2table, LV_OBJ_FLAG_SCROLLABLE);
+      lv_table_set_col_width(gpsTabtable, 0, screenWidth/2-10);
+      lv_table_set_col_width(gpsTabtable, 1, screenWidth/2-10);
+      lv_obj_set_height(gpsTabtable, screenHeight - tabHeight);
+      lv_obj_center(gpsTabtable);
+      //lv_obj_clear_flag(gpsTabtable, LV_OBJ_FLAG_SCROLLABLE);
   
       /*Add an event callback to to apply some custom drawing*/
-      //lv_obj_add_event_cb(tab2table, draw_part_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
-  }
-  void updateTab2()
-  {
-    //LVGL
-    char tempstring[32];
-    //Date and time
-    if(gps.time.isValid())
-    {
-      if(dateFormat == 0)
-      {
-        sprintf_P(tempstring, PSTR("%02d/%02d/%02d"), gps.date.day(), gps.date.month(), gps.date.year());
-      }
-      else
-      {
-        sprintf_P(tempstring, PSTR("%02d/%02d/%02d"), gps.date.month(), gps.date.day(), gps.date.year());
-      }
-      lv_table_set_cell_value(tab2table, 0, 1, tempstring);
-      sprintf_P(tempstring, PSTR("%02d:%02d:%02d"), gps.time.hour(), gps.time.minute(), gps.time.second());
-      lv_table_set_cell_value(tab2table, 1, 1, tempstring);
+      //lv_obj_add_event_cb(gpsTabtable, draw_part_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
+      lv_obj_clear_flag(gpsTab, LV_OBJ_FLAG_SCROLLABLE);
     }
-    else
+    void updateGpsTab()
     {
-      lv_table_set_cell_value(tab2table, 0, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 1, 1, statusTableLabel_Unknown);
-    }
-    //Satellites
-    sprintf_P(tempstring, PSTR("%02u"), gps.satellites.value());
-    lv_table_set_cell_value(tab2table, 2, 1, tempstring);
-    //HDOP
-    sprintf_P(tempstring, PSTR("%.2f"), gps.hdop.hdop());
-    lv_table_set_cell_value(tab2table, 3, 1, tempstring);
-    if(gps.location.isValid())
-    {
-      //Lat
-      sprintf_P(tempstring, PSTR("%.6f"), gps.location.lat());
-      lv_table_set_cell_value(tab2table, 4, 1, tempstring);
-      //Lon
-      sprintf_P(tempstring, PSTR("%.6f"), gps.location.lng());
-      lv_table_set_cell_value(tab2table, 5, 1, tempstring);
-      if(gps.hdop.hdop() < 3)
+      //LVGL
+      char tempstring[32];
+      //Date and time
+      if(gps.time.isValid())
       {
-        //Speed
-        if(units == 0)
+        if(dateFormat == 0)
         {
-          sprintf_P(tempstring, PSTR("%.1f kmh"), gps.speed.kmph());
+          sprintf_P(tempstring, PSTR("%02d/%02d/%02d"), gps.date.day(), gps.date.month(), gps.date.year());
         }
         else
         {
-          sprintf_P(tempstring, PSTR("%.1f mph"), gps.speed.mph());
+          sprintf_P(tempstring, PSTR("%02d/%02d/%02d"), gps.date.month(), gps.date.day(), gps.date.year());
         }
-        lv_table_set_cell_value(tab2table, 6, 1, tempstring);
-        //Course
-        sprintf_P(tempstring, PSTR("%.1f"), gps.course.deg());
-        lv_table_set_cell_value(tab2table, 7, 1, tempstring);
-        lv_table_set_cell_value(tab2table, 8, 1, TinyGPSPlus::cardinal(gps.course.deg()));
+        lv_table_set_cell_value(gpsTabtable, 0, 1, tempstring);
+        sprintf_P(tempstring, PSTR("%02d:%02d:%02d"), gps.time.hour(), gps.time.minute(), gps.time.second());
+        lv_table_set_cell_value(gpsTabtable, 1, 1, tempstring);
       }
       else
       {
-        lv_table_set_cell_value(tab2table, 6, 1, statusTableLabel_Unknown);
-        lv_table_set_cell_value(tab2table, 7, 1, statusTableLabel_Unknown);
-        lv_table_set_cell_value(tab2table, 8, 1, statusTableLabel_Unknown);
+        lv_table_set_cell_value(gpsTabtable, 0, 1, statusTableLabel_Unknown);
+        lv_table_set_cell_value(gpsTabtable, 1, 1, statusTableLabel_Unknown);
+      }
+      //Satellites
+      sprintf_P(tempstring, PSTR("%02u"), gps.satellites.value());
+      lv_table_set_cell_value(gpsTabtable, 2, 1, tempstring);
+      //HDOP
+      sprintf_P(tempstring, PSTR("%.2f"), gps.hdop.hdop());
+      lv_table_set_cell_value(gpsTabtable, 3, 1, tempstring);
+      if(gps.location.isValid())
+      {
+        //Lat
+        sprintf_P(tempstring, PSTR("%.6f"), gps.location.lat());
+        lv_table_set_cell_value(gpsTabtable, 4, 1, tempstring);
+        //Lon
+        sprintf_P(tempstring, PSTR("%.6f"), gps.location.lng());
+        lv_table_set_cell_value(gpsTabtable, 5, 1, tempstring);
+        if(gps.hdop.hdop() < 3)
+        {
+          //Speed
+          if(units == 0)
+          {
+            sprintf_P(tempstring, PSTR("%.1f kmh"), gps.speed.kmph());
+          }
+          else
+          {
+            sprintf_P(tempstring, PSTR("%.1f mph"), gps.speed.mph());
+          }
+          lv_table_set_cell_value(gpsTabtable, 6, 1, tempstring);
+          //Course
+          sprintf_P(tempstring, PSTR("%.1f"), gps.course.deg());
+          lv_table_set_cell_value(gpsTabtable, 7, 1, tempstring);
+          lv_table_set_cell_value(gpsTabtable, 8, 1, TinyGPSPlus::cardinal(gps.course.deg()));
+        }
+        else
+        {
+          lv_table_set_cell_value(gpsTabtable, 6, 1, statusTableLabel_Unknown);
+          lv_table_set_cell_value(gpsTabtable, 7, 1, statusTableLabel_Unknown);
+          lv_table_set_cell_value(gpsTabtable, 8, 1, statusTableLabel_Unknown);
+        }
+      }
+      else
+      {
+        lv_table_set_cell_value(gpsTabtable, 4, 1, statusTableLabel_Unknown);
+        lv_table_set_cell_value(gpsTabtable, 5, 1, statusTableLabel_Unknown);
+        lv_table_set_cell_value(gpsTabtable, 6, 1, statusTableLabel_Unknown);
+        lv_table_set_cell_value(gpsTabtable, 7, 1, statusTableLabel_Unknown);
+        lv_table_set_cell_value(gpsTabtable, 8, 1, statusTableLabel_Unknown);
       }
     }
-    else
-    {
-      lv_table_set_cell_value(tab2table, 4, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 5, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 6, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 7, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 8, 1, statusTableLabel_Unknown);
-    }
-  }
-  void createTab3()
+  #endif
+  void createSettingsTab()
   {
     uint16_t objectY = 0;
     uint8_t labelSpacing = 20;
@@ -464,14 +476,17 @@
     int16_t rightColumnX = 55;
     int16_t leftColumnX = -rightColumnX;
     int16_t columnWidth = 105;
-  
+
+    //Create the tab
+    settingsTab = lv_tabview_add_tab(tabview, settingsTabLabel);
+
     //Units label
-    lv_obj_t * label = lv_label_create(tab3);
+    lv_obj_t * label = lv_label_create(settingsTab);
     lv_label_set_text(label, "Units");
     lv_obj_align(label, LV_ALIGN_TOP_MID, leftColumnX, objectY);
   
     //Date format label
-    label = lv_label_create(tab3);
+    label = lv_label_create(settingsTab);
     lv_label_set_text(label, "Date format");
     lv_obj_align(label, LV_ALIGN_TOP_MID, rightColumnX, objectY);
   
@@ -479,7 +494,7 @@
     objectY += labelSpacing;
   
     //Units dropdown
-    lv_obj_t * units_dd = lv_dropdown_create(tab3);
+    lv_obj_t * units_dd = lv_dropdown_create(settingsTab);
     lv_dropdown_set_options(units_dd, "Metric\n"
                                       "Imperial");
     lv_obj_align(units_dd, LV_ALIGN_TOP_MID, leftColumnX, objectY);
@@ -488,7 +503,7 @@
     lv_dropdown_set_selected(units_dd, units);
   
     //Date format dropdown
-    lv_obj_t * dateFormat_dd = lv_dropdown_create(tab3);
+    lv_obj_t * dateFormat_dd = lv_dropdown_create(settingsTab);
     lv_dropdown_set_options(dateFormat_dd, "D/M/Y\n"
                                       "M/D/Y");
     lv_obj_align(dateFormat_dd, LV_ALIGN_TOP_MID, rightColumnX, objectY);
@@ -500,12 +515,12 @@
     objectY += dropdownSpacing;
   
     //Sensitivity label
-    label = lv_label_create(tab3);
+    label = lv_label_create(settingsTab);
     lv_label_set_text(label, "Sensitivity");
     lv_obj_align(label, LV_ALIGN_TOP_MID, leftColumnX, objectY);
   
     //Priority label
-    label = lv_label_create(tab3);
+    label = lv_label_create(settingsTab);
     lv_label_set_text(label, "Priority");
     lv_obj_align(label, LV_ALIGN_TOP_MID, rightColumnX, objectY);
   
@@ -513,7 +528,7 @@
     objectY += labelSpacing;
   
     //Sensitivity dropdown
-    lv_obj_t * sensitivity_dd = lv_dropdown_create(tab3);
+    lv_obj_t * sensitivity_dd = lv_dropdown_create(settingsTab);
     lv_dropdown_set_options(sensitivity_dd, "Low\n"
                                             "Medium\n"
                                             "High");
@@ -523,9 +538,9 @@
     lv_dropdown_set_selected(sensitivity_dd, trackingSensitivity);
   
     //Priority dropdown
-    lv_obj_t * priority_dd = lv_dropdown_create(tab3);
-    lv_dropdown_set_options(priority_dd,  "Nearest\n"
-                                          "Furthest"
+    lv_obj_t * priority_dd = lv_dropdown_create(settingsTab);
+    lv_dropdown_set_options(priority_dd,  "Center\n"
+                                          "Edge"
                                           );
     lv_obj_align(priority_dd, LV_ALIGN_TOP_MID, rightColumnX, objectY);
     lv_obj_set_width(priority_dd, columnWidth);
@@ -536,17 +551,17 @@
     objectY += dropdownSpacing;
   
     //Display timeout label
-    label = lv_label_create(tab3);
+    label = lv_label_create(settingsTab);
     lv_label_set_text(label, "Display timeout");
     lv_obj_align(label, LV_ALIGN_TOP_MID, leftColumnX, objectY);
   
     //Beeper label
     #ifdef SUPPORT_BEEPER
-      label = lv_label_create(tab3);
+      label = lv_label_create(settingsTab);
       lv_label_set_text(label, "Beeper");
       lv_obj_align(label, LV_ALIGN_TOP_MID, rightColumnX, objectY);
     #else
-      label = lv_label_create(tab3);
+      label = lv_label_create(settingsTab);
       lv_label_set_text(label, "Rotation");
       lv_obj_align(label, LV_ALIGN_TOP_MID, rightColumnX, objectY);
     #endif
@@ -555,7 +570,7 @@
     objectY += labelSpacing;
   
     //Display timeout dropdown
-    lv_obj_t * displayTimeout_dd = lv_dropdown_create(tab3);
+    lv_obj_t * displayTimeout_dd = lv_dropdown_create(settingsTab);
     lv_dropdown_set_options(displayTimeout_dd, "Never\n"
                                             "1 min\n"
                                             "5 min\n"
@@ -568,11 +583,10 @@
   
     //Beeper dropdown
     #ifdef SUPPORT_BEEPER
-      lv_obj_t * beeper_dd = lv_dropdown_create(tab3);
+      beeper_dd = lv_dropdown_create(settingsTab);
       lv_dropdown_set_options(beeper_dd, "Off\n"
-                                              "On\n"
-                                              "When active"
-                                              );
+                                          "On"
+                                          );
       lv_obj_align(beeper_dd, LV_ALIGN_TOP_MID, rightColumnX, objectY);
       lv_obj_set_width(beeper_dd, columnWidth);
       lv_obj_add_event_cb(beeper_dd, beeper_dd_event_handler, LV_EVENT_ALL, NULL);
@@ -585,7 +599,7 @@
         lv_dropdown_set_selected(beeper_dd, 1);
       }
     #else
-      lv_obj_t * rotation_dd = lv_dropdown_create(tab3);
+      rotation_dd = lv_dropdown_create(settingsTab);
       lv_dropdown_set_options(rotation_dd, "Normal\n"
                                               "Inverted"
                                               );
@@ -606,7 +620,7 @@
     objectY += dropdownSpacing;
   
     //Display brightness label
-    label = lv_label_create(tab3);
+    label = lv_label_create(settingsTab);
     lv_label_set_text(label, "Display brightness range");
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, objectY);
   
@@ -614,7 +628,7 @@
     objectY += labelSpacing;
   
     //Display brightness slider
-    displayBrightness_slider = lv_slider_create(tab3);
+    displayBrightness_slider = lv_slider_create(settingsTab);
     lv_obj_set_width(displayBrightness_slider, 160);
     lv_obj_align(displayBrightness_slider, LV_ALIGN_TOP_MID, 0, objectY+10);
     lv_slider_set_mode(displayBrightness_slider, LV_SLIDER_MODE_RANGE);
@@ -754,43 +768,298 @@
       #endif
     }
   }
-  /*
-  void createTab4(void)
-  {
-      //Create the table
-      tab2table = lv_table_create(tab2);
-      lv_table_set_row_cnt(tab2table, 9);
-      lv_table_set_col_cnt(tab2table, 2);
+  #ifdef LVGL_ADD_SCAN_INFO_TAB
+    void createScanInfoTab(void)
+    {
+      uint16_t objectY = 0;
+      uint8_t labelSpacing = 20;
+      uint8_t dropdownSpacing = 45;
+      uint8_t buttonSpacing = 45;
+      int16_t rightColumnX = 55;
+      int16_t leftColumnX = -rightColumnX;
+      int16_t columnWidth = 105;
+
+      //Create the Tab
+      scanInfoTab = lv_tabview_add_tab(tabview, infoTabLabel);
+
+      //
+      lv_obj_t * label; //Working throwaway object for labels
+      
+      //Top label
+      label = lv_label_create(scanInfoTab);
+      lv_label_set_text(label, "Search for...");
+      lv_obj_align(label, LV_ALIGN_TOP_MID, 0, objectY);
+
+      //Next row
+      objectY += labelSpacing;
+      
+      //Nearest button
+      button0 = lv_btn_create(scanInfoTab);
+      lv_obj_align(button0, LV_ALIGN_TOP_MID, leftColumnX, objectY);
+      label = lv_label_create(button0);
+      lv_label_set_text(label, button0Label);
+      lv_obj_center(label);
+      //This button can be toggled to always find the nearest
+      //lv_obj_add_flag(button0, LV_OBJ_FLAG_CHECKABLE);
+      lv_obj_add_event_cb(button0, button0_event_handler, LV_EVENT_ALL, NULL);
+
+      //Furthest button
+      button1 = lv_btn_create(scanInfoTab);
+      lv_obj_align(button1, LV_ALIGN_TOP_MID, rightColumnX, objectY);
+      label = lv_label_create(button1);
+      lv_label_set_text(label, button1Label);
+      lv_obj_center(label);
+      lv_obj_add_event_cb(button1, button1_event_handler, LV_EVENT_ALL, NULL);
+
+      //Next row
+      objectY += buttonSpacing;
+
+      //Devices drop down label
+      label = lv_label_create(scanInfoTab);
+      lv_label_set_text(label, "...or choose");
+      lv_obj_align(label, LV_ALIGN_TOP_MID, 0, objectY);
+
+      //Next row
+      objectY += labelSpacing;
+
+      //Devices dropdown
+      devices_dd = lv_dropdown_create(scanInfoTab);
+      lv_obj_align(devices_dd, LV_ALIGN_TOP_MID, 0, objectY);
+      lv_obj_set_width(devices_dd, columnWidth*2);
+      lv_dropdown_set_options(devices_dd, "");
+      lv_obj_add_event_cb(devices_dd, device_dd_event_handler, LV_EVENT_ALL, NULL);
+
+      //Next row
+      objectY += dropdownSpacing;
+
+      //Information label
+      //label = lv_label_create(scanInfoTab);
+      //lv_label_set_text(label, "Information about...");
+      //lv_obj_align(label, LV_ALIGN_TOP_MID, 0, objectY);
+
+      //Next row
+      //objectY += labelSpacing;
+      //Next row
+      //objectY += labelSpacing*2;
+
+      static lv_style_t style;
+      lv_style_init(&style);
   
-      lv_table_set_cell_value(tab2table, 0, 0, statusTableLabel_0);
-      lv_table_set_cell_value(tab2table, 1, 0, statusTableLabel_1);
-      lv_table_set_cell_value(tab2table, 2, 0, statusTableLabel_2);
-      lv_table_set_cell_value(tab2table, 3, 0, statusTableLabel_3);
-      lv_table_set_cell_value(tab2table, 4, 0, statusTableLabel_4);
-      lv_table_set_cell_value(tab2table, 5, 0, statusTableLabel_5);
-      lv_table_set_cell_value(tab2table, 6, 0, statusTableLabel_6);
-      lv_table_set_cell_value(tab2table, 7, 0, statusTableLabel_7);
-      lv_table_set_cell_value(tab2table, 8, 0, statusTableLabel_8);
+      /*Set a background color and a radius*/
+      lv_style_set_radius(&style, 5);
+      lv_style_set_bg_opa(&style, LV_OPA_COVER);
+      lv_style_set_bg_color(&style, lv_color_white());
   
-      lv_table_set_cell_value(tab2table, 0, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 1, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 2, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 3, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 4, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 5, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 6, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 7, 1, statusTableLabel_Unknown);
-      lv_table_set_cell_value(tab2table, 8, 1, statusTableLabel_Unknown);
+      /*Add a shadow*/
+      //lv_style_set_shadow_width(&style, 55);
+      //lv_style_set_shadow_color(&style, lv_palette_main(LV_PALETTE_BLUE));
+      //    lv_style_set_shadow_ofs_x(&style, 10);
+      //    lv_style_set_shadow_ofs_y(&style, 20);
+
+      icDescription_label = lv_label_create(scanInfoTab);
+      lv_label_set_long_mode(icDescription_label, LV_LABEL_LONG_WRAP);     //Break the long lines
+      lv_label_set_recolor(icDescription_label, true);                      //Enable re-coloring by commands in the text
+      lv_label_set_text(icDescription_label, "Nothing useful detected");
+      lv_obj_set_width(icDescription_label, columnWidth*2);  //Fill whole width
+      lv_obj_set_height(icDescription_label, 130);  //Fill bottom of screen
+      lv_obj_set_style_text_align(icDescription_label, LV_TEXT_ALIGN_CENTER, 0);
+      lv_obj_align(icDescription_label, LV_ALIGN_TOP_MID, 0, objectY);
+      lv_obj_add_style(icDescription_label, &style, 0);
   
-      lv_table_set_col_width(tab2table, 0, screenWidth/2-10);
-      lv_table_set_col_width(tab2table, 1, screenWidth/2-10);
-      lv_obj_set_height(tab2table, screenHeight - tabHeight);
-      lv_obj_center(tab2table);
-      //lv_obj_clear_flag(tab2table, LV_OBJ_FLAG_SCROLLABLE);
-  
-      //lv_obj_add_event_cb(tab2table, draw_part_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
-  }
-  */
+      //Stop the tab scrolling
+      lv_obj_clear_flag(scanInfoTab, LV_OBJ_FLAG_SCROLLABLE);  
+    }
+    static void device_dd_event_handler(lv_event_t * e)
+    {
+      lv_event_code_t code = lv_event_get_code(e);
+      lv_obj_t * obj = lv_event_get_target(e);
+      if(code == LV_EVENT_VALUE_CHANGED)
+      {
+        if((uint8_t)lv_dropdown_get_selected(obj) < maximumNumberOfDevices)
+        {
+          if(currentTrackingMode != trackingMode::fixed)
+          {
+            currentTrackingMode = trackingMode::fixed;
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+              SERIAL_DEBUG_PORT.print(F("Changed to fixed tracking: "));
+            #endif
+          }
+          currentlyTrackedBeacon = selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)];
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.print(F("Chose: "));
+          #endif
+          /*
+          if(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icName != nullptr)
+          {
+            lv_label_set_text(icName_label, device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icName);
+          }
+          else
+          {
+            lv_label_set_text(icName_label, "Unknown");
+          }
+          */
+          if(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icDescription != nullptr)
+          {
+            lv_label_set_text(icDescription_label, device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icDescription);
+          }
+          else
+          {
+            lv_label_set_text(icDescription_label, "Nothing useful detected");
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+              SERIAL_DEBUG_PORT.print(F("CALLBACK icDescription == nullptr -> Nothing useful detected"));
+            #endif
+          }
+          if(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].name != nullptr)
+          {
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+              SERIAL_DEBUG_PORT.println(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].name);
+            #endif
+          }
+          else
+          {
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+              SERIAL_DEBUG_PORT.print(F("device "));
+              SERIAL_DEBUG_PORT.print(selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]);
+            #endif
+          }
+        }
+      }
+    }
+    static void button0_event_handler(lv_event_t * e)
+    {
+      lv_event_code_t code = lv_event_get_code(e);
+      if(code == LV_EVENT_CLICKED)
+      {
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.print(F("\"Nearest\" clicked"));
+        #endif
+        if(currentTrackingMode != trackingMode::nearest)
+        {
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F(", changing mode"));
+          #endif
+          currentTrackingMode = trackingMode::nearest;
+        }
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+        else
+        {
+            SERIAL_DEBUG_PORT.println();
+        }
+        #endif
+      }
+    }
+    static void button1_event_handler(lv_event_t * e)
+    {
+      lv_event_code_t code = lv_event_get_code(e);  
+      if(code == LV_EVENT_CLICKED)
+      {
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.print(F("\"Furthest\" clicked"));
+        #endif
+        if(currentTrackingMode != trackingMode::furthest)
+        {
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F(", changing mode"));
+          #endif
+          currentTrackingMode = trackingMode::furthest;
+        }
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+        else
+        {
+            SERIAL_DEBUG_PORT.println();
+        }
+        #endif
+      }
+    }
+    void updateScanInfoTab()
+    {
+      uint8_t indexToPickAftewards = maximumNumberOfDevices;
+      numberOfDevicesInDeviceDropdown = 0;
+      String tempDropdownString = "";
+      for(uint8_t index = 1; index < numberOfDevices; index++)
+      {
+        #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+        if((device[index].loRaOnline == true || device[index].espNowOnline == true) && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
+        #elif defined(SUPPORT_ESPNOW)
+        else if(device[index].espNowOnline == true && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
+        #elif defined(SUPPORT_LORA)
+        else if(device[index].loRaOnline == true && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
+        #endif
+        {
+          if(index == currentlyTrackedBeacon) //Continue tracking after update
+          {
+            indexToPickAftewards = numberOfDevicesInDeviceDropdown;
+          }
+          if(numberOfDevicesInDeviceDropdown != 0)
+          {
+            tempDropdownString += "\n";
+          }
+          selectDeviceDropdownIndices[numberOfDevicesInDeviceDropdown] = index;
+          if(device[index].icName != nullptr)
+          {
+            tempDropdownString += String(device[index].icName);
+          }
+          else
+          {
+            tempDropdownString += "Unknown";
+          }
+          tempDropdownString += " - ";
+          tempDropdownString += String(int(rangeToIndicate(index)));
+          tempDropdownString += "m away";
+          numberOfDevicesInDeviceDropdown++;
+        }
+      }
+      lv_dropdown_set_options(devices_dd, tempDropdownString.c_str());
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+        SERIAL_DEBUG_PORT.print(F("Updated Scan Info Tab, "));
+        if(indexToPickAftewards != maximumNumberOfDevices)
+        {
+          SERIAL_DEBUG_PORT.print(F(" picked device: "));
+          SERIAL_DEBUG_PORT.print(indexToPickAftewards);
+        }
+        else
+        {
+          SERIAL_DEBUG_PORT.print(F("nothing selected"));
+        }
+      #endif
+      if(indexToPickAftewards != maximumNumberOfDevices)
+      {
+        lv_dropdown_set_selected(devices_dd, indexToPickAftewards);
+        /*
+        if(device[selectDeviceDropdownIndices[currentlyTrackedBeacon]].icName != nullptr)
+        {
+          lv_label_set_text(icName_label, device[currentlyTrackedBeacon].icName);
+        }
+        else
+        {
+          lv_label_set_text(icName_label, "Unknown");
+        }
+        */
+        if(device[selectDeviceDropdownIndices[indexToPickAftewards]].icDescription != nullptr)
+        {
+          lv_label_set_text(icDescription_label, device[selectDeviceDropdownIndices[indexToPickAftewards]].icDescription);
+        }
+        else
+        {
+          lv_label_set_text(icDescription_label, "No information available on anomaly");
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.print(F(" icDescription == nullptr -> No information available on anomaly"));
+          #endif
+        }
+      }
+      else
+      {
+        lv_label_set_text(icDescription_label, "Nothing useful detected");
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.print(F(" indexToPickAftewards == maximumNumberOfDevices -> Nothing useful detected"));
+        #endif
+      }
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+        SERIAL_DEBUG_PORT.println();
+      #endif
+    }
+    
+  #endif
   void manageLVGL()
   {
     if(currentLvglUiState == deviceState::starting)
@@ -805,7 +1074,23 @@
     {
       if(millis() > 12E3)
       {
-        lv_label_set_text(status_label, statusLabel_2);
+        if(touchScreenMinimumX == 0 && touchScreenMaximumX == 0 && touchScreenMinimumY == 0 && touchScreenMaximumY == 0)
+        {
+          lv_label_set_text(status_label, statusLabel_3);
+          currentLvglUiState = deviceState::calibrateScreen;
+        }
+        else
+        {
+          lv_label_set_text(status_label, statusLabel_2);
+          currentLvglUiState = deviceState::detectingGpsBaudRate;
+        }
+      }
+    }
+    else if(currentLvglUiState == deviceState::calibrateScreen)
+    {
+      if(touchScreenMinimumX != 0 && touchScreenMaximumX != 0 && touchScreenMinimumY != 0 && touchScreenMaximumY != 0 && millis() - lastUiActivity > 5E3) //Wait for 5s pause
+      {
+        lv_label_set_text(status_label, statusLabel_3);
         currentLvglUiState = deviceState::detectingGpsBaudRate;
       }
     }
@@ -813,7 +1098,7 @@
     {
       if(millis() > 14E3)
       {
-        lv_label_set_text(status_label, statusLabel_3);
+        lv_label_set_text(status_label, statusLabel_4);
         currentLvglUiState = deviceState::gpsDetected;
       }
     }
@@ -821,7 +1106,7 @@
     {
       if(millis() > 16E3 && device[0].hasGpsFix == true)
       {
-        lv_label_set_text(status_label, statusLabel_4);
+        lv_label_set_text(status_label, statusLabel_5);
         currentLvglUiState = deviceState::gpsLocked;
       }
     }
@@ -829,7 +1114,7 @@
     {
       if(device[0].hasGpsFix == false)  //Lost location
       {
-        lv_label_set_text(status_label, statusLabel_3);
+        lv_label_set_text(status_label, statusLabel_4);
         currentLvglUiState == deviceState::gpsDetected;
       }
       else
@@ -858,6 +1143,14 @@
         currentLvglUiState = deviceState::gpsLocked;
       }
     }
+    #ifdef LVGL_ADD_SCAN_INFO_TAB
+      if(millis() - lastScanInfoTabUpdate > 10E3 && findableDevicesChanged == true)
+      {
+        lastScanInfoTabUpdate = millis();
+        findableDevicesChanged = false;
+        updateScanInfoTab();
+      }
+    #endif
     if(displayTimeouts[displayTimeout] > 0)
     {
       if(millis() - lastUiActivity > displayTimeouts[displayTimeout])

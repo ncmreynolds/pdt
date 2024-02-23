@@ -105,7 +105,7 @@
     ssd1306_clearScreen8();
     printTopLine((const char*)F("RANGE"));
     printBottomLine((const char*)F("METERS"));
-    if(device[currentlyTrackedBeacon].hasGpsFix == false || device[currentlyTrackedBeacon].distanceTo > maximumEffectiveRange || currentlyTrackedBeacon == maximumNumberOfDevices)
+    if(device[currentlyTrackedBeacon].hasGpsFix == false || rangeToIndicate(currentlyTrackedBeacon) > maximumEffectiveRange || currentlyTrackedBeacon == maximumNumberOfDevices)
     {
       if(maximumEffectiveRange > 999)
       {
@@ -183,7 +183,7 @@
     #endif
     ssd1306_clearScreen8();
     printTopLine((const char*)F("DIRECTION"));
-    if(device[currentlyTrackedBeacon].hasGpsFix == false || device[currentlyTrackedBeacon].distanceTo > maximumEffectiveRange || currentlyTrackedBeacon == maximumNumberOfDevices)
+    if(device[currentlyTrackedBeacon].hasGpsFix == false || rangeToIndicate(currentlyTrackedBeacon) > maximumEffectiveRange || currentlyTrackedBeacon == maximumNumberOfDevices)
     {
       printMiddleLine((const char*)F("UNKNOWN"));
       #ifdef SERIAL_DEBUG
@@ -233,7 +233,7 @@
     ssd1306_clearScreen8();
     printTopLine((const char*)F("DRONE"));
     printBottomLine((const char*)F("STATUS"));
-    if(device[currentlyTrackedBeacon].numberOfStartingStunHits == 0 || device[currentlyTrackedBeacon].numberOfStartingHits == 0 || device[currentlyTrackedBeacon].hasGpsFix == false || device[currentlyTrackedBeacon].distanceTo > maximumEffectiveRange || currentlyTrackedBeacon == maximumNumberOfDevices)
+    if(device[currentlyTrackedBeacon].numberOfStartingStunHits == 0 || device[currentlyTrackedBeacon].numberOfStartingHits == 0 || device[currentlyTrackedBeacon].hasGpsFix == false || drangeToIndicate(currentlyTrackedBeacon) > maximumEffectiveRange || currentlyTrackedBeacon == maximumNumberOfDevices)
     {
       printMiddleLine((const char*)F("UNKNOWN"));
       #ifdef SERIAL_DEBUG
@@ -468,7 +468,7 @@
     ssd1306_clearScreen8();
     printTopLine((const char*)F("SIGNAL"));
     printBottomLine((const char*)F("STRENGTH"));
-    if(currentlyTrackedBeacon == maximumNumberOfDevices || device[currentlyTrackedBeacon].hasGpsFix == false || device[currentlyTrackedBeacon].distanceTo > maximumEffectiveRange)
+    if(currentlyTrackedBeacon == maximumNumberOfDevices || device[currentlyTrackedBeacon].hasGpsFix == false || rangeToIndicate(currentlyTrackedBeacon) > maximumEffectiveRange)
     {
       #if defined(SERIAL_DEBUG)
       if(waitForBufferSpace(35))

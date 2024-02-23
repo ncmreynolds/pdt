@@ -134,15 +134,27 @@
       }
       if(millis() - lastEspNowDeviceInfoSendTime > espNowDeviceInfoInterval)
       {
-        lastEspNowDeviceInfoSendTime = millis();
-        if(shareDeviceInfoByEspNow())
+        lastEspNowDeviceInfoSendTime = millis() - random(100,200);
+        if(typeOfLastEspNowUpdate == deviceIcInfoId)
         {
-          calculateEspNowDutyCycle();
+          if(shareDeviceInfoByEspNow())
+          {
+            calculateEspNowDutyCycle();
+          }
+          typeOfLastEspNowUpdate = deviceStatusUpdateId;
+        }
+        else if(typeOfLastEspNowUpdate == deviceStatusUpdateId)
+        {
+          if(shareIcInfoByEspNow())
+          {
+            calculateEspNowDutyCycle();
+          }
+          typeOfLastEspNowUpdate = deviceIcInfoId;
         }
       }
       if(millis() - lastEspNowLocationSendTime > device[0].nextEspNowLocationUpdate)
       {
-        lastEspNowLocationSendTime = millis();
+        lastEspNowLocationSendTime = millis() - random(100,200);
         #if defined(ACT_AS_TRACKER)
           if(numberOfBeacons() > 0)  //Only share location if there are some beacons
           {
@@ -208,6 +220,9 @@
           {
             localLogLn(F(" ESPNow gone offline"));
             device[index].espNowOnline = false;
+            #ifdef LVGL_ADD_SCAN_INFO_TAB
+              findableDevicesChanged = true;
+            #endif
             #ifdef ACT_AS_TRACKER
               if(index == currentlyTrackedBeacon) //Need to stop tracking this beacon
               {
@@ -349,6 +364,9 @@
                             }
                           #endif
                           device[deviceIndex].hasGpsFix = true;
+                          #ifdef LVGL_ADD_SCAN_INFO_TAB
+                            findableDevicesChanged = true;
+                          #endif
                         }
                       }
                       else if(device[deviceIndex].hasGpsFix == true)
@@ -360,6 +378,9 @@
                           }
                         #endif
                         device[deviceIndex].hasGpsFix = false;
+                        #ifdef LVGL_ADD_SCAN_INFO_TAB
+                          findableDevicesChanged = true;
+                        #endif
                       }
                       #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
                         if(waitForBufferSpace(80))
@@ -381,7 +402,13 @@
                         localLog(deviceIndex);
                         localLogLn(F(" EspNow gone online"));
                         device[deviceIndex].espNowOnline = true;
+                        #ifdef LVGL_ADD_SCAN_INFO_TAB
+                          findableDevicesChanged = true;
+                        #endif
                       }
+                      #ifdef LVGL_ADD_SCAN_INFO_TAB
+                        findableDevicesChanged = true;
+                      #endif
                     }
                     else if(messagetype == deviceStatusUpdateId)
                     {
@@ -678,6 +705,80 @@
                         #endif
                       }
                     }
+                    else if(messagetype == deviceIcInfoId)
+                    {
+                      if(unpacker.isStr())  //Name
+                      {
+                        String receivedIcName = String(unpacker.unpackString());
+                        bool storeReceivedIcName = false;
+                        if(device[deviceIndex].icName == nullptr) //First time the name is received
+                        {
+                          storeReceivedIcName = true;
+                        }
+                        else if(receivedIcName.equals(String(device[deviceIndex].icName)) == false) //Check the name hasn't changed
+                        {
+                          delete[] device[deviceIndex].icName;
+                          storeReceivedIcName = true;
+                        }
+                        if(storeReceivedIcName == true)
+                        {
+                          device[deviceIndex].icName = new char[receivedIcName.length() + 1];
+                          receivedIcName.toCharArray(device[deviceIndex].icName, receivedIcName.length() + 1);
+                          #ifdef LVGL_ADD_SCAN_INFO_TAB
+                            findableDevicesChanged = true;
+                          #endif
+                        }
+                        if(unpacker.isStr())  //Desc
+                        {
+                          String receivedIcDescription = String(unpacker.unpackString());
+                          bool storeReceivedIcDescription = false;
+                          if(device[deviceIndex].icDescription == nullptr) //First time the name is received
+                          {
+                            storeReceivedIcDescription = true;
+                          }
+                          else if(receivedIcDescription.equals(String(device[deviceIndex].icDescription)) == false) //Check the name hasn't changed
+                          {
+                            delete[] device[deviceIndex].icDescription;
+                            storeReceivedIcDescription = true;
+                          }
+                          if(storeReceivedIcDescription == true)
+                          {
+                            device[deviceIndex].icDescription = new char[receivedIcDescription.length() + 1];
+                            receivedIcDescription.toCharArray(device[deviceIndex].icDescription, receivedIcDescription.length() + 1);
+                            #ifdef LVGL_ADD_SCAN_INFO_TAB
+                              findableDevicesChanged = true;
+                            #endif
+                          }
+                          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                            if(waitForBufferSpace(60))
+                            {
+                              SERIAL_DEBUG_PORT.printf_P(PSTR("IC info name:'%s', name:'%s'\r\n"),
+                                device[deviceIndex].icName,
+                                device[deviceIndex].icDescription
+                                );
+                            }
+                          #endif
+                        }
+                        else
+                        {
+                          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                            if(waitForBufferSpace(30))
+                            {
+                              SERIAL_DEBUG_PORT.print(F("Unexpected type for IC description"));
+                            }
+                          #endif
+                        }
+                      }
+                      else
+                      {
+                        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+                          if(waitForBufferSpace(30))
+                          {
+                            SERIAL_DEBUG_PORT.print(F("Unexpected type for IC name"));
+                          }
+                        #endif
+                      }
+                    }
                     else
                     {
                       #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
@@ -796,6 +897,7 @@
       }
       espNowPacketSent = 0;
     }
+    return false;
   }
   uint32_t newEspNowLocationSharingInterval(uint16_t distance, float speed)
   {
@@ -893,13 +995,6 @@
   }
   bool shareDeviceInfoByEspNow()
   {
-    /*
-    if(espNowTxBusy)
-    {
-      return;
-    }
-    espNowTxBusy = true;
-    */
     MsgPack::Packer packer;
     packer.pack(device[0].id[0]);
     packer.pack(device[0].id[1]);
@@ -976,8 +1071,41 @@
         return true;
       }
     }
-    else
+    espNowTxPacketsDropped++;
+    return false;
+  }
+  bool shareIcInfoByEspNow()
+  {
+    if(device[0].icName != nullptr && device[0].icDescription != nullptr)
     {
+      MsgPack::Packer packer;
+      packer.pack(device[0].id[0]);
+      packer.pack(device[0].id[1]);
+      packer.pack(device[0].id[2]);
+      packer.pack(device[0].id[3]);
+      packer.pack(device[0].id[4]);
+      packer.pack(device[0].id[5]);
+      packer.pack(deviceIcInfoId);
+      packer.pack(device[0].icName);
+      packer.pack(device[0].icDescription);
+      if(packer.size() < maxEspNowBufferSize)
+      {
+        memcpy(espNowSendBuffer, packer.data(),packer.size());
+        espNowSendBufferSize = packer.size();
+        if(sendEspNowBuffer())
+        {  
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+            if(waitForBufferSpace(80))
+            {
+              SERIAL_DEBUG_PORT.printf("ESPNow TX %02x:%02x:%02x:%02x:%02x:%02x IC info name: '%s', desc:'%s'\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
+                device[0].icName,
+                device[0].icDescription
+                );
+            }
+          #endif
+          return true;
+        }
+      }
       espNowTxPacketsDropped++;
     }
     return false;
