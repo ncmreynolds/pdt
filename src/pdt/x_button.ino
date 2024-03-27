@@ -206,7 +206,7 @@
             else if(currentSensorState == sensorState::dead)
             {
               localLogLn(F("Sensor: bleedOut"));
-              #if defined(SUPPORT_BEEPER)
+              #if defined(SUPPORT_LED)
                 ledOn(0, 0);  //Hard put the LED on
               #endif
               currentSensorState = sensorState::bleedOut;

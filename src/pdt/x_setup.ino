@@ -15,7 +15,7 @@ void setup() {
   #if defined(SUPPORT_VIBRATION)
     setupVibration();
   #endif
-  #if defined(SUPPORT_BEEPER)
+  #if defined(SUPPORT_LED)
     setupLed();
     #if HARDWARE_VARIANT == C3LoRaBeacon
       ledSlowBlink();

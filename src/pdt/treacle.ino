@@ -4,23 +4,40 @@
     #if defined(DEBUG_TREACLE)
       treacle.enableDebug(SERIAL_DEBUG_PORT);
     #endif
-    treacle.enableEspNow();
+    if(espNowEnabled == true)
+    {
+      treacle.enableEspNow();
+    }
+    if(loRaEnabled == true)
+    {
+      treacle.setLoRaPins(loRaCsPin, loRaResetPin); //Set the LoRa reset and CS pins, assuming other default SPI pins
+      treacle.setLoRaFrequency(loRaFrequency);      //Set the LoRa frequency. Valid value are 433/868/915Mhz depending on region
+      treacle.enableLoRa();                         //Enable LoRa
+    }
     #if defined(SUPPORT_WIFI)
       if(startWiFiApOnBoot)
       {
         treacle.setEspNowChannel(softApChannel);
       }
     #endif
+    if(device[0].name != nullptr)
+    {
+      treacle.setNodeName(device[0].name);
+    }
+    #if !defined(DEBUG_TREACLE)
+      localLog(F("Initialising treacle: "));
+    #endif
     treacleIntialised = treacle.begin();
-    localLog(F("Initialising treacle: "));
-    if(treacleIntialised)
-    {
-      localLogLn(F("OK"));
-    }
-    else
-    {
-      localLogLn(F("failed"));
-    }
+    #if !defined(DEBUG_TREACLE)
+      if(treacleIntialised)
+      {
+        localLogLn(F("OK"));
+      }
+      else
+      {
+        localLogLn(F("failed"));
+      }
+    #endif
   }
   void manageTreacle()
   {
@@ -103,7 +120,7 @@
     packer.pack(device[0].hdop);
     if(packer.size() < treacle.maxPayloadSize())
     {
-      if(treacle.sendMessage(packer.data(), packer.size()))
+      if(treacle.queueMessage(packer.data(), packer.size()))
       {
         #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
           if(waitForBufferSpace(80))
@@ -142,7 +159,7 @@
     #endif
     if(packer.size() < treacle.maxPayloadSize())
     {
-      if(treacle.sendMessage(packer.data(), packer.size()))
+      if(treacle.queueMessage(packer.data(), packer.size()))
       {  
         #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
           if(waitForBufferSpace(80))
@@ -191,7 +208,7 @@
       packer.pack(device[0].icDescription);
       if(packer.size() < treacle.maxPayloadSize())
       {
-        if(treacle.sendMessage(packer.data(), packer.size()))
+        if(treacle.queueMessage(packer.data(), packer.size()))
         {  
           #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
             if(waitForBufferSpace(80))

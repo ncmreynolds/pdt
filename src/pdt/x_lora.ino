@@ -200,11 +200,11 @@
       #endif
       if(loRaIrqPin != -1)
       {
-        LoRa.setPins(loRaCSpin, loRaResetPin, loRaIrqPin);  //Set CS, Reset & IRQ pin
+        LoRa.setPins(loRaCsPin, loRaResetPin, loRaIrqPin);  //Set CS, Reset & IRQ pin
       }
       else
       {
-        LoRa.setPins(loRaCSpin, loRaResetPin);  //Set CS & Reset only
+        LoRa.setPins(loRaCsPin, loRaResetPin);  //Set CS & Reset only
       }
       if (LoRa.begin(868E6) == true)  //For EU, US is 915E6, Asia 433E6
       {

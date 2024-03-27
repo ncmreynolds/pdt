@@ -174,7 +174,7 @@
           device[0].hasGpsFix = true;
           lastGPSstateChange = millis();
           localLogLn(F("GPS got fix"));
-          #if defined(SUPPORT_BEEPER)
+          #if defined(SUPPORT_LED)
             ledOff(0);
           #endif
         }
@@ -228,7 +228,7 @@
           findableDevicesChanged = true;
         #endif
         localLogLn(F("GPS lost fix"));
-        #if defined(SUPPORT_BEEPER)
+        #if defined(SUPPORT_LED)
           ledSlowBlink();
         #endif
       }

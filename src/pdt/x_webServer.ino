@@ -287,49 +287,102 @@
               response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/icconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"IC config\" style=\"width: 100%;\"></a></div></div>"));
             #endif
             #if defined(SUPPORT_TREACLE)
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Treacle</h2></div></div>"));              
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>ESP-Now radio: <b>"));
-              if(treacle.espNowEnabled() == true)
+              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Treacle</h2></div></div>"));
+              if(treacleIntialised == true)
               {
-                response->print(F("On"));
-              }
-              else
-              {
-                response->print(F("Off"));
-              }
-              response->print(F("</b></li>"));
-              if(treacle.espNowEnabled() == true)
-              {
-                if(treacle.espNowInitialised() == true)
+                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>ESP-Now radio: <b>"));
+                if(treacle.espNowEnabled() == true)
                 {
-                  response->print(F("<li>Channel: <b>"));
-                  response->print(treacle.getEspNowChannel());
-                  response->print(F("</b></li>"));
-                  /*
-                  response->print(F("<li>Packets: <b>"));
-                  response->print(espNowRxPackets);
-                  response->print(F(" RX / "));
-                  response->print(espNowTxPackets);
-                  response->print(F(" TX"));
-                  response->printf_P(PSTR(" Duty cycle: %.02f%%"),calculatedEspNowDutyCycle);
-                  response->print(F(""));
-                  response->print(F("</b></li><li>Dropped: <b>"));
-                  response->print(espNowRxPacketsDropped);
-                  response->print(F(" RX / "));
-                  response->print(espNowTxPacketsDropped);
-                  response->print(F(" TX</b></li>"));
-                  response->print(F("<li>Update interval: <b>"));
-                  response->print(device[0].nextEspNowLocationUpdate/1000);
-                  response->print(F("s</b></li>"));
-                  */
+                  response->print(F("On"));
                 }
                 else
                 {
-                  response->print(F("<li><b>Not initialised</b></li>"));
+                  response->print(F("Off"));
                 }
+                response->print(F("</b></li>"));
+                if(treacle.espNowEnabled() == true)
+                {
+                  if(treacle.espNowInitialised() == true)
+                  {
+                    response->print(F("<ul><li>Channel: <b>"));
+                    response->print(treacle.getEspNowChannel());
+                    response->print(F("</b></li>"));
+                    response->print(F("<li>Packets: <b>"));
+                    response->print(treacle.getEspNowRxPackets());
+                    response->print(F(" RX / "));
+                    response->print(treacle.getEspNowTxPackets());
+                    response->print(F(" TX"));
+                    response->printf_P(PSTR(" Duty cycle: %.02f%%"),treacle.getEspNowDutyCycle());
+                    response->print(F(""));
+                    response->print(F("</b></li><li>Dropped: <b>"));
+                    response->print(treacle.getEspNowRxPacketsDropped());
+                    response->print(F(" RX / "));
+                    response->print(treacle.getEspNowTxPacketsDropped());
+                    response->print(F(" TX</b></li>"));
+                    response->print(F("<li>update interval: <b>"));
+                    response->print(treacle.getEspNowTickInterval()/1000);
+                    response->print(F("s</b></li></ul>"));
+                  }
+                  else
+                  {
+                    response->print(F("<li><b>Not initialised</b></li>"));
+                  }
+                }
+                response->print(F("</ul></div></div>"));
+                if(treacle.loRaEnabled() == true)
+                {
+                  response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>LoRa radio: <b>"));
+                  if(treacle.loRaEnabled() == true)
+                  {
+                    response->print(F("On"));
+                  }
+                  else
+                  {
+                    response->print(F("Off"));
+                  }
+                  response->print(F("</b></li>"));
+                  if(treacle.loRaInitialised() == true)
+                  {
+                    response->print(F("<ul><li>Frequency: <b>"));
+                    response->print(loRaFrequency/1E6);
+                    response->print(F("Mhz</b></li>"));
+                    response->print(F("<ul><li>Packets: <b>"));
+                    response->print(treacle.getLoRaRxPackets());
+                    response->print(F(" RX / "));
+                    response->print(treacle.getLoRaTxPackets());
+                    response->print(F(" TX"));
+                    response->printf_P(PSTR(" Duty cycle: %.02f%%"),treacle.getLoRaDutyCycle());
+                    response->print(F(""));
+                    response->print(F("</b></li><li>Dropped: <b>"));
+                    response->print(treacle.getLoRaRxPacketsDropped());
+                    response->print(F(" RX / "));
+                    response->print(treacle.getLoRaTxPacketsDropped());
+                    response->print(F(" TX</b></li>"));
+                    response->print(F("<li>update interval: <b>"));
+                    response->print(treacle.getLoRaTickInterval()/1000);
+                    response->print(F("s</b></li>"));
+                    response->print(F("<li>Transmit power: <b>"));
+                    response->print(treacle.getLoRaTxPower());
+                    response->print(F("dBm</b></li>"));
+                    response->print(F("<li>Spreading factor: <b>"));
+                    response->print(treacle.getLoRaSpreadingFactor());
+                    response->print(F("</b></li>"));
+                    response->print(F("<li>Signal bandwidth: <b>"));
+                    response->print(treacle.getLoRaSignalBandwidth()/1000);
+                    response->print(F("kBaud</b></li></ul>"));
+                  }
+                  else
+                  {
+                    response->print(F("<li><b>Not initialised</b></li>"));
+                  }
+                }
+                response->print(F("</ul></div></div>"));
               }
-              response->print(F("</ul></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/treacleconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Treacle config\" style=\"width: 100%;\"></a></div></div>"));
+              else
+              {
+                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Initialisation failed!</h3></div></div>"));
+              }
+              //response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/treacleconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Treacle config\" style=\"width: 100%;\"></a></div></div>"));
             #endif
             #if defined(SUPPORT_ESPNOW)
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>ESP-Now</h2></div></div>"));

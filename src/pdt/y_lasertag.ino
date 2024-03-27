@@ -476,7 +476,7 @@
           makeAsingleBeep(300, 250);
         }
       #endif
-      #if defined(SUPPORT_BEEPER)
+      #if defined(SUPPORT_LED)
         ledOn(125, 0);
       #endif
       vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -493,7 +493,7 @@
           makeAsingleBeep(sensorTones[2], 50);
         }
       #endif
-      #if defined(SUPPORT_BEEPER)
+      #if defined(SUPPORT_LED)
         ledOn(25, 0);
       #endif
       if(i%3 == 2)
@@ -518,7 +518,7 @@
           makeAsingleBeep(sensorTones[2], 75);
         }
       #endif
-      #if defined(SUPPORT_BEEPER)
+      #if defined(SUPPORT_LED)
         ledOn(100, 0);
       #endif
       vTaskDelay(150 / portTICK_PERIOD_MS);
@@ -529,7 +529,7 @@
         makeAsingleBeep(900, 250);
       }
     #endif
-    #if defined(SUPPORT_BEEPER)
+    #if defined(SUPPORT_LED)
       ledOn(125, 0);
     #endif
     vTaskDelay(260 / portTICK_PERIOD_MS);
@@ -539,7 +539,7 @@
         makeAsingleBeep(500, 400);
       }
     #endif
-    #if defined(SUPPORT_BEEPER)
+    #if defined(SUPPORT_LED)
       ledOn(200, 0);
     #endif
     vTaskDelay(410 / portTICK_PERIOD_MS);
@@ -553,7 +553,7 @@
         makeAsingleBeep(sensorTones[2], 100);
       }
     #endif
-    #if defined(SUPPORT_BEEPER)
+    #if defined(SUPPORT_LED)
       ledOn(50, 0);
     #endif
     vTaskDelay(150 / portTICK_PERIOD_MS);
@@ -569,7 +569,7 @@
           makeAsingleBeep(1000, 199);
         }
       #endif
-      #if defined(SUPPORT_BEEPER)
+      #if defined(SUPPORT_LED)
         ledOn(100, 0);
       #endif
       vTaskDelay(205 / portTICK_PERIOD_MS);
@@ -586,7 +586,7 @@
           makeAsingleBeep(900, 200);
         }
       #endif
-      #if defined(SUPPORT_BEEPER)
+      #if defined(SUPPORT_LED)
         ledOn(100, 0);
       #endif
       vTaskDelay(210 / portTICK_PERIOD_MS);
@@ -596,7 +596,7 @@
           makeAsingleBeep(500, 200);
         }
       #endif
-      #if defined(SUPPORT_BEEPER)
+      #if defined(SUPPORT_LED)
         ledOn(100, 0);
       #endif
       vTaskDelay(210 / portTICK_PERIOD_MS);

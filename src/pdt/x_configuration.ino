@@ -108,6 +108,12 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
       configuration["rssiAttenuationBaseline"] = rssiAttenuationBaseline;
     #endif
   #endif
+  #if defined(SUPPORT_TREACLE)
+    configuration["nodeId"] = nodeId;
+    configuration["espNowEnabled"] = espNowEnabled;
+    configuration["loRaEnabled"] = loRaEnabled;
+    configuration["loRaFrequency"] = loRaFrequency;
+  #endif
   #if defined(SUPPORT_LVGL)
     configuration["units"] = units;
     configuration["dateFormat"] = dateFormat;
@@ -277,6 +283,12 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         rssiAttenuation = configuration["rssiAttenuation"];
         rssiAttenuationBaseline = configuration["rssiAttenuationBaseline"];
       #endif
+    #endif
+    #if defined(SUPPORT_TREACLE)
+      nodeId = configuration["nodeId"] | 0;
+      espNowEnabled = configuration["espNowEnabled"] | true;
+      loRaEnabled = configuration["loRaEnabled"] | true;
+      loRaFrequency = configuration["loRaFrequency"] | 868E6;
     #endif
     #if defined(SUPPORT_BATTERY_METER)
       enableBatteryMonitor = configuration["enableBatteryMonitor"] | true;

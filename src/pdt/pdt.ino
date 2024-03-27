@@ -30,8 +30,8 @@
 //#define HARDWARE_VARIANT C3PDT
 //#define HARDWARE_VARIANT C3PDTasBeacon
 //#define HARDWARE_VARIANT C3TrackedSensor
-#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
-//#define HARDWARE_VARIANT C3LoRaBeacon
+//#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
+#define HARDWARE_VARIANT C3LoRaBeacon
 //#define HARDWARE_VARIANT CYDTracker
 
 #define PDT_MAJOR_VERSION 0
@@ -58,10 +58,10 @@
   #define USE_SSD1331
   #define SUPPORT_GPS
   //#define DEBUG_GPS
-  #define SUPPORT_LORA
-  #define DEBUG_LORA
+  //#define SUPPORT_ESPNOW
+  //#define SUPPORT_LORA
+  //#define DEBUG_LORA
   #define SUPPORT_WIFI
-  #define SUPPORT_ESPNOW
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3PDTasBeacon
@@ -69,10 +69,10 @@
   #define SUPPORT_GPS
   #define DEBUG_GPS
   #define SUPPORT_WIFI
-  #define SUPPORT_ESPNOW
-  #define DEBUG_ESPNOW
-  #define SUPPORT_LORA
-  #define DEBUG_LORA
+  //#define SUPPORT_ESPNOW
+  //#define DEBUG_ESPNOW
+  //#define SUPPORT_LORA
+  //#define DEBUG_LORA
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3TrackedSensor
   #define ACT_AS_BEACON
@@ -84,9 +84,9 @@
   #define SUPPORT_GPS
   #define DEBUG_GPS
   #define SUPPORT_WIFI
-  #define SUPPORT_ESPNOW
-  #define SUPPORT_LORA
-  #define DEBUG_LORA
+  //#define SUPPORT_ESPNOW
+  //#define SUPPORT_LORA
+  //#define DEBUG_LORA
   #define SUPPORT_BATTERY_METER
   //#define SUPPORT_HACKING
   #define ENABLE_LOCAL_WEBSERVER
@@ -100,7 +100,7 @@
   //#define SUPPORT_LORA
   //#define DEBUG_LORA
   #define SUPPORT_TREACLE
-  #define DEBUG_TREACLE
+  //#define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3LoRaBeacon
@@ -111,14 +111,16 @@
   #define SUPPORT_BUTTON
   #define SUPPORT_LED
   #define SUPPORT_GPS
-  //#define DEBUG_GPS
-  #define SUPPORT_LORA
-  #define DEBUG_LORA
+  #define DEBUG_GPS
+  //#define SUPPORT_ESPNOW
+  //#define DEBUG_ESPNOW
+  //#define SUPPORT_LORA
+  //#define DEBUG_LORA
+  #define SUPPORT_TREACLE
+  //#define DEBUG_TREACLE
   //#define SUPPORT_BATTERY_METER
   //#define SUPPORT_FTM
   #define SUPPORT_WIFI
-  #define SUPPORT_ESPNOW
-  #define DEBUG_ESPNOW
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == CYDTracker
   //#define SUPPORT_BEEPER
@@ -127,10 +129,12 @@
   #define DEBUG_GPS
   //#define DEBUG_BEACON_SELECTION
   #define SUPPORT_WIFI
-  #define SUPPORT_ESPNOW
-  #define DEBUG_ESPNOW
-  #define SUPPORT_LORA
-  #define DEBUG_LORA
+  //#define SUPPORT_ESPNOW
+  //#define DEBUG_ESPNOW
+  //#define SUPPORT_LORA
+  //#define DEBUG_LORA
+  #define SUPPORT_TREACLE
+  //#define DEBUG_TREACLE
   #define SUPPORT_LVGL
   #define LVGL_ADD_HOME_TAB
   #define LVGL_ADD_GPS_TAB
@@ -231,26 +235,26 @@
  * LoRa support
  * 
  */
-#if defined(SUPPORT_LORA)
+#if defined(SUPPORT_LORA) || defined(SUPPORT_TREACLE)
   #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
-    static const int8_t loRaCSpin = 7;          // LoRa radio chip select
+    static const int8_t loRaCsPin = 7;          // LoRa radio chip select
     static const int8_t loRaResetPin = 8;       // LoRa radio reset
     static const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
   #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
-    static const int8_t loRaCSpin = 7;          // LoRa radio chip select
+    static const int8_t loRaCsPin = 7;          // LoRa radio chip select
     static const int8_t loRaResetPin = 8;       // LoRa radio reset
     static const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
   #elif HARDWARE_VARIANT == C3LoRaBeacon
-    static const int8_t loRaCSpin = 7;          // LoRa radio chip select
+    static const int8_t loRaCsPin = 7;          // LoRa radio chip select
     static const int8_t loRaResetPin = 2;       // LoRa radio reset
     static const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
   #elif HARDWARE_VARIANT == CYDTracker
     //Sd card adaptor attachment
-    //static const int8_t loRaCSpin = 5;        // LoRa radio chip select
+    //static const int8_t loRaCsPin = 5;        // LoRa radio chip select
     //static const int8_t loRaResetPin = 22;    // LoRa radio reset
     //static const int8_t loRaIrqPin = 27;      // change for your board; must be a hardware interrupt pin
     //Hand soldered attachment
-    static const int8_t loRaCSpin = 17;         // LoRa radio chip select
+    static const int8_t loRaCsPin = 17;         // LoRa radio chip select
     static const int8_t loRaResetPin = 16;      // LoRa radio reset
     static const int8_t loRaIrqPin = 4;         // change for your board; must be a hardware interrupt pin
   #endif
@@ -265,7 +269,7 @@
     static const int8_t beeperPin = 26;
   #endif
 #endif
-#if defined(SUPPORT_BEEPER)
+#if defined(SUPPORT_LED)
   #if HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
     static const int8_t ledPin = 2;
     static const bool ledPinInverted = false;
@@ -513,9 +517,12 @@
   #include "CRC16.h" //A CRC16 is used to check the packet is LIKELY to be sent in a known format
   #include "CRC.h"
   #define LORA_CRC_POLYNOME 0xac9a  //Taken from https://users.ece.cmu.edu/~koopman/crc/
-  static const uint8_t locationUpdateId = 0x00;    //LoRa packet contains location info from a beacon
-  static const uint8_t deviceStatusUpdateId = 0x10;             //LoRa packet contains device info, shared infrequently
+
+  //These are message packing IDs
+  static const uint8_t locationUpdateId = 0x00;           //LoRa packet contains location info from a beacon
+  static const uint8_t deviceStatusUpdateId = 0x10;       //LoRa packet contains device info, shared infrequently
   static const uint8_t deviceIcInfoId = 0x11;             //LoRa packet contains IC game info, shared very infrequently
+  
   #if defined(SUPPORT_LORA)
     uint8_t typeOfLastLoRaUpdate = deviceIcInfoId;      //Use to cycle through update types
   #endif
@@ -640,6 +647,10 @@
  */
 #if defined(SUPPORT_TREACLE)
   #include <treacle.h>
+  uint8_t nodeId = 0;                 //1-254, 0 implies automatic
+  bool espNowEnabled =  true;
+  bool loRaEnabled  = true;
+  uint32_t loRaFrequency = 868E6;
   bool treacleIntialised = false;
   uint32_t lastTreacleDeviceInfoSendTime = 0;
   uint32_t treacleDeviceInfoInterval = 60E3;      // Send info every 60s
@@ -1319,7 +1330,7 @@ static const uint16_t loggingYieldTime = 100;
  * Simple LED indicator
  * 
  */
-#if defined(SUPPORT_BEEPER)
+#if defined(SUPPORT_LED)
   TaskHandle_t ledManagementTask = NULL;
   SemaphoreHandle_t ledSemaphore = NULL;
   static const uint16_t ledYieldTime = 50;

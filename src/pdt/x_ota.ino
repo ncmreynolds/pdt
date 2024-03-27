@@ -98,7 +98,7 @@
         vTaskDelete(beeperManagementTask);
       }
     #endif
-    #if defined(SUPPORT_BEEPER)
+    #if defined(SUPPORT_LED)
       if(ledManagementTask)
       {
         vTaskDelete(ledManagementTask);
@@ -128,7 +128,7 @@
         xTaskCreate(manageBeeper, "manageBeeper", 512, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
       }
     #endif
-    #if defined(SUPPORT_BEEPER)
+    #if defined(SUPPORT_LED)
       if(!ledManagementTask)
       {
         xTaskCreate(manageLed, "manageLed", 512, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);

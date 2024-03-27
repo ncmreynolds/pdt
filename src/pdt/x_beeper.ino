@@ -134,14 +134,14 @@
       {
         if(distanceToCurrentBeacon < 5) 
         {
-          #if defined(SUPPORT_BEEPER)
+          #if defined(SUPPORT_LED)
             ledOffTime = 100;
           #endif
           repeatingBeepOffTime = repeatingBeepOnTime + 50;  //Fastest beep offtime
         }
         else
         {
-          #if defined(SUPPORT_BEEPER)
+          #if defined(SUPPORT_LED)
             ledOffTime = distanceToCurrentBeacon * 100;
           #endif
           repeatingBeepOffTime = repeatingBeepOnTime + 50 + pow(distanceToCurrentBeacon,2); //Change urgency, ie. off time between beeps
@@ -149,7 +149,7 @@
       }
       else
       {
-        #if defined(SUPPORT_BEEPER)
+        #if defined(SUPPORT_LED)
           ledOffTime = 100;
         #endif
         repeatingBeepOffTime = 0;  //Stop beeping after this one finishes
