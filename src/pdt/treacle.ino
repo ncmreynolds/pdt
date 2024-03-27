@@ -20,6 +20,10 @@
         treacle.setEspNowChannel(softApChannel);
       }
     #endif
+    if(device[0].id != 0)
+    {
+      treacle.setNodeId(device[0].id);
+    }
     if(device[0].name != nullptr)
     {
       treacle.setNodeName(device[0].name);
@@ -37,6 +41,11 @@
       {
         localLogLn(F("failed"));
       }
+      if(device[0].id != 0)
+      {
+        localLog(F("Treacle ID: "));
+        localLogLn(device[0].id);
+      }
     #endif
   }
   void manageTreacle()
@@ -50,6 +59,11 @@
       if(millis() - lastTreacleDeviceInfoSendTime > treacleDeviceInfoInterval)
       {
         lastTreacleDeviceInfoSendTime = millis() - random(100,200);
+        if(treacle.getNodeId() != device[0].id) //Save any autonegotiated nodeId
+        {
+          device[0].id = treacle.getNodeId();
+          saveConfigurationSoon = millis();
+        }
         if(typeOfLastTreacleUpdate == deviceIcInfoId)
         {
           if(shareDeviceInfo())

@@ -109,7 +109,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     #endif
   #endif
   #if defined(SUPPORT_TREACLE)
-    configuration["nodeId"] = nodeId;
+    configuration["id"] = device[0].id;
     configuration["espNowEnabled"] = espNowEnabled;
     configuration["loRaEnabled"] = loRaEnabled;
     configuration["loRaFrequency"] = loRaFrequency;
@@ -285,7 +285,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       #endif
     #endif
     #if defined(SUPPORT_TREACLE)
-      nodeId = configuration["nodeId"] | 0;
+      device[0].id = configuration["id"] | 0;
       espNowEnabled = configuration["espNowEnabled"] | true;
       loRaEnabled = configuration["loRaEnabled"] | true;
       loRaFrequency = configuration["loRaFrequency"] | 868E6;
@@ -306,7 +306,11 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     else
     {
       device[0].name = new char[strlen(default_deviceName) + 5];
-      sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
+      #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+        sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
+      #elif defined(SUPPORT_TREACLE)
+        sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
+      #endif
     }
     if(configuration["configurationComment"])
     {
@@ -360,7 +364,11 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       else
       {
         APSSID = new char[strlen(default_deviceName) + 5];
-        sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
+        #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+          sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
+        #elif defined(SUPPORT_TREACLE)
+          sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
+        #endif
         APPSK = new char[strlen(default_AP_PSK) + 1];
         strlcpy(APPSK,default_AP_PSK,strlen(default_AP_PSK) + 1);
       }
@@ -458,7 +466,11 @@ bool loadDefaultConfiguration()
 {
   localLogLn(F("Loading default configuration"));
   device[0].name = new char[strlen(default_deviceName) + 5];
-  sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
+  #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+    sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
+  #elif defined(SUPPORT_TREACLE)
+    sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
+  #endif
   #if defined(ENABLE_LOCAL_WEBSERVER)
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
       http_user = new char[strlen(default_http_user) + 1];

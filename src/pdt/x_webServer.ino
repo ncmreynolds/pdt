@@ -118,7 +118,9 @@
               #endif
             #endif
             response->print(F("</b></li>"));
-            response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), device[0].id[0], device[0].id[1], device[0].id[2], device[0].id[3], device[0].id[4], device[0].id[5]);
+            #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+              response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), device[0].id[0], device[0].id[1], device[0].id[2], device[0].id[3], device[0].id[4], device[0].id[5]);
+            #endif
             if(filesystemMounted == true)
             {
               #if defined(USE_SPIFFS)
@@ -290,7 +292,10 @@
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Treacle</h2></div></div>"));
               if(treacleIntialised == true)
               {
-                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>ESP-Now radio: <b>"));
+                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>Node ID: <b>"));
+                response->print(treacle.getNodeId());
+                response->print(F("</b></li>"));
+                response->print(F("<li>ESP-Now radio: <b>"));
                 if(treacle.espNowEnabled() == true)
                 {
                   response->print(F("On"));
@@ -312,7 +317,7 @@
                     response->print(F(" RX / "));
                     response->print(treacle.getEspNowTxPackets());
                     response->print(F(" TX"));
-                    response->printf_P(PSTR(" Duty cycle: %.02f%%"),treacle.getEspNowDutyCycle());
+                    response->printf_P(PSTR(" Duty cycle: %.02f%% exceptions:%u"),treacle.getEspNowDutyCycle(), treacle.getEspNowDutyCycleExceptions());
                     response->print(F(""));
                     response->print(F("</b></li><li>Dropped: <b>"));
                     response->print(treacle.getEspNowRxPacketsDropped());
@@ -346,12 +351,21 @@
                     response->print(F("<ul><li>Frequency: <b>"));
                     response->print(loRaFrequency/1E6);
                     response->print(F("Mhz</b></li>"));
-                    response->print(F("<ul><li>Packets: <b>"));
+                    response->print(F("<li>Transmit power: <b>"));
+                    response->print(treacle.getLoRaTxPower());
+                    response->print(F("dBm</b></li>"));
+                    response->print(F("<li>Spreading factor: <b>"));
+                    response->print(treacle.getLoRaSpreadingFactor());
+                    response->print(F("</b></li>"));
+                    response->print(F("<li>Signal bandwidth: <b>"));
+                    response->print(treacle.getLoRaSignalBandwidth()/1000.0);
+                    response->print(F("kBaud</b></li>"));
+                    response->print(F("<li>Packets: <b>"));
                     response->print(treacle.getLoRaRxPackets());
                     response->print(F(" RX / "));
                     response->print(treacle.getLoRaTxPackets());
                     response->print(F(" TX"));
-                    response->printf_P(PSTR(" Duty cycle: %.02f%%"),treacle.getLoRaDutyCycle());
+                    response->printf_P(PSTR(" Duty cycle: %.02f%% exceptions:%u"),treacle.getLoRaDutyCycle(), treacle.getLoRaDutyCycleExceptions());
                     response->print(F(""));
                     response->print(F("</b></li><li>Dropped: <b>"));
                     response->print(treacle.getLoRaRxPacketsDropped());
@@ -360,16 +374,7 @@
                     response->print(F(" TX</b></li>"));
                     response->print(F("<li>update interval: <b>"));
                     response->print(treacle.getLoRaTickInterval()/1000);
-                    response->print(F("s</b></li>"));
-                    response->print(F("<li>Transmit power: <b>"));
-                    response->print(treacle.getLoRaTxPower());
-                    response->print(F("dBm</b></li>"));
-                    response->print(F("<li>Spreading factor: <b>"));
-                    response->print(treacle.getLoRaSpreadingFactor());
-                    response->print(F("</b></li>"));
-                    response->print(F("<li>Signal bandwidth: <b>"));
-                    response->print(treacle.getLoRaSignalBandwidth()/1000);
-                    response->print(F("kBaud</b></li></ul>"));
+                    response->print(F("s</b></li></ul>"));
                   }
                   else
                   {
@@ -3169,6 +3174,8 @@
           response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>ESP-Now signal quality</th><th>Info</th></tr></thead><tbody>"));
           #elif defined(SUPPORT_LORA)
           response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>LoRa signal quality</th><th>Info</th></tr></thead><tbody>"));
+          #elif defined(SUPPORT_TREACLE)
+          response->print(F("<table><thead><tr><th>Name</th><th>ID</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Signal quality</th><th>Info</th></tr></thead><tbody>"));
           #endif
           for(uint8_t index = 0; index < numberOfDevices; index++)
           {
@@ -3178,12 +3185,18 @@
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>%04x</td><td>"),
               #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
+              #elif defined(SUPPORT_TREACLE)
+                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
               #else
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td></td><td>"),
               #endif
                 (device[index].name == nullptr) ? "n/a" : device[index].name,
                 (device[index].icName == nullptr) ? "" : device[index].icName,
-                device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
+                #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+                  device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
+                #elif defined(SUPPORT_TREACLE)
+                  device[index].id,
+                #endif
                 deviceFeatures(device[index].typeOfDevice).c_str(),
                 device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
                 (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
@@ -3192,39 +3205,42 @@
                 device[index].latitude,
                 device[index].longitude,
                 device[index].distanceTo,
+                device[index].courseTo,
                 #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-                  device[index].courseTo,
                   device[index].espNowUpdateHistory,
                   device[index].loRaUpdateHistory);
                 #elif  defined(SUPPORT_ESPNOW)
-                  device[index].courseTo,
                   device[index].espNowUpdateHistory);
                 #elif  defined(SUPPORT_LORA)
-                  device[index].courseTo,
                   device[index].loRaUpdateHistory);
+                #elif defined(SUPPORT_TREACLE)
+                  0);
                 #else
-                  device[index].courseTo);
                 #endif
             }
             else
             {
               #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-              response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>----</td><td>This device"),
+                response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>----</td><td>This device"),
               #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
-              response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>This device"),
+                response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>This device"),
+              #elif defined(SUPPORT_TREACLE)
+                response->printf_P(PSTR("<tr><td>%s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>This device"),
               #endif
+              (device[index].name == nullptr) ? "n/a" : device[index].name,
               #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
-                (device[index].name == nullptr) ? "n/a" : device[index].name,
                 device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
-                deviceFeatures(device[index].typeOfDevice).c_str(),
-                device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
-                (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
-                device[index].supplyVoltage,
-                (device[index].hasGpsFix == true) ? PSTR("Yes") : PSTR("No"),
-                device[index].latitude,
-                device[index].longitude
-                );
+              #elif defined(SUPPORT_TREACLE)
+                device[index].id,
               #endif
+              deviceFeatures(device[index].typeOfDevice).c_str(),
+              device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
+              (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
+              device[index].supplyVoltage,
+              (device[index].hasGpsFix == true) ? PSTR("Yes") : PSTR("No"),
+              device[index].latitude,
+              device[index].longitude
+              );
             }
               #if defined(ACT_AS_TRACKER)
                 if(index == currentlyTrackedBeacon)

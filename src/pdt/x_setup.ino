@@ -33,7 +33,11 @@ void setup() {
       }
     #endif
   #endif
-  WiFi.macAddress(device[0].id); //Copy in local MAC address as 'device 0'
+  #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+    WiFi.macAddress(device[0].id); //Copy in local MAC address as 'device 0'
+  #elif defined(SUPPORT_TREACLE)
+    WiFi.macAddress(localMacAddress); //Copy in local MAC address
+  #endif
   #if defined(ACT_AS_TRACKER)
     device[0].typeOfDevice = device[0].typeOfDevice | 1;  //Mark it as a tracker
   #endif

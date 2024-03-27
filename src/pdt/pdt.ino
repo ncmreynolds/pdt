@@ -647,7 +647,7 @@
  */
 #if defined(SUPPORT_TREACLE)
   #include <treacle.h>
-  uint8_t nodeId = 0;                 //1-254, 0 implies automatic
+  uint8_t localMacAddress[6] = {};
   bool espNowEnabled =  true;
   bool loRaEnabled  = true;
   uint32_t loRaFrequency = 868E6;
@@ -872,7 +872,11 @@ static const uint16_t loggingYieldTime = 100;
  */
 #if defined(SUPPORT_GPS)
   struct deviceInfo {
-    uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    #if defined(SUPPORT_TREACLE)
+      uint8_t id = 0;
+    #else
+      uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    #endif
     char* name = nullptr;
     bool hasGpsFix = false;
     uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor, 4 = emitter, 8 = FTM beacon
@@ -894,6 +898,7 @@ static const uint16_t loggingYieldTime = 100;
       uint16_t loRaUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
     #endif
     #if defined(SUPPORT_TREACLE)
+      bool treacleOnline = false;
       uint32_t lastTreacleLocationUpdate = 0;  // Used to track packet loss
       uint16_t nextTreacleLocationUpdate = 60E3;  // Used to track packet loss
       uint16_t treacleUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
