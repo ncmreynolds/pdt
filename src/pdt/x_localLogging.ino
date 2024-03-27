@@ -112,7 +112,7 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
         }
         updateTimestamp();
         /*
-        #ifdef SERIAL_LOG
+        #if defined(SERIAL_LOG)
           if(waitForBufferSpace(20))
           {
             SERIAL_DEBUG_PORT.print(timestamp);
@@ -123,7 +123,7 @@ void localLog(typeToLog message)  //Add a partial line to the local log, startin
         logToFile(timestamp);
         logToFile(' ');
       }
-      #ifdef SERIAL_LOG
+      #if defined(SERIAL_LOG)
         if(waitForBufferSpace(String(message).length()))
         {
           SERIAL_DEBUG_PORT.print(message);
@@ -176,7 +176,7 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
         }
         updateTimestamp();
         /*
-        #ifdef SERIAL_LOG
+        #if defined(SERIAL_LOG)
           if(waitForBufferSpace(21))
           {
             SERIAL_DEBUG_PORT.print(timestamp);
@@ -187,7 +187,7 @@ void localLog(typeToLog message, uint8_t base)  //Add a partial line to the loca
         logToFile(timestamp);
         logToFile(' ');
       }
-      #ifdef SERIAL_LOG
+      #if defined(SERIAL_LOG)
         if(waitForBufferSpace(32))
         {
           SERIAL_DEBUG_PORT.print(message, base);
@@ -240,7 +240,7 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
         }
         updateTimestamp();
         /*
-        #ifdef SERIAL_LOG
+        #if defined(SERIAL_LOG)
           if(waitForBufferSpace(21))
           {
             SERIAL_DEBUG_PORT.print(timestamp);
@@ -251,7 +251,7 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
         logToFile(timestamp);
         logToFile(' ');
       }
-      #ifdef SERIAL_LOG
+      #if defined(SERIAL_LOG)
         if(waitForBufferSpace(String(message).length() + 1))
         {
           SERIAL_DEBUG_PORT.println(message);

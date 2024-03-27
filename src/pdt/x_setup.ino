@@ -5,26 +5,26 @@
  */
 void setup() {
   //The very first thing to do is set up GPIO, as some things need pulling up/down ASAP
-  #ifdef SUPPORT_SOFT_POWER_OFF
+  #if defined(SUPPORT_SOFT_POWER_OFF)
     setupSoftPowerOff();
   #endif
-  #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+  #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
     setupPeripheralPowerOff();
     peripheralPowerOn();
   #endif
-  #ifdef SUPPORT_VIBRATION
+  #if defined(SUPPORT_VIBRATION)
     setupVibration();
   #endif
-  #ifdef SUPPORT_LED
+  #if defined(SUPPORT_BEEPER)
     setupLed();
     #if HARDWARE_VARIANT == C3LoRaBeacon
       ledSlowBlink();
     #endif
   #endif
-  #ifdef SUPPORT_BEEPER
+  #if defined(SUPPORT_BEEPER)
     setupBeeper();
   #endif
-  #ifdef SUPPORT_BUTTON
+  #if defined(SUPPORT_BUTTON)
     setupButton();
     #if defined(ACT_AS_SENSOR)
       if(digitalRead(buttonPin) == false)
@@ -34,13 +34,13 @@ void setup() {
     #endif
   #endif
   WiFi.macAddress(device[0].id); //Copy in local MAC address as 'device 0'
-  #ifdef ACT_AS_TRACKER
+  #if defined(ACT_AS_TRACKER)
     device[0].typeOfDevice = device[0].typeOfDevice | 1;  //Mark it as a tracker
   #endif
-  #ifdef ACT_AS_SENSOR
+  #if defined(ACT_AS_SENSOR)
     device[0].typeOfDevice = device[0].typeOfDevice | 2; //Mark it as a sensor
   #endif
-  #ifdef SUPPORT_FTM
+  #if defined(SUPPORT_FTM)
     if(ftmEnabled == true)
     {
       device[0].typeOfDevice = device[0].typeOfDevice | 8;  //Mark it as an FTM device
@@ -60,7 +60,7 @@ void setup() {
   #if defined(ACT_AS_SENSOR)
     sensorPersitentData.begin("sensor", false); 
     loadSensorConfiguration();
-    #ifdef SUPPORT_BUTTON
+    #if defined(SUPPORT_BUTTON)
       if(sensorReset == true)
       {
         localLogLn(F("Resetting sensor due to button press"));
@@ -69,30 +69,38 @@ void setup() {
     #endif
     showSensorConfiguration();
   #endif
-  #ifdef SUPPORT_WIFI
+  #if defined(SUPPORT_WIFI)
     setupNetwork();
   #endif
-  #ifdef SUPPORT_ESPNOW
+  #if defined(SUPPORT_ESPNOW)
     setupEspNow();
   #endif
   #if defined(SUPPORT_DISPLAY) && defined(SUPPORT_LORA)
     setupLoRa();  //Needs to be before SPI display!
   #endif
-  #ifdef SUPPORT_DISPLAY
+  #if defined(SUPPORT_DISPLAY) && defined(SUPPORT_TREACLE)
+    setupTreacle();
+  #endif
+  #if defined(SUPPORT_DISPLAY)
     setupDisplay();  //Needs to be after LoRa
   #endif
-  #ifdef SUPPORT_LVGL
+  #if defined(SUPPORT_LVGL)
     setupLvgl();
   #endif
   #if defined(SUPPORT_LVGL) && defined(SUPPORT_LORA)
     setupLoRa();  //Needs to be after LVGL and touchscreen!
-  #else
+  #elif defined(SUPPORT_LORA)
     setupLoRa();  //Here's as good a place as any to start LoRa with no other worries about which library starts SPI
   #endif
-  #ifdef SUPPORT_GPS
+  #if defined(SUPPORT_LVGL) && defined(SUPPORT_TREACLE)
+    setupTreacle();
+  #elif defined(SUPPORT_TREACLE)
+    setupTreacle();
+  #endif
+  #if defined(SUPPORT_GPS)
     setupGps();
   #endif
-  #ifdef SUPPORT_BATTERY_METER
+  #if defined(SUPPORT_BATTERY_METER)
     setupBattery();
   #endif
   #if defined(ACT_AS_SENSOR)

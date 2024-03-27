@@ -1,4 +1,4 @@
-#ifdef SUPPORT_LED
+#if defined(SUPPORT_BEEPER)
   void setupLed()
   {
     pinMode(ledPin, OUTPUT);

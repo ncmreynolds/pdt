@@ -3,7 +3,7 @@
  * This file contains functions related to the GPS module, for both location and time
  * 
  */
-#ifdef SUPPORT_GPS
+#if defined(SUPPORT_GPS)
   void setupGps()
   {
     GPS_PORT.setRxBufferSize(256);  //Set the largest possible buffer for GPS data so it can buffer then be ingested quickly. 9600 baud sucks
@@ -38,8 +38,8 @@
             calculateDistanceToTrackers();  //May need to change update frequency due to movement
           #endif
         }
-        #ifdef SUPPORT_BEEPER
-          #ifdef ACT_AS_TRACKER
+        #if defined(SUPPORT_BEEPER)
+          #if defined(ACT_AS_TRACKER)
             if(currentlyTrackedBeacon != maximumNumberOfDevices && device[currentlyTrackedBeacon].hasGpsFix == true && (distanceToCurrentBeaconChanged == true || millis() - lastDistanceChangeUpdate > 5000))  //Set beeper urgency based on current distance, if it has changed
             {
               //distanceToCurrentBeaconChanged 
@@ -51,7 +51,7 @@
             }
           #endif
         #endif
-        #ifdef SUPPORT_LVGL
+        #if defined(SUPPORT_LVGL)
         /*
         if(currentTrackingMode == trackingMode::furthest)
         {
@@ -62,7 +62,7 @@
           }
         }*/
         #endif
-        #ifdef SUPPORT_DISPLAY
+        #if defined(SUPPORT_DISPLAY)
           if(currentlyTrackedBeacon != maximumNumberOfDevices && device[currentlyTrackedBeacon].hasGpsFix == true && (distanceToCurrentBeaconChanged == true || millis() - lastDistanceChangeUpdate > 5000)) //Show distance if it changes
           {
             distanceToCurrentBeaconChanged = false;
@@ -100,18 +100,18 @@
             }
           }
         #endif
-        #ifdef SUPPORT_LVGL
+        #if defined(SUPPORT_LVGL)
           if(millis() - lastLvglTabUpdate > lvglTabUpdateInterval)
           {
             lastLvglTabUpdate = millis();
             updateHomeTab();
-            #ifdef LVGL_ADD_GPS_TAB
+            #if defined(LVGL_ADD_GPS_TAB)
               updateGpsTab();
             #endif
           }
         #endif
       }
-      #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+      #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
       if(peripheralsEnabled)
       {
       #endif
@@ -120,7 +120,7 @@
           lastGpsTimeCheck = millis();
           updateTimeFromGps();
         }
-      #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+      #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
       }
       #endif
       xSemaphoreGive(gpsSemaphore);
@@ -163,7 +163,7 @@
   }
   bool updateLocation() //True implies there's a GPS fix
   {
-    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
     if(peripheralsEnabled == true)
     {
     #endif
@@ -174,7 +174,7 @@
           device[0].hasGpsFix = true;
           lastGPSstateChange = millis();
           localLogLn(F("GPS got fix"));
-          #ifdef SUPPORT_LED
+          #if defined(SUPPORT_BEEPER)
             ledOff(0);
           #endif
         }
@@ -191,7 +191,7 @@
         device[0].hdop = gps.hdop.hdop();
         gpsSentences = gps.passedChecksum();
         gpsErrors = gps.failedChecksum();
-        #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+        #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
           if(peripheralsEnabled == true)
           {
             if(device[0].hdop < normalHdopThreshold)
@@ -224,16 +224,16 @@
       {
         device[0].hasGpsFix = false;
         lastGPSstateChange = millis();
-        #ifdef LVGL_ADD_SCAN_INFO_TAB
+        #if defined(LVGL_ADD_SCAN_INFO_TAB)
           findableDevicesChanged = true;
         #endif
         localLogLn(F("GPS lost fix"));
-        #ifdef SUPPORT_LED
+        #if defined(SUPPORT_BEEPER)
           ledSlowBlink();
         #endif
       }
       return false;
-    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
     }
     else
     {
@@ -370,7 +370,7 @@
               SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
-            #ifdef LVGL_ADD_SCAN_INFO_TAB
+            #if defined(LVGL_ADD_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
           }
@@ -384,7 +384,7 @@
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
             currentTrackingMode = trackingMode::fixed;  //Switch to fixed as 'furthest' needs to fix once chose
-            #ifdef LVGL_ADD_SCAN_INFO_TAB
+            #if defined(LVGL_ADD_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
           }
@@ -404,7 +404,7 @@
       {
         distanceToCurrentBeacon = uint32_t(device[index].distanceTo);
         distanceToCurrentBeaconChanged = true;
-        #ifdef SUPPORT_DISPLAY
+        #if defined(SUPPORT_DISPLAY)
           if(currentDisplayState == displayState::distance) //Clear distance if showing
           {
             displayDistanceToBeacon();

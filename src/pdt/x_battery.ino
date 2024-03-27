@@ -1,4 +1,4 @@
-#ifdef SUPPORT_BATTERY_METER
+#if defined(SUPPORT_BATTERY_METER)
   void setupBattery()
   {
     if(enableBatteryMonitor == true)

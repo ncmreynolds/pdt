@@ -44,11 +44,11 @@
   {
     if(filesystemMounted == true)
     {
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
         webserverSemaphore = xSemaphoreCreateBinary();
         xSemaphoreGive(webserverSemaphore);
       #endif
-      #ifdef SUPPORT_HACKING
+      #if defined(SUPPORT_HACKING)
         if(sensorReset == false)
         {
           //Re-use the ESPUI object
@@ -64,7 +64,7 @@
       #endif
       localLog(F("Configuring web server callbacks: "));
       adminWebServer->on("/admin", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -213,7 +213,7 @@
               #endif
             #endif
             response->print(F("</b></li>"));
-            #ifdef SUPPORT_BATTERY_METER
+            #if defined(SUPPORT_BATTERY_METER)
               if(enableBatteryMonitor == true)
               {
                 response->print(F("<li>Battery voltage: <b>"));
@@ -258,7 +258,7 @@
             response->print(F("</ul></div></div>"));
             response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Config\" style=\"width: 100%;\"></a></div>"));
             response->print(F("<div class=\"four columns\"><a href =\"/wipe\"><input class=\"button-primary\" type=\"button\" value=\"Wipe\" style=\"width: 100%;\"></a></div></div>"));
-            #ifdef ACT_AS_BEACON
+            #if defined(ACT_AS_BEACON)
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>In-game info</h2></div></div>"));
               response->print(F("<li>Name: <b>"));
               if(device[0].icName != nullptr)
@@ -286,7 +286,52 @@
               response->print(F("</b></li>"));
               response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/icconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"IC config\" style=\"width: 100%;\"></a></div></div>"));
             #endif
-            #ifdef SUPPORT_ESPNOW
+            #if defined(SUPPORT_TREACLE)
+              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Treacle</h2></div></div>"));              
+              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>ESP-Now radio: <b>"));
+              if(treacle.espNowEnabled() == true)
+              {
+                response->print(F("On"));
+              }
+              else
+              {
+                response->print(F("Off"));
+              }
+              response->print(F("</b></li>"));
+              if(treacle.espNowEnabled() == true)
+              {
+                if(treacle.espNowInitialised() == true)
+                {
+                  response->print(F("<li>Channel: <b>"));
+                  response->print(treacle.getEspNowChannel());
+                  response->print(F("</b></li>"));
+                  /*
+                  response->print(F("<li>Packets: <b>"));
+                  response->print(espNowRxPackets);
+                  response->print(F(" RX / "));
+                  response->print(espNowTxPackets);
+                  response->print(F(" TX"));
+                  response->printf_P(PSTR(" Duty cycle: %.02f%%"),calculatedEspNowDutyCycle);
+                  response->print(F(""));
+                  response->print(F("</b></li><li>Dropped: <b>"));
+                  response->print(espNowRxPacketsDropped);
+                  response->print(F(" RX / "));
+                  response->print(espNowTxPacketsDropped);
+                  response->print(F(" TX</b></li>"));
+                  response->print(F("<li>Update interval: <b>"));
+                  response->print(device[0].nextEspNowLocationUpdate/1000);
+                  response->print(F("s</b></li>"));
+                  */
+                }
+                else
+                {
+                  response->print(F("<li><b>Not initialised</b></li>"));
+                }
+              }
+              response->print(F("</ul></div></div>"));
+              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/treacleconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Treacle config\" style=\"width: 100%;\"></a></div></div>"));
+            #endif
+            #if defined(SUPPORT_ESPNOW)
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>ESP-Now</h2></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>ESP-Now radio: <b>"));
               if(espNowEnabled == true)
@@ -368,7 +413,7 @@
               response->print(F("</ul></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/loraconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"LoRa config\" style=\"width: 100%;\"></a></div></div>"));
             #endif
-            #ifdef SUPPORT_FTM
+            #if defined(SUPPORT_FTM)
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>FTM (time-of-flight) measurements</h2></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>FTM beacon: <b>"));
               if(ftmEnabled == true)
@@ -383,10 +428,10 @@
               response->print(F("</ul></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/ftmconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"FTM configuration\" style=\"width: 100%;\"></a></div></div>"));
             #endif
-            #ifdef SUPPORT_GPS
+            #if defined(SUPPORT_GPS)
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>GPS</h2></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul>"));
-              #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+              #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
                 response->print(F("<li>Power: <b>"));
                 if(peripheralsEnabled == true)
                 {
@@ -534,7 +579,7 @@
               }
             #endif
             response->print(F("</ul>"));
-            #ifdef SUPPORT_HACKING
+            #if defined(SUPPORT_HACKING)
               response->print(F("<h2>Game</h2>"));
               response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/gameConfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Configure hacking game\" style=\"width: 100%;\"></a></div></div>"));
               response->print(F("<ul>"));
@@ -544,7 +589,7 @@
             addPageFooter(response);
             //Send response
             request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -557,7 +602,7 @@
         #endif
       });
       adminWebServer->on("/listLogs", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows a list of all the log files
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -614,7 +659,7 @@
             addPageFooter(response);
             //Send response
             request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -628,7 +673,7 @@
       });
       #if defined(ENABLE_LOG_DELETION)
         adminWebServer->on("/deleteLog", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -654,7 +699,7 @@
               {
                 request->send(500, "text/plain", request->url() + " file not found");
               }
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -667,7 +712,7 @@
         #endif
         });
         adminWebServer->on("/deleteLogConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -702,7 +747,7 @@
               {
                 request->send(500, "text/plain", request->url() + " file not found");
               }
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -716,7 +761,7 @@
         });
       #endif
       adminWebServer->on("/configuration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -849,7 +894,7 @@
             //response->print(F("<option value=\"86400\""));response->print(logFlushInterval == 86400 ? " selected>":">");response->print(F("24 hours</option>"));
             response->print(F("</select></div></div>"));
             //Battery
-            #ifdef SUPPORT_BATTERY_METER
+            #if defined(SUPPORT_BATTERY_METER)
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Battery monitor</h3></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"enableBatteryMonitor\">Enable battery monitor</label><select class=\"u-full-width\" id=\"enableBatteryMonitor\" name=\"enableBatteryMonitor\">"));
               response->print(F("<option value=\"true\""));response->print(enableBatteryMonitor == true ? " selected>":">");response->print(F("Enabled</option>"));
@@ -880,14 +925,14 @@
             response->print(F("<option value=\"1\""));response->print(trackingSensitivity == 1 ? " selected>":">");response->print(F("Medium</option>"));
             response->print(F("<option value=\"2\""));response->print(trackingSensitivity == 2 ? " selected>":">");response->print(F("High</option>"));
             response->print(F("</select></div></div>"));
-            #ifdef SUPPORT_BEEPER
+            #if defined(SUPPORT_BEEPER)
               #if defined(ACT_AS_TRACKER)
                 response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Beeper</h3></div></div>"));
                 response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"beeperEnabled\">Beeper enabled</label><select class=\"u-full-width\" id=\"beeperEnabled\" name=\"beeperEnabled\">"));
                 response->print(F("<option value=\"true\""));response->print(beeperEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
                 response->print(F("<option value=\"false\""));response->print(beeperEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
                 response->print(F("</select></div>"));
-                #ifdef SUPPORT_BUTTON
+                #if defined(SUPPORT_BUTTON)
                   response->print(F("<div class=\"six columns\"><label for=\"beepOnPress\">Button beep</label><select class=\"u-full-width\" id=\"beepOnPress\" name=\"beepOnPress\">"));
                   response->print(F("<option value=\"true\""));response->print(beepOnPress == true ? " selected>":">");response->print(F("Enabled</option>"));
                   response->print(F("<option value=\"false\""));response->print(beepOnPress == false ? " selected>":">");response->print(F("Disabled</option>"));
@@ -901,7 +946,7 @@
                 response->print(F("</select></div></div>"));
               #endif
             #endif
-            #ifdef SUPPORT_VIBRATION
+            #if defined(SUPPORT_VIBRATION)
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Vibration motor</h3></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"vibrationEnabled\">Haptic feedback enabled</label><select class=\"u-full-width\" id=\"vibrationEnabled\" name=\"vibrationEnabled\">"));
               response->print(F("<option value=\"true\""));response->print(vibrationEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
@@ -930,7 +975,7 @@
             addPageFooter(response);
             //Send response
             request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -943,7 +988,7 @@
         #endif
         });
         adminWebServer->on("/configuration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -1074,7 +1119,7 @@
                 }
               }
             #endif
-            #ifdef SUPPORT_BATTERY_METER
+            #if defined(SUPPORT_BATTERY_METER)
               if(request->hasParam("enableBatteryMonitor", true))
               {
                 if(request->getParam("enableBatteryMonitor", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
@@ -1110,7 +1155,7 @@
                   //localLogLn(F("disabled"));
                 }
               }
-              #ifdef SUPPORT_BUTTON
+              #if defined(SUPPORT_BUTTON)
                 if(request->hasParam("beepOnPress", true))
                 {
                   if(request->getParam("beepOnPress", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
@@ -1124,7 +1169,7 @@
                 }
               #endif
             #endif
-            #ifdef SUPPORT_VIBRATION
+            #if defined(SUPPORT_VIBRATION)
               if(request->hasParam("vibrationEnabled", true))
               {
                 if(request->getParam("vibrationEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
@@ -1315,7 +1360,7 @@
               saveConfigurationSoon = millis();
             }
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -1327,9 +1372,9 @@
           }
         #endif
       });
-      #ifdef ACT_AS_BEACON
+      #if defined(ACT_AS_BEACON)
         adminWebServer->on("/icconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -1367,7 +1412,7 @@
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -1380,7 +1425,7 @@
           #endif
           });
           adminWebServer->on("/icconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
             #endif
@@ -1444,7 +1489,7 @@
               }
               saveConfigurationSoon = millis();
               request->redirect("/admin");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -1457,9 +1502,9 @@
           #endif
         });
       #endif
-      #ifdef SUPPORT_ESPNOW
+      #if defined(SUPPORT_ESPNOW)
           adminWebServer->on("/espnowconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -1563,7 +1608,7 @@
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -1576,7 +1621,7 @@
           #endif
           });
         adminWebServer->on("/espnowconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -1725,7 +1770,7 @@
               saveConfigurationSoon = millis();
             }
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -1738,9 +1783,9 @@
         #endif
       });
       #endif
-      #ifdef SUPPORT_LORA
+      #if defined(SUPPORT_LORA)
         adminWebServer->on("/loraconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -1824,22 +1869,24 @@
               response->print(F("<option value=\"180000\""));response->print(loRaDeviceInfoInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
               response->print(F("<option value=\"120000\""));response->print(loRaDeviceInfoInterval == 300000 ? " selected>":">");response->print(F("5m</option>"));
               response->print(F("</select></div></div>"));
-              //RSSI range estimation
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"four columns\"><label for=\"rssiAttenuation\">RSSI attenuation (distance halfing rate)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuation\" name=\"rssiAttenuation\"></div>"), rssiAttenuation);
-              response->printf_P(PSTR("<div class=\"four columns\"><label for=\"rssiAttenuationBaseline\">RSSI at 10m (approx)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuationBaseline\" name=\"rssiAttenuationBaseline\"></div>"), rssiAttenuationBaseline);
-              response->print(F("<div class=\"four columns\"><label for=\"rssiAttenuationPerimeter\">Minimum distance for RSSI attenuation distance estimation</label><select class=\"u-full-width\" id=\"rssiAttenuationPerimeter\" name=\"rssiAttenuationPerimeter\">"));
-              response->print(F("<option value=\"3\""));response->print(rssiAttenuationPerimeter == 3 ? " selected>":">");response->print(F("3m</option>"));
-              response->print(F("<option value=\"5\""));response->print(rssiAttenuationPerimeter == 5 ? " selected>":">");response->print(F("5m</option>"));
-              response->print(F("<option value=\"7\""));response->print(rssiAttenuationPerimeter == 7 ? " selected>":">");response->print(F("7m</option>"));
-              response->print(F("<option value=\"10\""));response->print(rssiAttenuationPerimeter == 10 ? " selected>":">");response->print(F("10m</option>"));
-              response->print(F("<option value=\"15\""));response->print(rssiAttenuationPerimeter == 15 ? " selected>":">");response->print(F("15m</option>"));
-              response->print(F("</select></div></div>"));
+              #if defined(MEASURE_DISTANCE_WITH_LORA)
+                //RSSI range estimation
+                response->printf_P(PSTR("<div class=\"row\"><div class=\"four columns\"><label for=\"rssiAttenuation\">RSSI attenuation (distance halfing rate)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuation\" name=\"rssiAttenuation\"></div>"), rssiAttenuation);
+                response->printf_P(PSTR("<div class=\"four columns\"><label for=\"rssiAttenuationBaseline\">RSSI at 10m (approx)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuationBaseline\" name=\"rssiAttenuationBaseline\"></div>"), rssiAttenuationBaseline);
+                response->print(F("<div class=\"four columns\"><label for=\"rssiAttenuationPerimeter\">Minimum distance for RSSI attenuation distance estimation</label><select class=\"u-full-width\" id=\"rssiAttenuationPerimeter\" name=\"rssiAttenuationPerimeter\">"));
+                response->print(F("<option value=\"3\""));response->print(rssiAttenuationPerimeter == 3 ? " selected>":">");response->print(F("3m</option>"));
+                response->print(F("<option value=\"5\""));response->print(rssiAttenuationPerimeter == 5 ? " selected>":">");response->print(F("5m</option>"));
+                response->print(F("<option value=\"7\""));response->print(rssiAttenuationPerimeter == 7 ? " selected>":">");response->print(F("7m</option>"));
+                response->print(F("<option value=\"10\""));response->print(rssiAttenuationPerimeter == 10 ? " selected>":">");response->print(F("10m</option>"));
+                response->print(F("<option value=\"15\""));response->print(rssiAttenuationPerimeter == 15 ? " selected>":">");response->print(F("15m</option>"));
+                response->print(F("</select></div></div>"));
+              #endif
               //End of form
               response->print(F("</form>"));
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -1852,7 +1899,7 @@
           #endif
           });
           adminWebServer->on("/loraconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
             #endif
@@ -1986,42 +2033,44 @@
                   loRaConfigurationChanged = true;
                 }
               }
-              if(request->hasParam("rssiAttenuation", true))
-              {
-                if(rssiAttenuation != request->getParam("rssiAttenuation", true)->value().toFloat())
+              #if defined(MEASURE_DISTANCE_WITH_LORA)
+                if(request->hasParam("rssiAttenuation", true))
                 {
-                  rssiAttenuation = request->getParam("rssiAttenuation", true)->value().toFloat();
-                  localLog(F("rssiAttenuation: "));
-                  localLogLn(rssiAttenuation);
-                  loRaConfigurationChanged = true;
+                  if(rssiAttenuation != request->getParam("rssiAttenuation", true)->value().toFloat())
+                  {
+                    rssiAttenuation = request->getParam("rssiAttenuation", true)->value().toFloat();
+                    localLog(F("rssiAttenuation: "));
+                    localLogLn(rssiAttenuation);
+                    loRaConfigurationChanged = true;
+                  }
                 }
-              }
-              if(request->hasParam("rssiAttenuationBaseline", true))
-              {
-                if(rssiAttenuationBaseline != request->getParam("rssiAttenuationBaseline", true)->value().toFloat())
+                if(request->hasParam("rssiAttenuationBaseline", true))
                 {
-                  rssiAttenuationBaseline = request->getParam("rssiAttenuationBaseline", true)->value().toFloat();
-                  localLog(F("rssiAttenuationBaseline: "));
-                  localLogLn(rssiAttenuationBaseline);
-                  loRaConfigurationChanged = true;
+                  if(rssiAttenuationBaseline != request->getParam("rssiAttenuationBaseline", true)->value().toFloat())
+                  {
+                    rssiAttenuationBaseline = request->getParam("rssiAttenuationBaseline", true)->value().toFloat();
+                    localLog(F("rssiAttenuationBaseline: "));
+                    localLogLn(rssiAttenuationBaseline);
+                    loRaConfigurationChanged = true;
+                  }
                 }
-              }
-              if(request->hasParam("rssiAttenuationPerimeter", true))
-              {
-                if(rssiAttenuationPerimeter != request->getParam("rssiAttenuationPerimeter", true)->value().toFloat())
+                if(request->hasParam("rssiAttenuationPerimeter", true))
                 {
-                  rssiAttenuationPerimeter = request->getParam("rssiAttenuationPerimeter", true)->value().toFloat();
-                  localLog(F("rssiAttenuationPerimeter: "));
-                  localLogLn(rssiAttenuationPerimeter);
-                  loRaConfigurationChanged = true;
+                  if(rssiAttenuationPerimeter != request->getParam("rssiAttenuationPerimeter", true)->value().toFloat())
+                  {
+                    rssiAttenuationPerimeter = request->getParam("rssiAttenuationPerimeter", true)->value().toFloat();
+                    localLog(F("rssiAttenuationPerimeter: "));
+                    localLogLn(rssiAttenuationPerimeter);
+                    loRaConfigurationChanged = true;
+                  }
                 }
-              }
+              #endif
               if(loRaConfigurationChanged == true)
               {
                 saveConfigurationSoon = millis();
               }
               request->redirect("/admin");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2034,9 +2083,9 @@
           #endif
         });
       #endif
-      #ifdef SUPPORT_FTM
+      #if defined(SUPPORT_FTM)
         adminWebServer->on("/ftmconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2101,7 +2150,7 @@
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2114,7 +2163,7 @@
           #endif
           });
           adminWebServer->on("/ftmconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
             #endif
@@ -2225,7 +2274,7 @@
                 saveConfigurationSoon = millis();
               }
               request->redirect("/admin");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2238,9 +2287,9 @@
           #endif
         });
       #endif
-      #ifdef SUPPORT_GPS
+      #if defined(SUPPORT_GPS)
         adminWebServer->on("/gpsconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2256,7 +2305,7 @@
               response->print(F("<form method=\"POST\">"));
               response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"four columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
               response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>GPS configuration</h2></div></div>"));
-              #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+              #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
                 response->print(F("<div class=\"row\"><div class=\"six columns\">Switch off GPS when stationary after</div>"));
                 response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"gpsStationaryTimeout\" name=\"gpsStationaryTimeout\">"));
                 response->print(F("<option value=\"0\""));response->print(gpsStationaryTimeout == 0 ? " selected>":">");response->print(F("Never</option>"));
@@ -2284,7 +2333,7 @@
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2297,7 +2346,7 @@
           #endif
           });
           adminWebServer->on("/gpsconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
             #endif
@@ -2351,7 +2400,7 @@
                   }
                 }
               }
-              #ifdef SUPPORT_SOFT_POWER_OFF
+              #if defined(SUPPORT_SOFT_POWER_OFF)
                 if(request->hasParam("gpsStationaryTimeout", true))
                 {
                   if(gpsStationaryTimeout != request->getParam("gpsStationaryTimeout", true)->value().toInt())
@@ -2378,7 +2427,7 @@
                 saveConfigurationSoon = millis();
               }
               request->redirect("/admin");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2394,7 +2443,7 @@
       
       #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
         adminWebServer->on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2428,7 +2477,7 @@
               addPageFooter(response);
               //Send response
               request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2442,7 +2491,7 @@
         });
         adminWebServer->on("/update", HTTP_POST,[](AsyncWebServerRequest *request)
           { //This lambda function is called when the update is complete
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
             #endif
@@ -2477,7 +2526,7 @@
                   request->send(response);
                   otaInProgress = false;
                 }
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2552,7 +2601,7 @@
             }
           });
         adminWebServer->on("/postUpdateRestart", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -2571,7 +2620,7 @@
             //Send response
             request->send(response);
             restartTimer = millis();
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2586,7 +2635,7 @@
       #endif
       #if defined(ACT_AS_SENSOR)
         adminWebServer->on("/sensorConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2659,7 +2708,7 @@
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2672,7 +2721,7 @@
           #endif
           });
           adminWebServer->on("/sensorConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2820,7 +2869,7 @@
             }
             saveSensorConfigurationSoon = millis();
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2833,7 +2882,7 @@
         #endif
       });
         adminWebServer->on("/sensorReset", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -2846,7 +2895,7 @@
             lastSensorStateChange = millis();
             currentSensorState = sensorState::resetting;
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2861,7 +2910,7 @@
       #endif
       #if defined ENABLE_REMOTE_RESTART
         adminWebServer->on("/restart", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -2886,7 +2935,7 @@
             addPageFooter(response);
             //Send response
             request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2899,7 +2948,7 @@
         #endif
         });
         adminWebServer->on("/restartConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -2921,7 +2970,7 @@
             //Send response
             request->send(response);
             restartTimer = millis();
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2934,7 +2983,7 @@
         });
       #endif
       adminWebServer->on("/wipe", HTTP_GET, [](AsyncWebServerRequest *request){
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
@@ -2959,7 +3008,7 @@
           addPageFooter(response);
           //Send response
           request->send(response);
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           xSemaphoreGive(webserverSemaphore);
         }
         else
@@ -2972,7 +3021,7 @@
       #endif
       });
       adminWebServer->on("/wipeconfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
@@ -2994,7 +3043,7 @@
           //Send response
           request->send(response);
           wipeTimer = millis();
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           xSemaphoreGive(webserverSemaphore);
         }
         else
@@ -3006,7 +3055,7 @@
       #endif
       });
       adminWebServer->on("/devices", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -3020,7 +3069,7 @@
           addPageHeader(response, 90, "/devices");
           //Top of page buttons
           response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div>"));
-          #ifdef ACT_AS_TRACKER
+          #if defined(ACT_AS_TRACKER)
             response->print(F("<div class=\"four columns\"><a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\" style=\"width: 100%;\"></a></div>"));
             response->print(F("<div class=\"four columns\"><a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\" style=\"width: 100%;\"></a></div></div>"));
             response->print(F("<div class=\"row\"><div class=\"twelve columns\">Tracking mode: "));
@@ -3090,14 +3139,18 @@
                 device[index].latitude,
                 device[index].longitude,
                 device[index].distanceTo,
-                device[index].courseTo,
                 #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+                  device[index].courseTo,
                   device[index].espNowUpdateHistory,
                   device[index].loRaUpdateHistory);
                 #elif  defined(SUPPORT_ESPNOW)
+                  device[index].courseTo,
                   device[index].espNowUpdateHistory);
                 #elif  defined(SUPPORT_LORA)
+                  device[index].courseTo,
                   device[index].loRaUpdateHistory);
+                #else
+                  device[index].courseTo);
                 #endif
             }
             else
@@ -3120,7 +3173,7 @@
                 );
               #endif
             }
-              #ifdef ACT_AS_TRACKER
+              #if defined(ACT_AS_TRACKER)
                 if(index == currentlyTrackedBeacon)
                 {
                   response->print(F("Tracked"));
@@ -3161,7 +3214,7 @@
           addPageFooter(response);
           //Send response
           request->send(response);
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           xSemaphoreGive(webserverSemaphore);
         }
         else
@@ -3173,9 +3226,9 @@
         }
       #endif
       });
-      #ifdef ACT_AS_TRACKER
+      #if defined(ACT_AS_TRACKER)
         adminWebServer->on("/nearest", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3193,7 +3246,7 @@
               #endif
               currentTrackingMode = trackingMode::nearest;
               request->redirect("/devices");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -3206,7 +3259,7 @@
           #endif
         });
         adminWebServer->on("/furthest", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3224,7 +3277,7 @@
               #endif
               currentTrackingMode = trackingMode::furthest;
               request->redirect("/devices");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -3237,7 +3290,7 @@
           #endif
         });
         adminWebServer->on("/track", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3272,7 +3325,7 @@
                 }
               }
               request->redirect("/devices");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -3285,9 +3338,9 @@
           #endif
         });
       #endif
-      #ifdef SUPPORT_HACKING
+      #if defined(SUPPORT_HACKING)
         adminWebServer->on("/gameConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3313,7 +3366,7 @@
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -3326,7 +3379,7 @@
           #endif
           });
           adminWebServer->on("/gameConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3374,7 +3427,7 @@
               saveConfigurationSoon = millis();
             }
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -3388,13 +3441,13 @@
       });
       #endif
       adminWebServer->on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
             request->send_P(200, "text/css", normalize);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -3407,13 +3460,13 @@
         #endif
       });
       adminWebServer->on("/css/skeleton.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
             request->send_P(200, "text/css", skeleton);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -3425,7 +3478,7 @@
         adminWebServer->on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
           request->send(404); //There is no favicon!
         });
-        #ifdef SUPPORT_HACKING //ESPUI already does a redirect
+        #if defined(SUPPORT_HACKING) //ESPUI already does a redirect
         if(sensorReset == true)
         {
         #endif
@@ -3439,7 +3492,7 @@
               request->send(404, "text/plain", request->url() + " not found");
             }
           });
-        #ifdef SUPPORT_HACKING
+        #if defined(SUPPORT_HACKING)
         }
         #endif
       #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
@@ -3484,7 +3537,7 @@
           #endif
         #endif
       #endif
-      #ifdef SUPPORT_HACKING
+      #if defined(SUPPORT_HACKING)
         if(sensorReset == true)
         {
           adminWebServer->begin();

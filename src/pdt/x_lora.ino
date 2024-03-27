@@ -3,7 +3,7 @@
  * This file contains functions related to the LoRa radio
  * 
  */
-#ifdef SUPPORT_LORA
+#if defined(SUPPORT_LORA)
   void calculateLoRaDutyCycle()
   {
     calculatedLoRaDutyCycle = ((float)loRaTxTime/(float)millis())*100;
@@ -15,7 +15,7 @@
     localLog(calculatedLoRaDutyCycle);
     localLogLn('%');
   }
-  #ifdef LORA_ASYNC_METHODS
+  #if defined(LORA_ASYNC_METHODS)
     #if defined(ESP32)
       void IRAM_ATTR copyLoRaPacketIntoBuffer(int packetSize)
     #elif defined(ESP8266)
@@ -143,7 +143,7 @@
       #endif
     #endif
   }
-  #ifdef LORA_ASYNC_METHODS
+  #if defined(LORA_ASYNC_METHODS)
     /*
      * Interrupt service routines for LoRa, which need some care when there are other async things in use
      */
@@ -235,7 +235,7 @@
   {
     if(loRaEnabled == true && loRaInitialised == true)
     {
-      #ifdef LORA_ASYNC_METHODS
+      #if defined(LORA_ASYNC_METHODS)
         if(loRaTxComplete == true && loRaTxBusy == true)
         {
           loRaTxComplete = false;
@@ -321,7 +321,7 @@
           device[index].lastLoRaLocationUpdate = millis();  //A failed update is an 'update'
           device[index].loRaUpdateHistory = device[index].loRaUpdateHistory >> 1; //Reduce update history quality
           //device[index].nextLoRaLocationUpdate = device[index].nextLoRaLocationUpdate >> 1; //Halve the timeout
-          #ifdef ACT_AS_TRACKER
+          #if defined(ACT_AS_TRACKER)
             if(index == currentlyTrackedBeacon)
             {
               localLog(F("Currently tracked beacon "));
@@ -342,19 +342,19 @@
           {
             localLogLn(F(" LoRa gone offline"));
             device[index].loRaOnline = false;
-            #ifdef LVGL_ADD_SCAN_INFO_TAB
+            #if defined(LVGL_ADD_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
-            #ifdef ACT_AS_TRACKER
+            #if defined(ACT_AS_TRACKER)
               if(index == currentlyTrackedBeacon) //Need to stop tracking this beacon
               {
                 currentlyTrackedBeacon = maximumNumberOfDevices;
                 distanceToCurrentBeacon = effectivelyUnreachable;
                 distanceToCurrentBeaconChanged = true;
-                #ifdef SUPPORT_BEEPER
+                #if defined(SUPPORT_BEEPER)
                   endRepeatingBeep();
                 #endif
-                #ifdef SUPPORT_DISPLAY
+                #if defined(SUPPORT_DISPLAY)
                   if(currentDisplayState == displayState::distance) //Clear distance if showing
                   {
                     displayDistanceToBeacon();
@@ -496,7 +496,7 @@
     packer.pack(millis());
     packer.pack(device[0].supplyVoltage);
     packer.pack(device[0].name);
-    #ifdef ACT_AS_SENSOR
+    #if defined(ACT_AS_SENSOR)
       packer.pack(device[0].numberOfStartingHits);
       packer.pack(device[0].numberOfStartingStunHits);
       packer.pack(device[0].currentNumberOfHits);
@@ -519,7 +519,7 @@
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
           if(waitForBufferSpace(80))
           {
-            #ifdef ACT_AS_SENSOR
+            #if defined(ACT_AS_SENSOR)
             SERIAL_DEBUG_PORT.printf("LoRa   TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
               device[0].typeOfDevice,
               device[0].majorVersion,
@@ -757,7 +757,7 @@
                             }
                           #endif
                           device[deviceIndex].hasGpsFix = true;
-                          #ifdef LVGL_ADD_SCAN_INFO_TAB
+                          #if defined(LVGL_ADD_SCAN_INFO_TAB)
                             findableDevicesChanged = true;
                           #endif
                         }
@@ -771,7 +771,7 @@
                           }
                         #endif
                         device[deviceIndex].hasGpsFix = false;
-                        #ifdef LVGL_ADD_SCAN_INFO_TAB
+                        #if defined(LVGL_ADD_SCAN_INFO_TAB)
                           findableDevicesChanged = true;
                         #endif
                       }
@@ -796,7 +796,7 @@
                         localLog(deviceIndex);
                         localLogLn(F(" LoRa gone online"));
                         device[deviceIndex].loRaOnline = true;
-                        #ifdef LVGL_ADD_SCAN_INFO_TAB
+                        #if defined(LVGL_ADD_SCAN_INFO_TAB)
                           findableDevicesChanged = true;
                         #endif
                       }
@@ -1117,7 +1117,7 @@
                         {
                           device[deviceIndex].icName = new char[receivedIcName.length() + 1];
                           receivedIcName.toCharArray(device[deviceIndex].icName, receivedIcName.length() + 1);
-                          #ifdef LVGL_ADD_SCAN_INFO_TAB
+                          #if defined(LVGL_ADD_SCAN_INFO_TAB)
                             findableDevicesChanged = true;
                           #endif
                         }
@@ -1138,7 +1138,7 @@
                           {
                             device[deviceIndex].icDescription = new char[receivedIcDescription.length() + 1];
                             receivedIcDescription.toCharArray(device[deviceIndex].icDescription, receivedIcDescription.length() + 1);
-                            #ifdef LVGL_ADD_SCAN_INFO_TAB
+                            #if defined(LVGL_ADD_SCAN_INFO_TAB)
                               findableDevicesChanged = true;
                             #endif
                           }

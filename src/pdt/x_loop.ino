@@ -5,7 +5,7 @@
  */
 void loop()
 {
-  #ifdef SUPPORT_OTA
+  #if defined(SUPPORT_OTA)
     if(otaEnabled == true)
     {
       ArduinoOTA.handle();  //Handle software updates
@@ -18,25 +18,28 @@ void loop()
   #if defined(SUPPORT_WIFI)
     manageNetwork();
   #endif
-  #ifdef SUPPORT_HACKING
+  #if defined(SUPPORT_HACKING)
     manageGame();
   #endif
-  #ifdef SUPPORT_ESPNOW
+  #if defined(SUPPORT_ESPNOW)
     manageEspNow();
   #endif
   #if defined(SUPPORT_LORA) && defined(SUPPORT_GPS)
     manageLoRa();
   #endif
-  #ifdef SUPPORT_GPS
+  #if defined(SUPPORT_TREACLE)
+    manageTreacle();
+  #endif
+  #if defined(SUPPORT_GPS)
     manageGps();
   #endif
-  #ifdef SUPPORT_BATTERY_METER
+  #if defined(SUPPORT_BATTERY_METER)
     manageBattery();
   #endif
-  #ifdef SUPPORT_BUTTON
+  #if defined(SUPPORT_BUTTON)
     checkButton();
   #endif
-  #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+  #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
     managePeripheralPower();
   #endif
   if(bootTime == 0)
@@ -47,12 +50,14 @@ void loop()
       localLogLn(F("Time synced"));
     }
   }
-  #ifdef SUPPORT_DISPLAY
+  #if defined(SUPPORT_DISPLAY)
     manageDisplay();
   #endif
-  #ifdef SUPPORT_LVGL
+  #if defined(SUPPORT_LVGL)
     manageLVGL();
-    manageBacklight();
+    #if defined(LVGL_MANAGE_BACKLIGHT)
+      manageBacklight();
+    #endif
   #endif
   if(saveConfigurationSoon != 0 && millis() - saveConfigurationSoon > 5000) //Save configuration after a delay to avoid AsyncWebserver doing it in a callback
   {
@@ -86,7 +91,7 @@ void loop()
       #endif
     }
   #endif
-  #ifdef SUPPORT_SOFT_POWER_OFF
+  #if defined(SUPPORT_SOFT_POWER_OFF)
     if(powerOffTimer !=0 && millis() - powerOffTimer > 3E3)  //Power off
     {
       localLogLn(F("Powering off now"));

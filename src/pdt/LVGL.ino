@@ -1,4 +1,4 @@
-#ifdef SUPPORT_LVGL
+#if defined(SUPPORT_LVGL)
   void setupLvgl()
   {
     #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
@@ -59,10 +59,10 @@
     
     
     createHomeTab();
-    #ifdef LVGL_ADD_SCAN_INFO_TAB
+    #if defined(LVGL_ADD_SCAN_INFO_TAB)
       createScanInfoTab();
     #endif
-    #ifdef LVGL_ADD_GPS_TAB
+    #if defined(LVGL_ADD_GPS_TAB)
       createGpsTab();
     #endif
     createSettingsTab();
@@ -353,7 +353,7 @@
       lv_chart_set_next_value(chart1, chart1ser1, 0);
     }
   }
-  #ifdef LVGL_ADD_GPS_TAB
+  #if defined(LVGL_ADD_GPS_TAB)
     void createGpsTab(void)
     {
       //Create the tab
@@ -556,7 +556,7 @@
     lv_obj_align(label, LV_ALIGN_TOP_MID, leftColumnX, objectY);
   
     //Beeper label
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       label = lv_label_create(settingsTab);
       lv_label_set_text(label, "Beeper");
       lv_obj_align(label, LV_ALIGN_TOP_MID, rightColumnX, objectY);
@@ -582,7 +582,7 @@
     lv_dropdown_set_selected(displayTimeout_dd, displayTimeout);
   
     //Beeper dropdown
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       beeper_dd = lv_dropdown_create(settingsTab);
       lv_dropdown_set_options(beeper_dd, "Off\n"
                                           "On"
@@ -709,7 +709,7 @@
       #endif
     }
   }
-  #ifdef SUPPORT_BEEPER
+  #if defined(SUPPORT_BEEPER)
     static void beeper_dd_event_handler(lv_event_t * e)
     {
       lv_event_code_t code = lv_event_get_code(e);
@@ -768,7 +768,7 @@
       #endif
     }
   }
-  #ifdef LVGL_ADD_SCAN_INFO_TAB
+  #if defined(LVGL_ADD_SCAN_INFO_TAB)
     void createScanInfoTab(void)
     {
       uint16_t objectY = 0;
@@ -1143,7 +1143,7 @@
         currentLvglUiState = deviceState::gpsLocked;
       }
     }
-    #ifdef LVGL_ADD_SCAN_INFO_TAB
+    #if defined(LVGL_ADD_SCAN_INFO_TAB)
       if(millis() - lastScanInfoTabUpdate > 10E3 && findableDevicesChanged == true)
       {
         lastScanInfoTabUpdate = millis();
@@ -1176,40 +1176,49 @@
     }
     lv_task_handler();
   }
-  void setupBacklight()
-  {
-    pinMode(LDR_PIN, INPUT);
-    ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_12_BIT);
-    ledcAttachPin(LCD_BACK_LIGHT_PIN, LEDC_CHANNEL_0);
-  }
-  void manageBacklight()
-  {
-    if(millis() - backlightLastSet > backlightChangeInterval)
+  #if defined(LVGL_MANAGE_BACKLIGHT)
+    void setupBacklight()
     {
-      backlightLastSet = millis();
-      uint8_t wantedBrightnessLevel = map(1024 - analogRead(LDR_PIN), 0, 1024, minimumBrightnessLevel, maximumBrightnessLevel);
-      if(abs((int16_t)currentBrightnessLevel - (int16_t)wantedBrightnessLevel) > 20)
+      pinMode(ldrPin, INPUT);
+      ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_12_BIT);
+      ledcAttachPin(lcdBacklightPin, LEDC_CHANNEL_0);
+    }
+    void manageBacklight()
+    {
+      if(millis() - backlightLastSet > backlightChangeInterval)
       {
-        if(wantedBrightnessLevel > currentBrightnessLevel)
+        backlightLastSet = millis();
+        uint8_t wantedBrightnessLevel = map(1024 - analogRead(ldrPin), 0, 1024, minimumBrightnessLevel, maximumBrightnessLevel);
+        if(abs((int16_t)currentBrightnessLevel - (int16_t)wantedBrightnessLevel) > 20)
         {
-          currentBrightnessLevel++;
+          if(wantedBrightnessLevel > currentBrightnessLevel)
+          {
+            currentBrightnessLevel++;
+          }
+          else if(wantedBrightnessLevel < currentBrightnessLevel)
+          {
+            currentBrightnessLevel--;
+          }
         }
-        else if(wantedBrightnessLevel < currentBrightnessLevel)
+        if(uiActive == true)
         {
-          currentBrightnessLevel--;
+          ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * currentBrightnessLevel);
         }
-      }
-      if(uiActive == true)
-      {
-        ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * currentBrightnessLevel);
-      }
-      else
-      {
-        ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * uiInactiveBrightnessLevel);
+        else
+        {
+          ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * uiInactiveBrightnessLevel);
+        }
       }
     }
-  }
-  #ifdef SUPPORT_TOUCHSCREEN
+  #else
+    void setupBacklight()
+    {
+      pinMode(ldrPin, INPUT); //Maybe it could get used for something
+      pinMode(lcdBacklightPin, OUTPUT);
+      digitalWrite(lcdBacklightPin, HIGH); //Just set it full on all the time
+    }
+  #endif
+  #if def(SUPPORT_TOUCHSCREEN)
     #if defined(SUPPORT_TOUCHSCREEN_BITBANG)
       void setupTouchscreen()
       {

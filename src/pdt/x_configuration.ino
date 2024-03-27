@@ -26,7 +26,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["wiFiClientInactivityTimer"]  = wiFiClientInactivityTimer;
     configuration["wifiClientTimeout"]  = wifiClientTimeout;
   #endif
-  #ifdef ENABLE_LOCAL_WEBSERVER
+  #if defined(ENABLE_LOCAL_WEBSERVER)
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
       configuration["http_user"] = http_user;
       configuration["basicAuthEnabled"] = basicAuthEnabled;
@@ -35,32 +35,32 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
       configuration["http_password"] = http_password;
     #endif
   #endif
-  #ifdef SUPPORT_HACKING
+  #if defined(SUPPORT_HACKING)
     configuration["gameLength"] = gameLength;
     configuration["gameRetries"] = gameRetries;
     configuration["gameSpeedup"] = gameSpeedup;
   #endif
   configuration["timeServer"] = timeServer;
   configuration["timeZone"] = timeZone;
-  #ifdef SUPPORT_GPS
+  #if defined(SUPPORT_GPS)
     configuration["useGpsForTimeSync"] = useGpsForTimeSync;
-    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
       configuration["gpsStationaryTimeout"] = gpsStationaryTimeout;
       configuration["gpsCheckInterval"] = gpsCheckInterval;
     #endif
   #endif
-  #ifdef SUPPORT_BATTERY_METER
+  #if defined(SUPPORT_BATTERY_METER)
     configuration["enableBatteryMonitor"] = enableBatteryMonitor;
     configuration["topLadderResistor"] = topLadderResistor;
     configuration["bottomLadderResistor"] = bottomLadderResistor;
   #endif
-  #ifdef SUPPORT_BEEPER
+  #if defined(SUPPORT_BEEPER)
     configuration["beeperEnabled"] = beeperEnabled;
-    #ifdef SUPPORT_BUTTON
+    #if defined(SUPPORT_BUTTON)
       configuration["beepOnPress"] = beepOnPress;
     #endif
   #endif
-  #ifdef SUPPORT_VIBRATION
+  #if defined(SUPPORT_VIBRATION)
     configuration["vibrationEnabled"] = vibrationEnabled;
     configuration["vibrationLevel"] = vibrationLevel;
   #endif
@@ -102,9 +102,11 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["loRaPerimiter2"] = loRaPerimiter2;
     configuration["loRaLocationInterval3"] = loRaLocationInterval3;
     configuration["loRaPerimiter3"] = loRaPerimiter3;
-    configuration["rssiAttenuationPerimeter"] = rssiAttenuationPerimeter;
-    configuration["rssiAttenuation"] = rssiAttenuation;
-    configuration["rssiAttenuationBaseline"] = rssiAttenuationBaseline;
+    #if defined(MEASURE_DISTANCE_WITH_LORA)
+      configuration["rssiAttenuationPerimeter"] = rssiAttenuationPerimeter;
+      configuration["rssiAttenuation"] = rssiAttenuation;
+      configuration["rssiAttenuationBaseline"] = rssiAttenuationBaseline;
+    #endif
   #endif
   #if defined(SUPPORT_LVGL)
     configuration["units"] = units;
@@ -113,7 +115,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["minimumBrightnessLevel"] = minimumBrightnessLevel;
     configuration["maximumBrightnessLevel"] = maximumBrightnessLevel;
     configuration["screenRotation"] = screenRotation;
-    #ifdef SUPPORT_TOUCHSCREEN
+    #if def(SUPPORT_TOUCHSCREEN)
       configuration["touchScreenMinimumX"] = touchScreenMinimumX;
       configuration["touchScreenMaximumX"] = touchScreenMaximumX;
       configuration["touchScreenMinimumY"] = touchScreenMinimumY;
@@ -199,9 +201,9 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       return false;
     }
     //Simple values
-    #ifdef SUPPORT_GPS
+    #if defined(SUPPORT_GPS)
       useGpsForTimeSync = configuration["useGpsForTimeSync"] | true;
-      #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+      #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
         gpsStationaryTimeout = configuration["gpsStationaryTimeout"] | 300E6;
         gpsCheckInterval = configuration["gpsCheckInterval"] | 300E6;
       #endif
@@ -270,11 +272,13 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       loRaPerimiter2 = configuration["loRaPerimiter2"] | 50;
       loRaLocationInterval3 = configuration["loRaLocationInterval3"] | 30000;
       loRaPerimiter3 = configuration["loRaPerimiter3"] | 100;
-      rssiAttenuationPerimeter = configuration["rssiAttenuationPerimeter"];
-      rssiAttenuation = configuration["rssiAttenuation"];
-      rssiAttenuationBaseline = configuration["rssiAttenuationBaseline"];
+      #if defined(MEASURE_DISTANCE_WITH_LORA)
+        rssiAttenuationPerimeter = configuration["rssiAttenuationPerimeter"];
+        rssiAttenuation = configuration["rssiAttenuation"];
+        rssiAttenuationBaseline = configuration["rssiAttenuationBaseline"];
+      #endif
     #endif
-    #ifdef SUPPORT_BATTERY_METER
+    #if defined(SUPPORT_BATTERY_METER)
       enableBatteryMonitor = configuration["enableBatteryMonitor"] | true;
       topLadderResistor = configuration["topLadderResistor"] | 330;
       bottomLadderResistor = configuration["bottomLadderResistor"] | 90;
@@ -351,7 +355,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       wiFiClientInactivityTimer = configuration["wiFiClientInactivityTimer"] | 0;
       wifiClientTimeout = configuration["wifiClientTimeout"] | 30;
     #endif
-    #ifdef ENABLE_LOCAL_WEBSERVER
+    #if defined(ENABLE_LOCAL_WEBSERVER)
       #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
         if(configuration["http_user"])
         {
@@ -398,18 +402,18 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       timeZone = new char[strlen(default_timeZone) + 1];
       strlcpy(timeZone,default_timeZone,strlen(default_timeZone) + 1);
     }
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       beeperEnabled = configuration["beeperEnabled"] | false;
-      #ifdef SUPPORT_BUTTON
+      #if defined(SUPPORT_BUTTON)
         beepOnPress = configuration["beepOnPress"] | true;
       #endif
     #endif
-    #ifdef SUPPORT_VIBRATION
+    #if defined(SUPPORT_VIBRATION)
       vibrationEnabled = configuration["vibrationEnabled"] | true;
       vibrationLevel = configuration["vibrationLevel"] | 100;
     #endif
     #if defined(SUPPORT_LVGL)
-      #ifdef SUPPORT_TOUCHSCREEN
+      #if def(SUPPORT_TOUCHSCREEN)
         touchScreenMinimumX = configuration["touchScreenMinimumX"] | 0;
         touchScreenMaximumX = configuration["touchScreenMaximumX"] | 0;
         touchScreenMinimumY = configuration["touchScreenMinimumY"] | 0;
@@ -422,7 +426,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       maximumBrightnessLevel = configuration["maximumBrightnessLevel"] | absoluteMaximumBrightnessLevel;
       screenRotation = configuration["screenRotation"];
     #endif
-    #ifdef SUPPORT_HACKING
+    #if defined(SUPPORT_HACKING)
       gameLength = configuration["gameLength"] | 10 ;
       gameRetries = configuration["gameRetries"] | 0;
       gameSpeedup = configuration["gameSpeedup"] | 500;
@@ -443,7 +447,7 @@ bool loadDefaultConfiguration()
   localLogLn(F("Loading default configuration"));
   device[0].name = new char[strlen(default_deviceName) + 5];
   sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
-  #ifdef ENABLE_LOCAL_WEBSERVER
+  #if defined(ENABLE_LOCAL_WEBSERVER)
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
       http_user = new char[strlen(default_http_user) + 1];
       strlcpy(http_user,default_http_user,strlen(default_http_user) + 1);
@@ -581,7 +585,7 @@ void printConfiguration()
       localLogLn(F("<none>"));
     }
   #endif
-  #ifdef ENABLE_LOCAL_WEBSERVER
+  #if defined(ENABLE_LOCAL_WEBSERVER)
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
       localLog(F("basicAuthEnabled: "));
       if(basicAuthEnabled)
@@ -618,7 +622,7 @@ void printConfiguration()
     localLog(F("otaEnabled: ")); localLogLn(otaEnabled);
     localLog(F("otaAuthenticationEnabled: ")); localLogLn(otaAuthenticationEnabled);
   #endif
-  #ifdef SUPPORT_GPS
+  #if defined(SUPPORT_GPS)
     localLog(F("useGpsForTimeSync: "));
     if(useGpsForTimeSync)
     {
@@ -628,7 +632,7 @@ void printConfiguration()
     {
       localLogLn(F("disabled"));
     }
-    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
       localLog(F("gpsStationaryTimeout: ")); localLogLn(gpsStationaryTimeout);
       localLog(F("gpsCheckInterval: ")); localLogLn(gpsCheckInterval);
     #endif
@@ -677,27 +681,29 @@ void printConfiguration()
     localLog(F("loRaLocationInterval2: ")); localLogLn(loRaLocationInterval2);
     localLog(F("loRaPerimiter3: ")); localLogLn(loRaPerimiter3);
     localLog(F("loRaLocationInterval3: ")); localLogLn(loRaLocationInterval3);
-    localLog(F("rssiAttenuation: ")); localLogLn(rssiAttenuation);
-    localLog(F("rssiAttenuationBaseline: ")); localLogLn(rssiAttenuationBaseline);
-    localLog(F("rssiAttenuationPerimeter: ")); localLogLn(rssiAttenuationPerimeter);
+    #if defined(MEASURE_DISTANCE_WITH_LORA)
+      localLog(F("rssiAttenuation: ")); localLogLn(rssiAttenuation);
+      localLog(F("rssiAttenuationBaseline: ")); localLogLn(rssiAttenuationBaseline);
+      localLog(F("rssiAttenuationPerimeter: ")); localLogLn(rssiAttenuationPerimeter);
+    #endif
   #endif
-  #ifdef SUPPORT_BATTERY_METER
+  #if defined(SUPPORT_BATTERY_METER)
     localLog(F("enableBatteryMonitor: ")); localLogLn(enableBatteryMonitor);
     localLog(F("topLadderResistor: ")); localLogLn(topLadderResistor);
     localLog(F("bottomLadderResistor: ")); localLogLn(bottomLadderResistor);
   #endif
-  #ifdef SUPPORT_BEEPER
+  #if defined(SUPPORT_BEEPER)
     localLog(F("beeperEnabled: ")); localLogLn(beeperEnabled);
-    #ifdef SUPPORT_BUTTON
+    #if defined(SUPPORT_BUTTON)
       localLog(F("beepOnPress: ")); localLogLn(beepOnPress);
     #endif
   #endif
-  #ifdef SUPPORT_VIBRATION
+  #if defined(SUPPORT_VIBRATION)
     localLog(F("vibrationEnabled: ")); localLogLn(vibrationEnabled);
     localLog(F("vibrationLevel: ")); localLogLn(vibrationLevel);
   #endif
   #if defined(SUPPORT_LVGL)
-    #ifdef SUPPORT_TOUCHSCREEN
+    #if def(SUPPORT_TOUCHSCREEN)
       localLog(F("touchScreenMinimumX: ")); localLogLn(touchScreenMinimumX);
       localLog(F("touchScreenMaximumX: ")); localLogLn(touchScreenMaximumX);
       localLog(F("touchScreenMinimumY: ")); localLogLn(touchScreenMinimumY);
@@ -713,7 +719,7 @@ void printConfiguration()
   localLog(F("loggingBufferSize: ")); localLogLn(loggingBufferSize);
   localLog(F("logFlushThreshold: ")); localLogLn(logFlushThreshold);
   localLog(F("logFlushInterval: ")); localLogLn(logFlushInterval);
-  #ifdef SUPPORT_HACKING
+  #if defined(SUPPORT_HACKING)
     localLog(F("gameLength: "));
     localLogLn(gameLength);
     localLog(F("gameRetries: "));
@@ -722,7 +728,7 @@ void printConfiguration()
     localLogLn(gameSpeedup);
   #endif
   localLogLn(F("========================="));
-  #ifdef ACT_AS_SENSOR
+  #if defined(ACT_AS_SENSOR)
   showSensorConfiguration();
   #endif
 }

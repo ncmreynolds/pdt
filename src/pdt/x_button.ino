@@ -1,4 +1,4 @@
-#ifdef SUPPORT_BUTTON
+#if defined(SUPPORT_BUTTON)
   void setupButton()
   {
     pinMode(buttonPin, INPUT_PULLUP);
@@ -16,7 +16,7 @@
         buttonPushTime = millis();
         buttonLongPress = true;
         localLogLn(F("Button: long press"));
-        #ifdef SUPPORT_BEEPER
+        #if defined(SUPPORT_BEEPER)
         if(currentDisplayState == displayState::beeper)
         {
           beeperEnabled = not beeperEnabled;
@@ -66,7 +66,7 @@
         localLogLn(F("Button: short press"));
         if(buttonLongPress == false) //Ignore release after a long press
         {
-          #ifdef SUPPORT_DISPLAY
+          #if defined(SUPPORT_DISPLAY)
             if(currentDisplayState == displayState::welcome) //Show distance when button pushed
             {
               displayDistanceToBeacon();
@@ -77,7 +77,7 @@
             }
             else if(currentDisplayState == displayState::distance)
             {
-              #ifdef SUPPORT_BEEPER
+              #if defined(SUPPORT_BEEPER)
                 if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
@@ -87,7 +87,7 @@
             }
             else if(currentDisplayState == displayState::course)
             {
-              #ifdef SUPPORT_BEEPER
+              #if defined(SUPPORT_BEEPER)
                 if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
@@ -97,7 +97,7 @@
             }
             else if(currentDisplayState == displayState::status)
             {
-              #ifdef SUPPORT_BEEPER
+              #if defined(SUPPORT_BEEPER)
                 if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
@@ -107,7 +107,7 @@
             }
             else if(currentDisplayState == displayState::accuracy)
             {
-              #ifdef SUPPORT_BEEPER
+              #if defined(SUPPORT_BEEPER)
                 if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
@@ -117,7 +117,7 @@
             }
             else if(currentDisplayState == displayState::trackingMode)
             {
-              #ifdef SUPPORT_BEEPER
+              #if defined(SUPPORT_BEEPER)
                 if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
@@ -127,7 +127,7 @@
             }
             else if(currentDisplayState == displayState::signal)
             {
-              #ifdef SUPPORT_BEEPER
+              #if defined(SUPPORT_BEEPER)
                 if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
@@ -137,7 +137,7 @@
             }
             else if(currentDisplayState == displayState::battery)
             {
-              #ifdef SUPPORT_BEEPER
+              #if defined(SUPPORT_BEEPER)
                 if(beeperEnabled == true && beepOnPress == true)
                 {
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
@@ -147,7 +147,7 @@
                 displayDistanceToBeacon();
               #endif
             }
-            #ifdef SUPPORT_BEEPER
+            #if defined(SUPPORT_BEEPER)
               else if(currentDisplayState == displayState::beeper)
               {
                 if(beeperEnabled == true && beepOnPress == true)
@@ -206,7 +206,7 @@
             else if(currentSensorState == sensorState::dead)
             {
               localLogLn(F("Sensor: bleedOut"));
-              #ifdef SUPPORT_LED
+              #if defined(SUPPORT_BEEPER)
                 ledOn(0, 0);  //Hard put the LED on
               #endif
               currentSensorState = sensorState::bleedOut;

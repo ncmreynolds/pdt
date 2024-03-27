@@ -1,4 +1,4 @@
-#ifdef SUPPORT_BEEPER
+#if defined(SUPPORT_BEEPER)
   void setupBeeper()
   {
     #if HARDWARE_VARIANT == CYDTracker
@@ -134,14 +134,14 @@
       {
         if(distanceToCurrentBeacon < 5) 
         {
-          #ifdef SUPPORT_LED
+          #if defined(SUPPORT_BEEPER)
             ledOffTime = 100;
           #endif
           repeatingBeepOffTime = repeatingBeepOnTime + 50;  //Fastest beep offtime
         }
         else
         {
-          #ifdef SUPPORT_LED
+          #if defined(SUPPORT_BEEPER)
             ledOffTime = distanceToCurrentBeacon * 100;
           #endif
           repeatingBeepOffTime = repeatingBeepOnTime + 50 + pow(distanceToCurrentBeacon,2); //Change urgency, ie. off time between beeps
@@ -149,7 +149,7 @@
       }
       else
       {
-        #ifdef SUPPORT_LED
+        #if defined(SUPPORT_BEEPER)
           ledOffTime = 100;
         #endif
         repeatingBeepOffTime = 0;  //Stop beeping after this one finishes

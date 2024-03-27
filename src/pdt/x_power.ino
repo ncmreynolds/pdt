@@ -1,4 +1,4 @@
-#ifdef SUPPORT_SOFT_POWER_OFF
+#if defined(SUPPORT_SOFT_POWER_OFF)
   void setupSoftPowerOff()
   {
     pinMode(softPowerOffPin, OUTPUT);
@@ -23,14 +23,14 @@
     }
   }
 #endif
-#ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+#if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
   void setupPeripheralPowerOff()
   {
     pinMode(peripheralPowerOffPin, OUTPUT);
   }
   void managePeripheralPower()
   {
-    #ifdef SUPPORT_GPS
+    #if defined(SUPPORT_GPS)
       if(peripheralsEnabled == true && moving == false && gpsStationaryTimeout != 0 && millis() - lastGPSstateChange > gpsStationaryTimeout)
       {
         peripheralPowerOff();
