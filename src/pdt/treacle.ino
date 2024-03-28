@@ -10,9 +10,13 @@
     }
     if(loRaEnabled == true)
     {
-      treacle.setLoRaPins(loRaCsPin, loRaResetPin); //Set the LoRa reset and CS pins, assuming other default SPI pins
-      treacle.setLoRaFrequency(loRaFrequency);      //Set the LoRa frequency. Valid value are 433/868/915Mhz depending on region
-      treacle.enableLoRa();                         //Enable LoRa
+      treacle.setLoRaPins(loRaCsPin, loRaResetPin);         //Set the LoRa reset and CS pins, assuming other default SPI pins
+      treacle.setLoRaFrequency(loRaFrequency);              //Set the LoRa frequency. Valid value are 433/868/915Mhz depending on region
+      treacle.setLoRaTxPower(loRaTxPower);                  //Supported values are 2-20
+      treacle.setLoRaRxGain(loRaRxGain);                    //Supported values are 0-6
+      treacle.setLoRaSpreadingFactor(loRaSpreadingFactor);  //Supported values are 7-12
+      treacle.setLoRaSignalBandwidth(loRaSignalBandwidth);  //Supported values are 7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3(default), 250E3, and 500E3.
+      treacle.enableLoRa();                                 //Enable LoRa
     }
     #if defined(SUPPORT_WIFI)
       if(startWiFiApOnBoot)
@@ -52,9 +56,10 @@
   {
     if(treacle.online() == true)
     {
-      if(treacle.messageWaiting() > 0) //There's something in the buffer to process
+      uint32_t waitingMessageSize = treacle.messageWaiting();
+      if(waitingMessageSize > 0) //There's something in the buffer to process
       {
-        processTreaclePacket();
+        processTreacleMessage(waitingMessageSize);
       }
       if(millis() - lastTreacleDeviceInfoSendTime > treacleDeviceInfoInterval)
       {
@@ -89,13 +94,13 @@
             {
               if(currentlyTrackedBeacon != maximumNumberOfDevices) //There is a current beacon
               {
-                device[0].nextTreacleLocationUpdate = newLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
+                //device[0].nextTreacleLocationUpdate = newLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
               }
             }
           }
           else
           {
-            device[0].nextTreacleLocationUpdate = newLocationSharingInterval(effectivelyUnreachable, 0);
+            //device[0].nextTreacleLocationUpdate = newLocationSharingInterval(effectivelyUnreachable, 0);
           }
         #elif defined(ACT_AS_BEACON)
           if(numberOfTrackers() > 0)
@@ -104,13 +109,13 @@
             {
               if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
               {
-                device[0].nextTreacleLocationUpdate = newLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
+                //device[0].nextTreacleLocationUpdate = newLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
               }
             }
           }
           else
           {
-            device[0].nextTreacleLocationUpdate = newLocationSharingInterval(effectivelyUnreachable, 0);
+            //device[0].nextTreacleLocationUpdate = newLocationSharingInterval(effectivelyUnreachable, 0);
           }
         #endif
       }
@@ -175,7 +180,7 @@
     {
       if(treacle.queueMessage(packer.data(), packer.size()))
       {  
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
           if(waitForBufferSpace(80))
           {
             #if defined(ACT_AS_SENSOR)
@@ -239,42 +244,280 @@
     }
     return false;
   }
-  uint32_t newLocationSharingInterval(uint16_t distance, float speed)
+  uint8_t identifyDevice(uint8_t id)
   {
-    uint32_t newInterval = 0;
-    if(speed == 0)
+    uint8_t deviceIndex = 1;
+    if(numberOfDevices == maximumNumberOfDevices)
     {
-      if(distance < treaclePerimiter1)
+      #if defined(SERIAL_DEBUG)
+        if(waitForBufferSpace(50))
+        {
+          SERIAL_DEBUG_PORT.printf("Too many devices to add %02x\r\n", id);
+        }
+      #endif
+      return maximumNumberOfDevices;
+    }
+    for(deviceIndex = 1; deviceIndex < numberOfDevices; deviceIndex++)
+    {
+      if(device[deviceIndex].id == id)
       {
-        newInterval = treacleLocationInterval1;
+        return deviceIndex;
       }
-      else if(distance < treaclePerimiter2)
+    }
+    #if defined(SERIAL_DEBUG)
+      if(waitForBufferSpace(50))
       {
-        newInterval = treacleLocationInterval2;
+        SERIAL_DEBUG_PORT.printf("New device %u found %02x\r\n", numberOfDevices, id);
       }
-      else if(distance < treaclePerimiter3)
+    #endif
+    device[numberOfDevices].id = id;
+    numberOfDevices++;
+    lastTreacleDeviceInfoSendTime = (millis() - treacleDeviceInfoInterval) + random(1000,5000); //A new device prompts a status share in 1-5s
+    lastTreacleLocationSendTime = (millis() -  device[0].nextTreacleLocationUpdate) + random(10000,20000); //A new device prompts a location share in 10-20s
+    return numberOfDevices-1;
+  }
+  void processTreacleMessage(uint32_t messageSize)
+  {
+    uint8_t sender = treacle.messageSender();
+    uint8_t message[messageSize];
+    treacle.retrieveWaitingMessage(message);
+    /*
+    #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
+      if(waitForBufferSpace(30))
       {
-        newInterval = treacleLocationInterval3;
+        SERIAL_DEBUG_PORT.println(F("Processing received packet..."));
+      }
+    #endif
+    */
+    MsgPack::Unpacker unpacker;
+    unpacker.feed(message, messageSize);
+    uint8_t messagetype;
+    unpacker.unpack(messagetype);
+    uint8_t deviceIndex = identifyDevice(sender);
+    if(deviceIndex < maximumNumberOfDevices)
+    {
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
+        if(waitForBufferSpace(80))
+        {
+          SERIAL_DEBUG_PORT.printf_P(PSTR("Treacle RX %02x device %u "), sender, deviceIndex);
+        }
+      #endif
+      if(messagetype == locationUpdateId)
+      {
+        device[deviceIndex].lastTreacleLocationUpdate = millis();  //Only location updates matter for deciding when something has disappeared
+        unpacker.unpack(device[deviceIndex].latitude);
+        unpacker.unpack(device[deviceIndex].longitude);
+        unpacker.unpack(device[deviceIndex].course);
+        unpacker.unpack(device[deviceIndex].speed);
+        unpacker.unpack(device[deviceIndex].hdop);
+        unpacker.unpack(device[deviceIndex].nextTreacleLocationUpdate);
+        if(device[deviceIndex].hdop != 0 && device[deviceIndex].latitude != 0 && device[deviceIndex].longitude != 0 && device[deviceIndex].hdop < minimumViableHdop)
+        {
+          if(device[deviceIndex].hasGpsFix == false)
+          {
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+              if(waitForBufferSpace(40))
+              {
+                SERIAL_DEBUG_PORT.printf_P(PSTR("Device %u got GPS fix\r\n"), deviceIndex);
+              }
+            #endif
+            device[deviceIndex].hasGpsFix = true;
+            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+              findableDevicesChanged = true;
+            #endif
+          }
+        }
+        else if(device[deviceIndex].hasGpsFix == true)
+        {
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+            if(waitForBufferSpace(40))
+            {
+              SERIAL_DEBUG_PORT.printf_P(PSTR("Device %u lost GPS fix\r\n"), deviceIndex);
+            }
+          #endif
+          device[deviceIndex].hasGpsFix = false;
+          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+            findableDevicesChanged = true;
+          #endif
+        }
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
+          if(waitForBufferSpace(80))
+          {
+              SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) next update:%us\r\n",
+              device[deviceIndex].latitude,
+              device[deviceIndex].longitude,
+              device[deviceIndex].course,
+              device[deviceIndex].speed,
+              device[deviceIndex].hdop,
+              device[deviceIndex].distanceTo,
+              device[deviceIndex].nextTreacleLocationUpdate/1000
+              );
+          }
+        #endif
+        #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+          //findableDevicesChanged = true;
+        #endif
+      }
+      else if(messagetype == deviceStatusUpdateId)
+      {
+        unpacker.unpack(device[deviceIndex].typeOfDevice);
+        unpacker.unpack(device[deviceIndex].majorVersion);
+        unpacker.unpack(device[deviceIndex].minorVersion);
+        unpacker.unpack(device[deviceIndex].patchVersion);
+        unpacker.unpack(device[deviceIndex].uptime);
+        unpacker.unpack(device[deviceIndex].supplyVoltage);
+        String receivedDeviceName = String(unpacker.unpackString());
+        bool storeReceivedName = false;
+        if(device[deviceIndex].name == nullptr) //First time the name is received
+        {
+          storeReceivedName = true;
+        }
+        else if(receivedDeviceName.equals(String(device[deviceIndex].name)) == false) //Check the name hasn't changed
+        {
+          delete[] device[deviceIndex].name;
+          storeReceivedName = true;
+        }
+        if(storeReceivedName == true)
+        {
+          device[deviceIndex].name = new char[receivedDeviceName.length() + 1];
+          receivedDeviceName.toCharArray(device[deviceIndex].name, receivedDeviceName.length() + 1);
+        }
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
+          if(waitForBufferSpace(60))
+          {
+            SERIAL_DEBUG_PORT.printf_P(PSTR("info type:%02x version:%u.%u.%u name:'%s' up:%s battery voltage:%.1fv"),
+              device[deviceIndex].typeOfDevice,
+              device[deviceIndex].majorVersion,
+              device[deviceIndex].minorVersion,
+              device[deviceIndex].patchVersion,
+              device[deviceIndex].name,
+              printableUptime(device[deviceIndex].uptime/1000).c_str(),
+              device[deviceIndex].supplyVoltage
+              );
+          }
+        #endif
+        if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
+        {
+          uint8_t unpackerTemp = 0;
+          unpacker.unpack(unpackerTemp);
+          if(device[deviceIndex].numberOfStartingHits != unpackerTemp)
+          {
+            device[deviceIndex].numberOfStartingHits = unpackerTemp;
+            #if defined(ACT_AS_TRACKER)
+              currentlyTrackedBeaconStateChanged = true;
+            #endif
+          }
+          unpacker.unpack(unpackerTemp);
+          if(device[deviceIndex].numberOfStartingStunHits != unpackerTemp)
+          {
+            device[deviceIndex].numberOfStartingStunHits = unpackerTemp;
+            #if defined(ACT_AS_TRACKER)
+              currentlyTrackedBeaconStateChanged = true;
+            #endif
+          }
+          unpacker.unpack(unpackerTemp);
+          if(device[deviceIndex].currentNumberOfHits != unpackerTemp)
+          {
+            device[deviceIndex].currentNumberOfHits = unpackerTemp;
+            #if defined(ACT_AS_TRACKER)
+              currentlyTrackedBeaconStateChanged = true;
+            #endif
+          }
+          unpacker.unpack(unpackerTemp);
+          if(device[deviceIndex].currentNumberOfStunHits != unpackerTemp)
+          {
+            device[deviceIndex].currentNumberOfStunHits = unpackerTemp;
+            #if defined(ACT_AS_TRACKER)
+              currentlyTrackedBeaconStateChanged = true;
+            #endif
+          }
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
+            if((device[deviceIndex].typeOfDevice & 0x02) == 0x02)  //It's acting as a sensor
+            {
+              if(waitForBufferSpace(60))
+              {
+                SERIAL_DEBUG_PORT.printf_P(" hits %u/%u Stun %u/%u\r\n",
+                  device[deviceIndex].currentNumberOfHits,
+                  device[deviceIndex].numberOfStartingHits,
+                  device[deviceIndex].currentNumberOfStunHits,
+                  device[deviceIndex].numberOfStartingStunHits
+                  );
+              }
+            }
+          #endif
+        }
+      }
+      else if(messagetype == deviceIcInfoId)
+      {
+        unpacker.unpack(device[deviceIndex].diameter);
+        unpacker.unpack(device[deviceIndex].height);
+        String receivedIcName = String(unpacker.unpackString());
+        bool storeReceivedIcName = false;
+        if(device[deviceIndex].icName == nullptr) //First time the name is received
+        {
+          storeReceivedIcName = true;
+        }
+        else if(receivedIcName.equals(String(device[deviceIndex].icName)) == false) //Check the name hasn't changed
+        {
+          delete[] device[deviceIndex].icName;
+          storeReceivedIcName = true;
+        }
+        if(storeReceivedIcName == true)
+        {
+          device[deviceIndex].icName = new char[receivedIcName.length() + 1];
+          receivedIcName.toCharArray(device[deviceIndex].icName, receivedIcName.length() + 1);
+          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+            findableDevicesChanged = true;
+          #endif
+        }
+        String receivedIcDescription = String(unpacker.unpackString());
+        bool storeReceivedIcDescription = false;
+        if(device[deviceIndex].icDescription == nullptr) //First time the name is received
+        {
+          storeReceivedIcDescription = true;
+        }
+        else if(receivedIcDescription.equals(String(device[deviceIndex].icDescription)) == false) //Check the name hasn't changed
+        {
+          delete[] device[deviceIndex].icDescription;
+          storeReceivedIcDescription = true;
+        }
+        if(storeReceivedIcDescription == true)
+        {
+          device[deviceIndex].icDescription = new char[receivedIcDescription.length() + 1];
+          receivedIcDescription.toCharArray(device[deviceIndex].icDescription, receivedIcDescription.length() + 1);
+          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+            findableDevicesChanged = true;
+          #endif
+        }
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+          if(waitForBufferSpace(60))
+          {
+            SERIAL_DEBUG_PORT.printf_P(PSTR("IC info diameter:%u, height: %u, name:'%s', name:'%s'\r\n"),
+              device[deviceIndex].diameter,
+              device[deviceIndex].height,
+              device[deviceIndex].icName,
+              device[deviceIndex].icDescription
+              );
+          }
+        #endif
       }
       else
       {
-        newInterval = defaultTreacleLocationInterval;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
+          if(waitForBufferSpace(40))
+          {
+            SERIAL_DEBUG_PORT.print(F("Unexpected message type: "));
+            SERIAL_DEBUG_PORT.println(messagetype);
+          }
+        #endif
       }
-      return newInterval;
     }
-    newInterval = newLocationSharingInterval(distance, 0);  //Get the interval as if not moving
-    int16_t worstCaseDistance = (int16_t)distance - (speed * (newInterval/1000)); //Estimate worst case new distance after this interval
-    if(worstCaseDistance > 0)
-    {
-      newInterval = newLocationSharingInterval(worstCaseDistance, 0); //Assess new interval based on worst case distance
-    }
-    else
-    {
-      newInterval = treacleLocationInterval1;  //Return the shortest interval
-    }
-    return newInterval;
-  }
-  void processTreaclePacket()
-  {
+    #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
+      //if(waitForBufferSpace(40))
+      //{
+        //SERIAL_DEBUG_PORT.println(F("Processing received packet done"));
+      //}
+    #endif
+    treacle.clearWaitingMessage();
   }
 #endif

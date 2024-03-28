@@ -224,7 +224,7 @@
       {
         device[0].hasGpsFix = false;
         lastGPSstateChange = millis();
-        #if defined(LVGL_ADD_SCAN_INFO_TAB)
+        #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
           findableDevicesChanged = true;
         #endif
         localLogLn(F("GPS lost fix"));
@@ -370,7 +370,7 @@
               SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
-            #if defined(LVGL_ADD_SCAN_INFO_TAB)
+            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
           }
@@ -384,7 +384,7 @@
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
             currentTrackingMode = trackingMode::fixed;  //Switch to fixed as 'furthest' needs to fix once chose
-            #if defined(LVGL_ADD_SCAN_INFO_TAB)
+            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
           }
@@ -424,6 +424,8 @@
       else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].espNowOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].loRaOnline && rangeToIndicate(1) < maximumEffectiveRange)
+      #elif defined(SUPPORT_TREACLE)
+      else if(numberOfDevices == 2 && device[1].hasGpsFix == true && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
       #endif
       {
         if(currentlyTrackedBeacon != 1)  //Only assign this once
@@ -474,6 +476,8 @@
       else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].espNowOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].loRaOnline && rangeToIndicate(1) < maximumEffectiveRange)
+      #elif defined(SUPPORT_TREACLE)
+      else if(numberOfDevices == 2 && device[1].hasGpsFix && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
       #endif
       {
         if(currentlyTrackedBeacon != 1)

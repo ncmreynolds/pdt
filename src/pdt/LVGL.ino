@@ -344,8 +344,8 @@
     #endif
     if(currentlyTrackedBeacon != maximumNumberOfDevices)
     {
-      lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].espNowUpdateHistory)/16);
-      lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].loRaUpdateHistory)/16);
+      //lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].espNowUpdateHistory)/16);
+      //lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].loRaUpdateHistory)/16);
     }
     else
     {
@@ -1068,6 +1068,9 @@
       {
         lv_label_set_text(status_label, statusLabel_1);
         currentLvglUiState = deviceState::detectingGpsPins;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::detectingGpsPins"));
+        #endif
       }
     }
     else if(currentLvglUiState == deviceState::detectingGpsPins)
@@ -1078,11 +1081,17 @@
         {
           lv_label_set_text(status_label, statusLabel_3);
           currentLvglUiState = deviceState::calibrateScreen;
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F("deviceState::calibrateScreen"));
+          #endif
         }
         else
         {
           lv_label_set_text(status_label, statusLabel_2);
           currentLvglUiState = deviceState::detectingGpsBaudRate;
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F("deviceState::detectingGpsBaudRate"));
+          #endif
         }
       }
     }
@@ -1092,6 +1101,9 @@
       {
         lv_label_set_text(status_label, statusLabel_3);
         currentLvglUiState = deviceState::detectingGpsBaudRate;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::detectingGpsBaudRate"));
+        #endif
       }
     }
     else if(currentLvglUiState == deviceState::detectingGpsBaudRate)
@@ -1100,6 +1112,9 @@
       {
         lv_label_set_text(status_label, statusLabel_4);
         currentLvglUiState = deviceState::gpsDetected;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsDetected"));
+        #endif
       }
     }
     else if(currentLvglUiState == deviceState::gpsDetected)
@@ -1108,6 +1123,9 @@
       {
         lv_label_set_text(status_label, statusLabel_5);
         currentLvglUiState = deviceState::gpsLocked;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsLocked"));
+        #endif
       }
     }
     else if(currentLvglUiState == deviceState::gpsLocked)
@@ -1116,6 +1134,9 @@
       {
         lv_label_set_text(status_label, statusLabel_4);
         currentLvglUiState == deviceState::gpsDetected;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsDetected"));
+        #endif
       }
       else
       {
@@ -1124,6 +1145,9 @@
           hideStatusSpinner();
           showMeters();
           currentLvglUiState = deviceState::tracking;
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F("deviceState::tracking"));
+          #endif
         }
       }
     }
@@ -1135,12 +1159,18 @@
         showStatusSpinner();
         lv_label_set_text(status_label, statusLabel_3);
         currentLvglUiState = deviceState::gpsDetected;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsDetected"));
+        #endif
       }
       else if(currentlyTrackedBeacon == maximumNumberOfDevices) //Lost all beacons
       {
         hideMeters();
         showStatusSpinner();
         currentLvglUiState = deviceState::gpsLocked;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsLocked"));
+        #endif
       }
     }
     #if defined(LVGL_ADD_SCAN_INFO_TAB)
@@ -1218,7 +1248,7 @@
       digitalWrite(lcdBacklightPin, HIGH); //Just set it full on all the time
     }
   #endif
-  #if def(SUPPORT_TOUCHSCREEN)
+  #if defined(SUPPORT_TOUCHSCREEN)
     #if defined(SUPPORT_TOUCHSCREEN_BITBANG)
       void setupTouchscreen()
       {
@@ -1230,7 +1260,7 @@
         pinMode(XPT2046_IRQ, INPUT);
         digitalWrite(XPT2046_CS, HIGH);
         digitalWrite(XPT2046_CLK, LOW);
-        localLog(F("OK"));
+        localLogLn(F("OK"));
         touchscreenInitialised = true;
       }
     #else

@@ -113,6 +113,10 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["espNowEnabled"] = espNowEnabled;
     configuration["loRaEnabled"] = loRaEnabled;
     configuration["loRaFrequency"] = loRaFrequency;
+    configuration["loRaTxPower"] = loRaTxPower;
+    configuration["loRaRxGain"] = loRaRxGain;
+    configuration["loRaSpreadingFactor"] = loRaSpreadingFactor;
+    configuration["loRaSignalBandwidth"] = loRaSignalBandwidth;
   #endif
   #if defined(SUPPORT_LVGL)
     configuration["units"] = units;
@@ -121,7 +125,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["minimumBrightnessLevel"] = minimumBrightnessLevel;
     configuration["maximumBrightnessLevel"] = maximumBrightnessLevel;
     configuration["screenRotation"] = screenRotation;
-    #if def(SUPPORT_TOUCHSCREEN)
+    #if defined(SUPPORT_TOUCHSCREEN)
       configuration["touchScreenMinimumX"] = touchScreenMinimumX;
       configuration["touchScreenMaximumX"] = touchScreenMaximumX;
       configuration["touchScreenMinimumY"] = touchScreenMinimumY;
@@ -289,6 +293,10 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       espNowEnabled = configuration["espNowEnabled"] | true;
       loRaEnabled = configuration["loRaEnabled"] | true;
       loRaFrequency = configuration["loRaFrequency"] | 868E6;
+      loRaTxPower = configuration["loRaTxPower"] | 17;
+      loRaRxGain = configuration["loRaRxGain"] | 0;
+      loRaSpreadingFactor = configuration["loRaSpreadingFactor"] | 9;
+      loRaSignalBandwidth = configuration["loRaSignalBandwidth"] | 62.5E3;
     #endif
     #if defined(SUPPORT_BATTERY_METER)
       enableBatteryMonitor = configuration["enableBatteryMonitor"] | true;
@@ -433,7 +441,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       vibrationLevel = configuration["vibrationLevel"] | 100;
     #endif
     #if defined(SUPPORT_LVGL)
-      #if def(SUPPORT_TOUCHSCREEN)
+      #if defined(SUPPORT_TOUCHSCREEN)
         touchScreenMinimumX = configuration["touchScreenMinimumX"] | 0;
         touchScreenMaximumX = configuration["touchScreenMaximumX"] | 0;
         touchScreenMinimumY = configuration["touchScreenMinimumY"] | 0;
@@ -711,6 +719,16 @@ void printConfiguration()
       localLog(F("rssiAttenuationPerimeter: ")); localLogLn(rssiAttenuationPerimeter);
     #endif
   #endif
+  #if defined(SUPPORT_TREACLE)
+    localLog(F("id: ")); localLogLn(device[0].id);
+    localLog(F("espNowEnabled: ")); localLogLn(espNowEnabled);
+    localLog(F("loRaEnabled: ")); localLogLn(loRaEnabled);
+    localLog(F("loRaFrequency: ")); localLogLn(loRaFrequency/1e6);
+    localLog(F("loRaTxPower: ")); localLogLn(loRaTxPower);
+    localLog(F("loRaRxGain: ")); localLogLn(loRaRxGain);
+    localLog(F("loRaSpreadingFactor: ")); localLogLn(loRaSpreadingFactor);
+    localLog(F("loRaSignalBandwidth: ")); localLogLn(loRaSignalBandwidth);
+  #endif
   #if defined(SUPPORT_BATTERY_METER)
     localLog(F("enableBatteryMonitor: ")); localLogLn(enableBatteryMonitor);
     localLog(F("topLadderResistor: ")); localLogLn(topLadderResistor);
@@ -727,7 +745,7 @@ void printConfiguration()
     localLog(F("vibrationLevel: ")); localLogLn(vibrationLevel);
   #endif
   #if defined(SUPPORT_LVGL)
-    #if def(SUPPORT_TOUCHSCREEN)
+    #if defined(SUPPORT_TOUCHSCREEN)
       localLog(F("touchScreenMinimumX: ")); localLogLn(touchScreenMinimumX);
       localLog(F("touchScreenMaximumX: ")); localLogLn(touchScreenMaximumX);
       localLog(F("touchScreenMinimumY: ")); localLogLn(touchScreenMinimumY);

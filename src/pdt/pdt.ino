@@ -126,7 +126,7 @@
   //#define SUPPORT_BEEPER
   #define ACT_AS_TRACKER
   #define SUPPORT_GPS
-  #define DEBUG_GPS
+  //#define DEBUG_GPS
   //#define DEBUG_BEACON_SELECTION
   #define SUPPORT_WIFI
   //#define SUPPORT_ESPNOW
@@ -134,8 +134,9 @@
   //#define SUPPORT_LORA
   //#define DEBUG_LORA
   #define SUPPORT_TREACLE
-  //#define DEBUG_TREACLE
+  #define DEBUG_TREACLE
   #define SUPPORT_LVGL
+  //#define DEBUG_LVGL
   #define LVGL_ADD_HOME_TAB
   #define LVGL_ADD_GPS_TAB
   #define LVGL_ADD_SCAN_INFO_TAB
@@ -143,7 +144,6 @@
   #define SUPPORT_TOUCHSCREEN
   #define SUPPORT_TOUCHSCREEN_BITBANG //Use bitbang code
   #define LVGL_MANAGE_BACKLIGHT
-  #define DEBUG_LVGL
   #define ENABLE_LOCAL_WEBSERVER
 #endif
 /*
@@ -303,7 +303,7 @@
   #endif
 #endif
 #if defined(SUPPORT_LVGL)
-  #if HARDWARE_VARIANT == C3PDT
+  #if HARDWARE_VARIANT == CYDTracker
     static const int8_t ldrPin = 34;
     static const int8_t lcdBacklightPin = 21;
   #endif
@@ -647,21 +647,20 @@
  */
 #if defined(SUPPORT_TREACLE)
   #include <treacle.h>
+  bool treacleIntialised = false;
   uint8_t localMacAddress[6] = {};
   bool espNowEnabled =  true;
   bool loRaEnabled  = true;
   uint32_t loRaFrequency = 868E6;
-  bool treacleIntialised = false;
+  uint8_t loRaTxPower = 17;
+  uint8_t loRaRxGain = 0;
+  uint8_t loRaSpreadingFactor = 9;
+  uint32_t loRaSignalBandwidth = 62.5E3;
+  uint32_t validLoRaSignalBandwidth[] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
   uint32_t lastTreacleDeviceInfoSendTime = 0;
   uint32_t treacleDeviceInfoInterval = 60E3;      // Send info every 60s
   uint32_t lastTreacleLocationSendTime = 0;
   uint32_t defaultTreacleLocationInterval = 60E3; //Send location every 60s
-  uint16_t treaclePerimiter1 = 25;                //Range at which beacon 1 applies
-  uint32_t treacleLocationInterval1 = 5E3;        // interval between sends
-  uint16_t treaclePerimiter2 = 50;                //Range at which beacon 2 applies
-  uint32_t treacleLocationInterval2 = 5E3;        // interval between sends
-  uint16_t treaclePerimiter3 = 100;               //Range at which beacon 3 applies
-  uint32_t treacleLocationInterval3 = 10E3;       // interval between sends
 #endif
 /*
 
@@ -898,10 +897,8 @@ static const uint16_t loggingYieldTime = 100;
       uint16_t loRaUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
     #endif
     #if defined(SUPPORT_TREACLE)
-      bool treacleOnline = false;
-      uint32_t lastTreacleLocationUpdate = 0;  // Used to track packet loss
+      uint32_t lastTreacleLocationUpdate = 0;     // Used to track packet loss
       uint16_t nextTreacleLocationUpdate = 60E3;  // Used to track packet loss
-      uint16_t treacleUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
     #endif
     double latitude = 0;  //Location info
     double longitude = 0;
@@ -1175,7 +1172,7 @@ static const uint16_t loggingYieldTime = 100;
   
       lv_disp_flush_ready( disp_drv );
   }
-  #if def(SUPPORT_TOUCHSCREEN)
+  #if defined(SUPPORT_TOUCHSCREEN)
     #if defined(SUPPORT_TOUCHSCREEN_BITBANG)
       int readSPI(byte command)
       {

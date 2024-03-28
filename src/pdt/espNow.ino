@@ -220,7 +220,7 @@
           {
             localLogLn(F(" ESPNow gone offline"));
             device[index].espNowOnline = false;
-            #if defined(LVGL_ADD_SCAN_INFO_TAB)
+            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
             #if defined(ACT_AS_TRACKER)
@@ -364,7 +364,7 @@
                             }
                           #endif
                           device[deviceIndex].hasGpsFix = true;
-                          #if defined(LVGL_ADD_SCAN_INFO_TAB)
+                          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
                             findableDevicesChanged = true;
                           #endif
                         }
@@ -378,7 +378,7 @@
                           }
                         #endif
                         device[deviceIndex].hasGpsFix = false;
-                        #if defined(LVGL_ADD_SCAN_INFO_TAB)
+                        #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
                           findableDevicesChanged = true;
                         #endif
                       }
@@ -402,11 +402,11 @@
                         localLog(deviceIndex);
                         localLogLn(F(" EspNow gone online"));
                         device[deviceIndex].espNowOnline = true;
-                        #if defined(LVGL_ADD_SCAN_INFO_TAB)
+                        #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
                           findableDevicesChanged = true;
                         #endif
                       }
-                      #if defined(LVGL_ADD_SCAN_INFO_TAB)
+                      #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
                         findableDevicesChanged = true;
                       #endif
                     }
@@ -726,7 +726,7 @@
                         {
                           device[deviceIndex].icName = new char[receivedIcName.length() + 1];
                           receivedIcName.toCharArray(device[deviceIndex].icName, receivedIcName.length() + 1);
-                          #if defined(LVGL_ADD_SCAN_INFO_TAB)
+                          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
                             findableDevicesChanged = true;
                           #endif
                         }
@@ -747,7 +747,7 @@
                           {
                             device[deviceIndex].icDescription = new char[receivedIcDescription.length() + 1];
                             receivedIcDescription.toCharArray(device[deviceIndex].icDescription, receivedIcDescription.length() + 1);
-                            #if defined(LVGL_ADD_SCAN_INFO_TAB)
+                            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
                               findableDevicesChanged = true;
                             #endif
                           }
