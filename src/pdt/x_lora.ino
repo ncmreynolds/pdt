@@ -342,7 +342,7 @@
           {
             localLogLn(F(" LoRa gone offline"));
             device[index].loRaOnline = false;
-            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
             #if defined(ACT_AS_TRACKER)
@@ -757,7 +757,7 @@
                             }
                           #endif
                           device[deviceIndex].hasGpsFix = true;
-                          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+                          #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                             findableDevicesChanged = true;
                           #endif
                         }
@@ -771,7 +771,7 @@
                           }
                         #endif
                         device[deviceIndex].hasGpsFix = false;
-                        #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+                        #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                           findableDevicesChanged = true;
                         #endif
                       }
@@ -796,7 +796,7 @@
                         localLog(deviceIndex);
                         localLogLn(F(" LoRa gone online"));
                         device[deviceIndex].loRaOnline = true;
-                        #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+                        #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                           findableDevicesChanged = true;
                         #endif
                       }
@@ -1117,7 +1117,7 @@
                         {
                           device[deviceIndex].icName = new char[receivedIcName.length() + 1];
                           receivedIcName.toCharArray(device[deviceIndex].icName, receivedIcName.length() + 1);
-                          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+                          #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                             findableDevicesChanged = true;
                           #endif
                         }
@@ -1138,7 +1138,7 @@
                           {
                             device[deviceIndex].icDescription = new char[receivedIcDescription.length() + 1];
                             receivedIcDescription.toCharArray(device[deviceIndex].icDescription, receivedIcDescription.length() + 1);
-                            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+                            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                               findableDevicesChanged = true;
                             #endif
                           }

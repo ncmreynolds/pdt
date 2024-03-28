@@ -332,6 +332,14 @@
               response->print(endColumn);
               response->print(endRow);
             #endif
+            #if defined(SUPPORT_LVGL)
+            response->printf_P(h2printfFormatString, PSTR("GUI"));
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("guiconfiguration"), PSTR("GUI config"));
+            response->print(endColumn);
+            response->print(endRow);
+            #endif
             #if defined(SUPPORT_TREACLE)
               response->printf_P(h2printfFormatString, PSTR("Treacle"));
               if(treacleIntialised == true)

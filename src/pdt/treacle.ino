@@ -47,7 +47,7 @@
       }
       if(device[0].id != 0)
       {
-        localLog(F("Treacle ID: "));
+        localLog(F("treacle ID: "));
         localLogLn(device[0].id);
       }
     #endif
@@ -56,14 +56,15 @@
   {
     if(treacle.online() == true)
     {
+      //Look for incoming messages first
       uint32_t waitingMessageSize = treacle.messageWaiting();
       if(waitingMessageSize > 0) //There's something in the buffer to process
       {
         processTreacleMessage(waitingMessageSize);
       }
+      //Send periodic updates
       if(millis() - lastTreacleDeviceInfoSendTime > treacleDeviceInfoInterval)
       {
-        lastTreacleDeviceInfoSendTime = millis() - random(100,200);
         if(treacle.getNodeId() != device[0].id) //Save any autonegotiated nodeId
         {
           device[0].id = treacle.getNodeId();
@@ -73,6 +74,8 @@
         {
           if(shareDeviceInfo())
           {
+            lastTreacleDeviceInfoSendTime = millis();
+            treacleDeviceInfoInterval = treacle.suggestedQueueInterval()*5 - random(500,1000); //Rely on treacle to suggest appropriate send intervals
             typeOfLastTreacleUpdate = deviceStatusUpdateId;
           }
         }
@@ -80,42 +83,31 @@
         {
           if(shareIcInfo())
           {
+            lastTreacleDeviceInfoSendTime = millis();
+            treacleDeviceInfoInterval = treacle.suggestedQueueInterval()*5 - random(500,1000); //Rely on treacle to suggest appropriate send intervals
             typeOfLastTreacleUpdate = deviceIcInfoId;
           }
         }
       }
-      if(millis() - lastTreacleLocationSendTime > device[0].nextTreacleLocationUpdate)
+      if(millis() - lastTreacleLocationSendTime > treacleLocationInterval) 
       {
-        lastTreacleLocationSendTime = millis() - random(100,200);
         #if defined(ACT_AS_TRACKER)
           if(numberOfBeacons() > 0)  //Only share location if there are some beacons
           {
             if(shareLocation())
             {
-              if(currentlyTrackedBeacon != maximumNumberOfDevices) //There is a current beacon
-              {
-                //device[0].nextTreacleLocationUpdate = newLocationSharingInterval(distanceToCurrentBeacon, device[0].speed);  //Include speed in calculation
-              }
+              lastTreacleLocationSendTime = millis();
+              treacleLocationInterval = treacle.suggestedQueueInterval() - random(100,200); //Rely on treacle to suggest appropriate send intervals
             }
-          }
-          else
-          {
-            //device[0].nextTreacleLocationUpdate = newLocationSharingInterval(effectivelyUnreachable, 0);
           }
         #elif defined(ACT_AS_BEACON)
           if(numberOfTrackers() > 0)
           {
             if(shareLocation())
             {
-              if(closestTracker != maximumNumberOfDevices) //There's a reasonable nearby tracker
-              {
-                //device[0].nextTreacleLocationUpdate = newLocationSharingInterval(distanceToClosestTracker, device[0].speed);  //Include speed in calculation
-              }
+              lastTreacleLocationSendTime = millis();
+              treacleLocationInterval = treacle.suggestedQueueInterval() - random(100,200); //Rely on treacle to suggest appropriate send intervals
             }
-          }
-          else
-          {
-            //device[0].nextTreacleLocationUpdate = newLocationSharingInterval(effectivelyUnreachable, 0);
           }
         #endif
       }
@@ -144,13 +136,13 @@
         #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
           if(waitForBufferSpace(80))
           {
-            SERIAL_DEBUG_PORT.printf_P(PSTR("Treacle TX location Lat:%03.4f Lon:%03.4f Course:%03.1f Speed:%02.1f HDOP:%.1f next update:%us\r\n"),
+            SERIAL_DEBUG_PORT.printf_P(PSTR("treacle TX nodeId:%02x locn Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m)\r\n"),
+              device[0].id,
               device[0].latitude,
               device[0].longitude,
               device[0].course,
               device[0].speed,
-              device[0].hdop,
-              device[0].nextTreacleLocationUpdate/1000
+              device[0].hdop
               );
           }
         #endif
@@ -184,7 +176,8 @@
           if(waitForBufferSpace(80))
           {
             #if defined(ACT_AS_SENSOR)
-            SERIAL_DEBUG_PORT.printf("Treacle TX device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",
+            SERIAL_DEBUG_PORT.printf_P(PSTR("treacle TX nodeId:%02x info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n"),
+              device[0].id,
               device[0].typeOfDevice,
               device[0].majorVersion,
               device[0].minorVersion,
@@ -198,7 +191,8 @@
               device[0].numberOfStartingStunHits
               );
             #else
-              SERIAL_DEBUG_PORT.printf("Treacle TX device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv\r\n",
+              SERIAL_DEBUG_PORT.printf_P(PSTR("treacle TX nodeId:%02x info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv\r\n"),
+              device[0].id,
               device[0].typeOfDevice,
               device[0].majorVersion,
               device[0].minorVersion,
@@ -229,10 +223,11 @@
       {
         if(treacle.queueMessage(packer.data(), packer.size()))
         {  
-          #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
             if(waitForBufferSpace(80))
             {
-              SERIAL_DEBUG_PORT.printf("Treacle TX IC info name: '%s', desc:'%s'\r\n",device[0].id[0],
+              SERIAL_DEBUG_PORT.printf_P(PSTR("treacle TX nodeId:%02x desc name: '%s', desc:'%s'\r\n"),
+                device[0].id,
                 device[0].icName,
                 device[0].icDescription
                 );
@@ -252,7 +247,7 @@
       #if defined(SERIAL_DEBUG)
         if(waitForBufferSpace(50))
         {
-          SERIAL_DEBUG_PORT.printf("Too many devices to add %02x\r\n", id);
+          SERIAL_DEBUG_PORT.printf_P(PSTR("Too many devices to add %02x\r\n"), id);
         }
       #endif
       return maximumNumberOfDevices;
@@ -267,13 +262,12 @@
     #if defined(SERIAL_DEBUG)
       if(waitForBufferSpace(50))
       {
-        SERIAL_DEBUG_PORT.printf("New device %u found %02x\r\n", numberOfDevices, id);
+        SERIAL_DEBUG_PORT.printf_P(PSTR("New device nodeId:%02x, now %u device(s)\r\n"), id, numberOfDevices);
       }
     #endif
     device[numberOfDevices].id = id;
     numberOfDevices++;
     lastTreacleDeviceInfoSendTime = (millis() - treacleDeviceInfoInterval) + random(1000,5000); //A new device prompts a status share in 1-5s
-    lastTreacleLocationSendTime = (millis() -  device[0].nextTreacleLocationUpdate) + random(10000,20000); //A new device prompts a location share in 10-20s
     return numberOfDevices-1;
   }
   void processTreacleMessage(uint32_t messageSize)
@@ -299,18 +293,16 @@
       #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
         if(waitForBufferSpace(80))
         {
-          SERIAL_DEBUG_PORT.printf_P(PSTR("Treacle RX %02x device %u "), sender, deviceIndex);
+          SERIAL_DEBUG_PORT.printf_P(PSTR("treacle RX NodeId:%02x "), sender);
         }
       #endif
       if(messagetype == locationUpdateId)
       {
-        device[deviceIndex].lastTreacleLocationUpdate = millis();  //Only location updates matter for deciding when something has disappeared
         unpacker.unpack(device[deviceIndex].latitude);
         unpacker.unpack(device[deviceIndex].longitude);
         unpacker.unpack(device[deviceIndex].course);
         unpacker.unpack(device[deviceIndex].speed);
         unpacker.unpack(device[deviceIndex].hdop);
-        unpacker.unpack(device[deviceIndex].nextTreacleLocationUpdate);
         if(device[deviceIndex].hdop != 0 && device[deviceIndex].latitude != 0 && device[deviceIndex].longitude != 0 && device[deviceIndex].hdop < minimumViableHdop)
         {
           if(device[deviceIndex].hasGpsFix == false)
@@ -322,7 +314,7 @@
               }
             #endif
             device[deviceIndex].hasGpsFix = true;
-            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
           }
@@ -336,25 +328,24 @@
             }
           #endif
           device[deviceIndex].hasGpsFix = false;
-          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+          #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
             findableDevicesChanged = true;
           #endif
         }
         #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
           if(waitForBufferSpace(80))
           {
-              SERIAL_DEBUG_PORT.printf("location Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m) next update:%us\r\n",
+              SERIAL_DEBUG_PORT.printf_P(PSTR("locn Lat:%03.4f Lon:%03.4f Course:%03.1f(deg) Speed:%01.1f(m/s) HDOP:%.1f Distance:%.1f(m)\r\n"),
               device[deviceIndex].latitude,
               device[deviceIndex].longitude,
               device[deviceIndex].course,
               device[deviceIndex].speed,
               device[deviceIndex].hdop,
-              device[deviceIndex].distanceTo,
-              device[deviceIndex].nextTreacleLocationUpdate/1000
+              device[deviceIndex].distanceTo
               );
           }
         #endif
-        #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+        #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
           //findableDevicesChanged = true;
         #endif
       }
@@ -446,6 +437,12 @@
             }
           #endif
         }
+        else
+        {
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
+            SERIAL_DEBUG_PORT.println();
+          #endif
+        }
       }
       else if(messagetype == deviceIcInfoId)
       {
@@ -466,7 +463,7 @@
         {
           device[deviceIndex].icName = new char[receivedIcName.length() + 1];
           receivedIcName.toCharArray(device[deviceIndex].icName, receivedIcName.length() + 1);
-          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+          #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
             findableDevicesChanged = true;
           #endif
         }
@@ -485,14 +482,14 @@
         {
           device[deviceIndex].icDescription = new char[receivedIcDescription.length() + 1];
           receivedIcDescription.toCharArray(device[deviceIndex].icDescription, receivedIcDescription.length() + 1);
-          #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+          #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
             findableDevicesChanged = true;
           #endif
         }
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
           if(waitForBufferSpace(60))
           {
-            SERIAL_DEBUG_PORT.printf_P(PSTR("IC info diameter:%u, height: %u, name:'%s', name:'%s'\r\n"),
+            SERIAL_DEBUG_PORT.printf_P(PSTR("desc diameter:%u, height: %u, name:'%s', name:'%s'\r\n"),
               device[deviceIndex].diameter,
               device[deviceIndex].height,
               device[deviceIndex].icName,
@@ -506,7 +503,7 @@
         #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
           if(waitForBufferSpace(40))
           {
-            SERIAL_DEBUG_PORT.print(F("Unexpected message type: "));
+            SERIAL_DEBUG_PORT.print(F("unexpected message type: "));
             SERIAL_DEBUG_PORT.println(messagetype);
           }
         #endif

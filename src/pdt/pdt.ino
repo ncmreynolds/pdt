@@ -31,8 +31,8 @@
 //#define HARDWARE_VARIANT C3PDTasBeacon
 //#define HARDWARE_VARIANT C3TrackedSensor
 //#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
-#define HARDWARE_VARIANT C3LoRaBeacon
-//#define HARDWARE_VARIANT CYDTracker
+//#define HARDWARE_VARIANT C3LoRaBeacon
+#define HARDWARE_VARIANT CYDTracker
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 5
@@ -137,10 +137,10 @@
   #define DEBUG_TREACLE
   #define SUPPORT_LVGL
   //#define DEBUG_LVGL
-  #define LVGL_ADD_HOME_TAB
-  #define LVGL_ADD_GPS_TAB
-  #define LVGL_ADD_SCAN_INFO_TAB
-  #define LVGL_ADD_SETTINGS_TAB
+  #define LVGL_SUPPORT_HOME_TAB
+  #define LVGL_SUPPORT_GPS_TAB
+  #define LVGL_SUPPORT_SCAN_INFO_TAB
+  #define LVGL_SUPPORT_SETTINGS_TAB
   #define SUPPORT_TOUCHSCREEN
   #define SUPPORT_TOUCHSCREEN_BITBANG //Use bitbang code
   #define LVGL_MANAGE_BACKLIGHT
@@ -530,7 +530,11 @@
     uint8_t typeOfLastEspNowUpdate = deviceIcInfoId;      //Use to cycle through update types
   #endif
   #if defined(SUPPORT_TREACLE)
-    uint8_t typeOfLastTreacleUpdate = deviceIcInfoId;      //Use to cycle through update types
+    uint32_t lastTreacleDeviceInfoSendTime = 0;       //Track the last time of updates
+    uint32_t lastTreacleLocationSendTime = 0;
+    uint32_t treacleDeviceInfoInterval = 60E3;        //Send device info every 60s
+    uint32_t treacleLocationInterval = 60E3;          //Send device location every 60s
+    uint8_t typeOfLastTreacleUpdate = deviceIcInfoId; //Use to cycle through update types
   #endif
 #endif
 /*
@@ -657,10 +661,6 @@
   uint8_t loRaSpreadingFactor = 9;
   uint32_t loRaSignalBandwidth = 62.5E3;
   uint32_t validLoRaSignalBandwidth[] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
-  uint32_t lastTreacleDeviceInfoSendTime = 0;
-  uint32_t treacleDeviceInfoInterval = 60E3;      // Send info every 60s
-  uint32_t lastTreacleLocationSendTime = 0;
-  uint32_t defaultTreacleLocationInterval = 60E3; //Send location every 60s
 #endif
 /*
 
@@ -896,10 +896,6 @@ static const uint16_t loggingYieldTime = 100;
       uint16_t nextLoRaLocationUpdate = 60E3;  // Used to track packet loss
       uint16_t loRaUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
     #endif
-    #if defined(SUPPORT_TREACLE)
-      uint32_t lastTreacleLocationUpdate = 0;     // Used to track packet loss
-      uint16_t nextTreacleLocationUpdate = 60E3;  // Used to track packet loss
-    #endif
     double latitude = 0;  //Location info
     double longitude = 0;
     float course = 0;
@@ -1040,7 +1036,7 @@ static const uint16_t loggingYieldTime = 100;
   static lv_obj_t * tabview;
   uint8_t tabHeight = 40;
   //Home tab
-  #if defined(LVGL_ADD_HOME_TAB)
+  #if defined(LVGL_SUPPORT_HOME_TAB)
     lv_obj_t * homeTab = nullptr;
     static const char homeTabLabel[] = "Home";
     lv_obj_t * status_spinner = nullptr;
@@ -1067,7 +1063,7 @@ static const uint16_t loggingYieldTime = 100;
     
     static lv_obj_t * chart0;
     static lv_chart_series_t * chart0ser0;
-    #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+    #if defined(SUPPORT_TREACLE) || (defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA))
       static lv_chart_series_t * chart0ser1;
     #endif
     static lv_obj_t * chart0label0;
@@ -1081,7 +1077,7 @@ static const uint16_t loggingYieldTime = 100;
     static const uint8_t chartSpacing = 18, chartLabelSpacing = 2, chartPoints = 16;
   #endif
   //GPS tab
-  #if defined(LVGL_ADD_GPS_TAB)
+  #if defined(LVGL_SUPPORT_GPS_TAB)
     lv_obj_t * gpsTab = nullptr;
     static const char gpsTabLabel[] = "GPS";
     uint32_t lastLvglTabUpdate = 0;
@@ -1099,7 +1095,7 @@ static const uint16_t loggingYieldTime = 100;
     static const char statusTableLabel_Unknown[] = "??";
   #endif
   //Scan info tab
-  #if defined(LVGL_ADD_SCAN_INFO_TAB)
+  #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
     static const char infoTabLabel[] = "Info";
     lv_obj_t * scanInfoTab = nullptr;
     lv_obj_t * button0 = nullptr; //Nearest
@@ -1115,7 +1111,7 @@ static const uint16_t loggingYieldTime = 100;
     bool findableDevicesChanged = true;
   #endif
   //Settings/preferences tab
-  #if defined(LVGL_ADD_SETTINGS_TAB)
+  #if defined(LVGL_SUPPORT_SETTINGS_TAB)
     lv_obj_t * settingsTab = nullptr;
     static const char settingsTabLabel[] = "Pref";
 

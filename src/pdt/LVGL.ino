@@ -59,10 +59,10 @@
     
     
     createHomeTab();
-    #if defined(LVGL_ADD_SCAN_INFO_TAB)
+    #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
       createScanInfoTab();
     #endif
-    #if defined(LVGL_ADD_GPS_TAB)
+    #if defined(LVGL_SUPPORT_GPS_TAB)
       createGpsTab();
     #endif
     createSettingsTab();
@@ -194,14 +194,14 @@
     lv_chart_set_update_mode(chart0, LV_CHART_UPDATE_MODE_SHIFT);
     chart0ser0 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_range(chart0, LV_CHART_AXIS_PRIMARY_Y, 0, 16);
-    #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+    #if defined(SUPPORT_TREACLE) || (defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA))
       chart0ser1 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
       lv_chart_set_range(chart0, LV_CHART_AXIS_SECONDARY_Y, 0, 16);
     #endif
     uint32_t i;
     for(i = 0; i < chartPoints; i++) {
       chart0ser0->y_points[i] = 0;
-      #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+      #if defined(SUPPORT_TREACLE) || (defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA))
         chart0ser1->y_points[i] = 0;
       #endif
     }
@@ -341,7 +341,19 @@
       {
         lv_chart_set_next_value(chart0, chart0ser0, 0);
       }
+    #elif defined(SUPPORT_TREACLE)
+      if(currentlyTrackedBeacon != maximumNumberOfDevices)
+      {
+        lv_chart_set_next_value(chart0, chart0ser0, countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)));
+        lv_chart_set_next_value(chart0, chart0ser1, countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)));
+      }
+      else
+      {
+        lv_chart_set_next_value(chart0, chart0ser0, 0);
+        lv_chart_set_next_value(chart0, chart0ser1, 0);
+      }
     #endif
+    /*
     if(currentlyTrackedBeacon != maximumNumberOfDevices)
     {
       //lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].espNowUpdateHistory)/16);
@@ -352,8 +364,9 @@
       lv_chart_set_next_value(chart1, chart1ser0, 0);
       lv_chart_set_next_value(chart1, chart1ser1, 0);
     }
+    */
   }
-  #if defined(LVGL_ADD_GPS_TAB)
+  #if defined(LVGL_SUPPORT_GPS_TAB)
     void createGpsTab(void)
     {
       //Create the tab
@@ -768,7 +781,7 @@
       #endif
     }
   }
-  #if defined(LVGL_ADD_SCAN_INFO_TAB)
+  #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
     void createScanInfoTab(void)
     {
       uint16_t objectY = 0;
@@ -1173,7 +1186,7 @@
         #endif
       }
     }
-    #if defined(LVGL_ADD_SCAN_INFO_TAB)
+    #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
       if(millis() - lastScanInfoTabUpdate > 10E3 && findableDevicesChanged == true)
       {
         lastScanInfoTabUpdate = millis();

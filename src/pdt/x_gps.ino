@@ -105,7 +105,7 @@
           {
             lastLvglTabUpdate = millis();
             updateHomeTab();
-            #if defined(LVGL_ADD_GPS_TAB)
+            #if defined(LVGL_SUPPORT_GPS_TAB)
               updateGpsTab();
             #endif
           }
@@ -224,7 +224,7 @@
       {
         device[0].hasGpsFix = false;
         lastGPSstateChange = millis();
-        #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+        #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
           findableDevicesChanged = true;
         #endif
         localLogLn(F("GPS lost fix"));
@@ -370,7 +370,7 @@
               SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
-            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
           }
@@ -384,7 +384,7 @@
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
             currentTrackingMode = trackingMode::fixed;  //Switch to fixed as 'furthest' needs to fix once chose
-            #if defined(SUPPORT_LVGL) && defined(LVGL_ADD_SCAN_INFO_TAB)
+            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
           }
