@@ -51,6 +51,18 @@
         localLogLn(device[0].id);
       }
     #endif
+    if(treacle.espNowInitialised())
+    {
+      treacleLocationInterval = 15E3;
+      treacleDeviceInfoInterval = 60E3;
+      treacle.setEspNowTickInterval(espNowTickInterval);
+    }
+    else if(treacle.loRaInitialised())
+    {
+      treacleLocationInterval = 45E3;
+      treacleDeviceInfoInterval = 90E3;
+      treacle.setLoRaTickInterval(loRaTickInterval);
+    }
   }
   void manageTreacle()
   {
@@ -75,7 +87,7 @@
           if(shareDeviceInfo())
           {
             lastTreacleDeviceInfoSendTime = millis();
-            treacleDeviceInfoInterval = treacle.suggestedQueueInterval()*5 - random(500,1000); //Rely on treacle to suggest appropriate send intervals
+            treacleDeviceInfoInterval = treacle.suggestedQueueInterval()*5; //Rely on treacle to suggest appropriate send intervals
             typeOfLastTreacleUpdate = deviceStatusUpdateId;
           }
         }
@@ -84,7 +96,7 @@
           if(shareIcInfo())
           {
             lastTreacleDeviceInfoSendTime = millis();
-            treacleDeviceInfoInterval = treacle.suggestedQueueInterval()*5 - random(500,1000); //Rely on treacle to suggest appropriate send intervals
+            treacleDeviceInfoInterval = treacle.suggestedQueueInterval()*5; //Rely on treacle to suggest appropriate send intervals
             typeOfLastTreacleUpdate = deviceIcInfoId;
           }
         }
@@ -97,7 +109,7 @@
             if(shareLocation())
             {
               lastTreacleLocationSendTime = millis();
-              treacleLocationInterval = treacle.suggestedQueueInterval() - random(100,200); //Rely on treacle to suggest appropriate send intervals
+              treacleLocationInterval = treacle.suggestedQueueInterval(); //Rely on treacle to suggest appropriate send intervals
             }
           }
         #elif defined(ACT_AS_BEACON)
@@ -106,7 +118,7 @@
             if(shareLocation())
             {
               lastTreacleLocationSendTime = millis();
-              treacleLocationInterval = treacle.suggestedQueueInterval() - random(100,200); //Rely on treacle to suggest appropriate send intervals
+              treacleLocationInterval = treacle.suggestedQueueInterval(); //Rely on treacle to suggest appropriate send intervals
             }
           }
         #endif

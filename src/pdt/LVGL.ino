@@ -57,15 +57,26 @@
     lv_obj_set_style_text_color(tab_btns, lv_palette_lighten(LV_PALETTE_GREY, 5), 0);
     lv_obj_set_style_border_side(tab_btns, LV_BORDER_SIDE_RIGHT, LV_PART_ITEMS | LV_STATE_CHECKED);
     
-    
-    createHomeTab();
+    if(enableHomeTab)
+    {
+      createHomeTab();
+    }
     #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
-      createScanInfoTab();
+      if(enableInfoTab)
+      {
+        createScanInfoTab();
+      }
     #endif
     #if defined(LVGL_SUPPORT_GPS_TAB)
-      createGpsTab();
+      if(enableGpsTab)
+      {
+        createGpsTab();
+      }
     #endif
-    createSettingsTab();
+    if(enableSettingsTab)
+    {
+      createSettingsTab();
+    }
     
     lv_obj_clear_flag(lv_tabview_get_content(tabview), LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(homeTab, LV_OBJ_FLAG_SCROLLABLE);
@@ -344,27 +355,28 @@
     #elif defined(SUPPORT_TREACLE)
       if(currentlyTrackedBeacon != maximumNumberOfDevices)
       {
-        lv_chart_set_next_value(chart0, chart0ser0, countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)));
-        lv_chart_set_next_value(chart0, chart0ser1, countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)));
+        lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)>>12));
+        lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)>>12));
+        //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id));
+        //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id));
       }
       else
       {
         lv_chart_set_next_value(chart0, chart0ser0, 0);
         lv_chart_set_next_value(chart0, chart0ser1, 0);
       }
+      //Random junk
+      if(currentlyTrackedBeacon != maximumNumberOfDevices)
+      {
+        lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id))/16);
+        lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id))/16);
+      }
+      else
+      {
+        lv_chart_set_next_value(chart1, chart1ser0, 0);
+        lv_chart_set_next_value(chart1, chart1ser1, 0);
+      }
     #endif
-    /*
-    if(currentlyTrackedBeacon != maximumNumberOfDevices)
-    {
-      //lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].espNowUpdateHistory)/16);
-      //lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].loRaUpdateHistory)/16);
-    }
-    else
-    {
-      lv_chart_set_next_value(chart1, chart1ser0, 0);
-      lv_chart_set_next_value(chart1, chart1ser1, 0);
-    }
-    */
   }
   #if defined(LVGL_SUPPORT_GPS_TAB)
     void createGpsTab(void)
@@ -1187,11 +1199,14 @@
       }
     }
     #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
-      if(millis() - lastScanInfoTabUpdate > 10E3 && findableDevicesChanged == true)
+      if(enableInfoTab)
       {
-        lastScanInfoTabUpdate = millis();
-        findableDevicesChanged = false;
-        updateScanInfoTab();
+        if(millis() - lastScanInfoTabUpdate > 10E3 && findableDevicesChanged == true)
+        {
+          lastScanInfoTabUpdate = millis();
+          findableDevicesChanged = false;
+          updateScanInfoTab();
+        }
       }
     #endif
     if(displayTimeouts[displayTimeout] > 0)

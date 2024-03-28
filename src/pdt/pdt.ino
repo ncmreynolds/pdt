@@ -117,7 +117,7 @@
   //#define SUPPORT_LORA
   //#define DEBUG_LORA
   #define SUPPORT_TREACLE
-  //#define DEBUG_TREACLE
+  #define DEBUG_TREACLE
   //#define SUPPORT_BATTERY_METER
   //#define SUPPORT_FTM
   #define SUPPORT_WIFI
@@ -134,7 +134,7 @@
   //#define SUPPORT_LORA
   //#define DEBUG_LORA
   #define SUPPORT_TREACLE
-  #define DEBUG_TREACLE
+  //#define DEBUG_TREACLE
   #define SUPPORT_LVGL
   //#define DEBUG_LVGL
   #define LVGL_SUPPORT_HOME_TAB
@@ -533,7 +533,7 @@
     uint32_t lastTreacleDeviceInfoSendTime = 0;       //Track the last time of updates
     uint32_t lastTreacleLocationSendTime = 0;
     uint32_t treacleDeviceInfoInterval = 60E3;        //Send device info every 60s
-    uint32_t treacleLocationInterval = 60E3;          //Send device location every 60s
+    uint32_t treacleLocationInterval = 10E3;          //Send device location every 60s
     uint8_t typeOfLastTreacleUpdate = deviceIcInfoId; //Use to cycle through update types
   #endif
 #endif
@@ -654,7 +654,9 @@
   bool treacleIntialised = false;
   uint8_t localMacAddress[6] = {};
   bool espNowEnabled =  true;
+  uint32_t espNowTickInterval = 10e3;
   bool loRaEnabled  = true;
+  uint32_t loRaTickInterval = 45e3;
   uint32_t loRaFrequency = 868E6;
   uint8_t loRaTxPower = 17;
   uint8_t loRaRxGain = 0;
@@ -706,7 +708,7 @@
   uint32_t lastGPSstateChange = 0;
   uint32_t gpsTimeCheckInterval = 30000;
   uint32_t lastDistanceCalculation = 0;
-  uint16_t distanceCalculationInterval = 1000;
+  uint16_t distanceCalculationInterval = 10000;
   uint32_t lastGPSstatus = 0;
   uint32_t gpsChars = 0;
   uint16_t gpsSentences = 0;
@@ -912,7 +914,7 @@ static const uint16_t loggingYieldTime = 100;
     char* icName = nullptr;
     char* icDescription = nullptr;
     uint32_t diameter = 1;
-    uint32_t height = 1;
+    uint32_t height = 2;
   };
   static const uint8_t maximumNumberOfDevices = 16;
   deviceInfo device[maximumNumberOfDevices];
@@ -1035,8 +1037,10 @@ static const uint16_t loggingYieldTime = 100;
   //Tab view
   static lv_obj_t * tabview;
   uint8_t tabHeight = 40;
+
   //Home tab
   #if defined(LVGL_SUPPORT_HOME_TAB)
+    bool enableHomeTab = true;
     lv_obj_t * homeTab = nullptr;
     static const char homeTabLabel[] = "Home";
     lv_obj_t * status_spinner = nullptr;
@@ -1078,6 +1082,7 @@ static const uint16_t loggingYieldTime = 100;
   #endif
   //GPS tab
   #if defined(LVGL_SUPPORT_GPS_TAB)
+    bool enableGpsTab = true;
     lv_obj_t * gpsTab = nullptr;
     static const char gpsTabLabel[] = "GPS";
     uint32_t lastLvglTabUpdate = 0;
@@ -1096,6 +1101,7 @@ static const uint16_t loggingYieldTime = 100;
   #endif
   //Scan info tab
   #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+    bool enableInfoTab = true;
     static const char infoTabLabel[] = "Info";
     lv_obj_t * scanInfoTab = nullptr;
     lv_obj_t * button0 = nullptr; //Nearest
@@ -1112,6 +1118,7 @@ static const uint16_t loggingYieldTime = 100;
   #endif
   //Settings/preferences tab
   #if defined(LVGL_SUPPORT_SETTINGS_TAB)
+    bool enableSettingsTab = true;
     lv_obj_t * settingsTab = nullptr;
     static const char settingsTabLabel[] = "Pref";
 
@@ -1371,8 +1378,8 @@ static const uint16_t loggingYieldTime = 100;
 #if defined(SUPPORT_SOFT_POWER_OFF)
   uint32_t powerOffTimer = 0;  //Used to schedule a power off
   #if defined(SUPPORT_GPS)
-    uint32_t gpsStationaryTimeout = 0;  //Don't switch off by default
-    uint32_t gpsCheckInterval = 300E3;  //Wake up the GPS to see if moving every 5 minutes
+    uint32_t gpsStationaryTimeout = 300E3;   //Don't switch off by default
+    uint32_t gpsCheckInterval = 300E3;      //Wake up the GPS to see if moving every 5 minutes
   #endif
 #endif
 /*

@@ -24,10 +24,17 @@
         if(millis() - lastGPSstatus > 10000)
         {
           lastGPSstatus = millis();
-          showGPSstatus();
+          #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
+          if(peripheralsEnabled)
+          {
+          #endif
+            showGPSstatus();
+          #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
+          }
+          #endif
         }
       #endif
-      if(updateLocation())  //Get the latest GPS location stored in device[0], if there's a fix
+      if(locationUpdated())  //Get the latest GPS location stored in device[0], if there's a fix
       {
         if(millis() - lastDistanceCalculation > distanceCalculationInterval)  //Recalculate distances on a short interval
         {
@@ -104,9 +111,17 @@
           if(millis() - lastLvglTabUpdate > lvglTabUpdateInterval)
           {
             lastLvglTabUpdate = millis();
-            updateHomeTab();
+            #if defined(LVGL_SUPPORT_HOME_TAB)
+              if(enableHomeTab)
+              {
+                updateHomeTab();
+              }
+            #endif
             #if defined(LVGL_SUPPORT_GPS_TAB)
-              updateGpsTab();
+              if(enableGpsTab)
+              {
+                updateGpsTab();
+              }
             #endif
           }
         #endif
@@ -161,7 +176,7 @@
       }
     }
   }
-  bool updateLocation() //True implies there's a GPS fix
+  bool locationUpdated() //True implies there's a GPS fix and it changed
   {
     #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
     if(peripheralsEnabled == true)
@@ -169,6 +184,7 @@
     #endif
       if(gps.location.isValid() == true)
       {
+        bool updateOccured = false;
         if(device[0].hasGpsFix == false)
         {
           device[0].hasGpsFix = true;
@@ -184,11 +200,31 @@
         #if defined(SUPPORT_ESPNOW)
           device[0].lastEspNowLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
         #endif
-        device[0].latitude = gps.location.lat();
-        device[0].longitude = gps.location.lng();
-        device[0].course = gps.course.deg();
-        device[0].speed = gps.speed.mps();
-        device[0].hdop = gps.hdop.hdop();
+        if(device[0].latitude != gps.location.lat())
+        {
+          device[0].latitude = gps.location.lat();
+          updateOccured = true;
+        }
+        if(device[0].longitude != gps.location.lng())
+        {
+          device[0].longitude = gps.location.lng();
+          updateOccured = true;
+        }
+        if(device[0].course != gps.course.deg())
+        {
+          device[0].course = gps.course.deg();
+          updateOccured = true;
+        }
+        if(device[0].speed != gps.speed.mps())
+        {
+          device[0].speed = gps.speed.mps();
+          updateOccured = true;
+        }
+        if(device[0].hdop != gps.hdop.hdop())
+        {
+          device[0].hdop = gps.hdop.hdop();
+          updateOccured = true;
+        }
         gpsSentences = gps.passedChecksum();
         gpsErrors = gps.failedChecksum();
         #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
@@ -203,7 +239,9 @@
                 {
                   moving = false;
                   lastGPSstateChange = millis();
-                  localLogLn(F("Device stationary"));
+                  #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+                    SERIAL_DEBUG_PORT.println(F("Device stationary"));
+                  #endif
                 }
               }
               else
@@ -212,13 +250,15 @@
                 {
                   moving = true;
                   lastGPSstateChange = millis();
-                  localLogLn(F("Device moving"));
+                  #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+                    SERIAL_DEBUG_PORT.println(F("Device moving"));
+                  #endif
                 }
               }
             }
           }
         #endif
-        return true;
+        return updateOccured;
       }
       else if(device[0].hasGpsFix == true)
       {
@@ -237,9 +277,10 @@
     }
     else
     {
-      return true;
+      return false;
     }
     #endif
+    return false;
   }
   void processGpsSentences(void * parameter)
   {
@@ -573,7 +614,7 @@
             closestTracker = index;
           }
           #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-            SERIAL_DEBUG_PORT.printf_P(PSTR("Tracker %u: distance %f course %f\r\n"), index, device[index].distanceTo, device[index].courseTo);
+            SERIAL_DEBUG_PORT.printf_P(PSTR("Found tracker %u: distance %.1f course %.1f\r\n"), index, device[index].distanceTo, device[index].courseTo);
           #endif
         }
       }

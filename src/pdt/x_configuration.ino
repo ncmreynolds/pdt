@@ -111,7 +111,9 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   #if defined(SUPPORT_TREACLE)
     configuration["id"] = device[0].id;
     configuration["espNowEnabled"] = espNowEnabled;
+    configuration["espNowTickInterval"] = espNowTickInterval;
     configuration["loRaEnabled"] = loRaEnabled;
+    configuration["loRaTickInterval"] = loRaTickInterval;
     configuration["loRaFrequency"] = loRaFrequency;
     configuration["loRaTxPower"] = loRaTxPower;
     configuration["loRaRxGain"] = loRaRxGain;
@@ -125,6 +127,10 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["minimumBrightnessLevel"] = minimumBrightnessLevel;
     configuration["maximumBrightnessLevel"] = maximumBrightnessLevel;
     configuration["screenRotation"] = screenRotation;
+    configuration["enableHomeTab"] = enableHomeTab;
+    configuration["enableInfoTab"] = enableInfoTab;
+    configuration["enableGpsTab"] = enableGpsTab;
+    configuration["enableSettingsTab"] = enableSettingsTab;
     #if defined(SUPPORT_TOUCHSCREEN)
       configuration["touchScreenMinimumX"] = touchScreenMinimumX;
       configuration["touchScreenMaximumX"] = touchScreenMaximumX;
@@ -291,6 +297,8 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     #if defined(SUPPORT_TREACLE)
       device[0].id = configuration["id"] | 0;
       espNowEnabled = configuration["espNowEnabled"] | true;
+      espNowTickInterval = configuration["espNowTickInterval"] | 10e3;
+      loRaTickInterval = configuration["loRaTickInterval"] | 45e3;
       loRaEnabled = configuration["loRaEnabled"] | true;
       loRaFrequency = configuration["loRaFrequency"] | 868E6;
       loRaTxPower = configuration["loRaTxPower"] | 17;
@@ -453,6 +461,10 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       minimumBrightnessLevel = configuration["minimumBrightnessLevel"] | absoluteMinimumBrightnessLevel;
       maximumBrightnessLevel = configuration["maximumBrightnessLevel"] | absoluteMaximumBrightnessLevel;
       screenRotation = configuration["screenRotation"];
+      enableHomeTab = configuration["enableHomeTab"] | true;
+      enableInfoTab = configuration["enableInfoTab"] | true;
+      enableGpsTab = configuration["enableGpsTab"] | true;
+      enableSettingsTab = configuration["enableSettingsTab"] | true;
     #endif
     #if defined(SUPPORT_HACKING)
       gameLength = configuration["gameLength"] | 10 ;
@@ -722,7 +734,9 @@ void printConfiguration()
   #if defined(SUPPORT_TREACLE)
     localLog(F("id: ")); localLogLn(device[0].id);
     localLog(F("espNowEnabled: ")); localLogLn(espNowEnabled);
+    localLog(F("espNowTickInterval: ")); localLogLn(espNowTickInterval);
     localLog(F("loRaEnabled: ")); localLogLn(loRaEnabled);
+    localLog(F("loRaTickInterval: ")); localLogLn(loRaTickInterval);
     localLog(F("loRaFrequency: ")); localLogLn(loRaFrequency/1e6);
     localLog(F("loRaTxPower: ")); localLogLn(loRaTxPower);
     localLog(F("loRaRxGain: ")); localLogLn(loRaRxGain);
@@ -757,6 +771,10 @@ void printConfiguration()
     localLog(F("minimumBrightnessLevel: ")); localLogLn(minimumBrightnessLevel);
     localLog(F("maximumBrightnessLevel: ")); localLogLn(maximumBrightnessLevel);
     localLog(F("screenRotation: ")); localLogLn(screenRotation);
+    localLog(F("enableHomeTab: ")); localLogLn(enableHomeTab);
+    localLog(F("enableInfoTab: ")); localLogLn(enableInfoTab);
+    localLog(F("enableGpsTab: ")); localLogLn(enableGpsTab);
+    localLog(F("enableSettingsTab: ")); localLogLn(enableSettingsTab);
   #endif
   localLog(F("loggingBufferSize: ")); localLogLn(loggingBufferSize);
   localLog(F("logFlushThreshold: ")); localLogLn(logFlushThreshold);
