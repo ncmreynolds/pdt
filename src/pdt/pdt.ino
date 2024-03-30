@@ -927,7 +927,7 @@ static const uint16_t loggingYieldTime = 100;
   #endif
   uint16_t sensitivityValues[4] = {0x0FFF, 0x00FF, 0x000F, 0x0007};
   #if defined(ACT_AS_TRACKER)
-    double maximumEffectiveRange = 9999;
+    double maximumEffectiveRange = 250;
     uint8_t trackerPriority = 0;
     uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
     bool distanceToCurrentBeaconChanged = false;
