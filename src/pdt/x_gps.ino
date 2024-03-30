@@ -107,24 +107,6 @@
             }
           }
         #endif
-        #if defined(SUPPORT_LVGL)
-          if(millis() - lastLvglTabUpdate > lvglTabUpdateInterval)
-          {
-            lastLvglTabUpdate = millis();
-            #if defined(LVGL_SUPPORT_HOME_TAB)
-              if(enableHomeTab)
-              {
-                updateHomeTab();
-              }
-            #endif
-            #if defined(LVGL_SUPPORT_GPS_TAB)
-              if(enableGpsTab)
-              {
-                updateGpsTab();
-              }
-            #endif
-          }
-        #endif
       }
       #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
       if(peripheralsEnabled)
@@ -232,12 +214,12 @@
           {
             if(device[0].hdop < normalHdopThreshold)
             {
-              smoothedSpeed = (smoothedSpeed * 0.9) + (device[0].speed *0.1);
-              if(smoothedSpeed < stationaryThreshold)
+              device[0].smoothedSpeed = (device[0].smoothedSpeed * 0.9) + (device[0].speed *0.1);
+              if(device[0].smoothedSpeed < stationaryThreshold)
               {
-                if(moving == true)
+                if(device[0].moving == true)
                 {
-                  moving = false;
+                  device[0].moving = false;
                   lastGPSstateChange = millis();
                   #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                     SERIAL_DEBUG_PORT.println(F("Device stationary"));
@@ -246,9 +228,9 @@
               }
               else
               {
-                if(moving == false)
+                if(device[0].moving == false)
                 {
-                  moving = true;
+                  device[0].moving = true;
                   lastGPSstateChange = millis();
                   #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
                     SERIAL_DEBUG_PORT.println(F("Device moving"));

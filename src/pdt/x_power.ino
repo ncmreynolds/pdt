@@ -31,7 +31,7 @@
   void managePeripheralPower()
   {
     #if defined(SUPPORT_GPS)
-      if(peripheralsEnabled == true && moving == false && gpsStationaryTimeout != 0 && millis() - lastGPSstateChange > gpsStationaryTimeout)
+      if(peripheralsEnabled == true && device[0].moving == false && gpsStationaryTimeout != 0 && millis() - lastGPSstateChange > gpsStationaryTimeout)
       {
         peripheralPowerOff();
         lastGPSstateChange = millis();

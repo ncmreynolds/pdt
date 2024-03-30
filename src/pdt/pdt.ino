@@ -69,10 +69,8 @@
   #define SUPPORT_GPS
   #define DEBUG_GPS
   #define SUPPORT_WIFI
-  //#define SUPPORT_ESPNOW
-  //#define DEBUG_ESPNOW
-  //#define SUPPORT_LORA
-  //#define DEBUG_LORA
+  #define SUPPORT_TREACLE
+  //#define DEBUG_TREACLE
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3TrackedSensor
   #define ACT_AS_BEACON
@@ -905,7 +903,11 @@ static const uint16_t loggingYieldTime = 100;
     float hdop = 0;
     float distanceTo = 0;
     float courseTo = 0;
-    float lastLoRaRssi = 0; // Can also be used to estimate distance
+    float smoothedSpeed = 1;
+    bool moving = true;
+    #if defined(SUPPORT_LORA)
+      float lastLoRaRssi = 0; // Can also be used to estimate distance
+    #endif
     uint8_t numberOfStartingHits = 0;
     uint8_t numberOfStartingStunHits = 0;
     uint8_t currentNumberOfHits = 0;
@@ -918,6 +920,7 @@ static const uint16_t loggingYieldTime = 100;
   };
   static const uint8_t maximumNumberOfDevices = 16;
   deviceInfo device[maximumNumberOfDevices];
+  uint8_t stationaryThreshold = 1;    
   uint8_t numberOfDevices = 0;
   double effectivelyUnreachable = 1E10;
   #if defined(ACT_AS_TRACKER)
@@ -943,11 +946,6 @@ static const uint16_t loggingYieldTime = 100;
   #elif defined(ACT_AS_BEACON)
     uint8_t closestTracker = maximumNumberOfDevices;
     uint16_t distanceToClosestTracker = effectivelyUnreachable;
-  #endif
-  #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
-    double smoothedSpeed = 100;
-    uint8_t stationaryThreshold = 1;
-    bool moving = true;
   #endif
 #endif
 /*
@@ -1058,6 +1056,7 @@ static const uint16_t loggingYieldTime = 100;
     static const uint8_t meterSpacing = 8;
     
     static lv_obj_t * meter0;
+    static lv_obj_t * meter0withoutNeedle;
     static lv_meter_indicator_t * needle0;
     static lv_obj_t * meter0label0;
     

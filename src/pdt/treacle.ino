@@ -315,6 +315,30 @@
         unpacker.unpack(device[deviceIndex].course);
         unpacker.unpack(device[deviceIndex].speed);
         unpacker.unpack(device[deviceIndex].hdop);
+        if(device[deviceIndex].hdop < normalHdopThreshold)
+        {
+          device[deviceIndex].smoothedSpeed = (device[deviceIndex].smoothedSpeed * 0.9) + (device[deviceIndex].speed *0.1);
+          if(device[deviceIndex].smoothedSpeed < stationaryThreshold)
+          {
+            if(device[deviceIndex].moving == true)
+            {
+              device[deviceIndex].moving = false;
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+                SERIAL_DEBUG_PORT.printf_P(PSTR("Device %02x stationary\r\n"), device[deviceIndex].id);
+              #endif
+            }
+          }
+          else
+          {
+            if(device[deviceIndex].moving == false)
+            {
+              device[deviceIndex].moving = true;
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+                SERIAL_DEBUG_PORT.printf_P(PSTR("Device %02x moving\r\n"), device[deviceIndex].id);
+              #endif
+            }
+          }
+        }
         if(device[deviceIndex].hdop != 0 && device[deviceIndex].latitude != 0 && device[deviceIndex].longitude != 0 && device[deviceIndex].hdop < minimumViableHdop)
         {
           if(device[deviceIndex].hasGpsFix == false)

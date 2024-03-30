@@ -115,34 +115,42 @@
     
     //Create meters
     meter0 = lv_meter_create(homeTab); //Direction
+    meter0withoutNeedle = lv_meter_create(homeTab); //Direction
     meter1 = lv_meter_create(homeTab); //Range
     //meter2 = lv_meter_create(homeTab);
     //meter3 = lv_meter_create(homeTab);
   
     //Scale the meters
     lv_obj_set_size(meter0, meterDiameter, meterDiameter);
+    lv_obj_set_size(meter0withoutNeedle, meterDiameter, meterDiameter);
     lv_obj_set_size(meter1, meterDiameter, meterDiameter);
     //lv_obj_set_size(meter2, meterDiameter, meterDiameter);
     //lv_obj_set_size(meter3, meterDiameter, meterDiameter);
     
     //Lay out the meters
     lv_obj_align(meter0, LV_ALIGN_CENTER, -meterDiameter/2-meterSpacing, -meterDiameter/2-meterSpacing);
+    lv_obj_align(meter0withoutNeedle, LV_ALIGN_CENTER, -meterDiameter/2-meterSpacing, -meterDiameter/2-meterSpacing);
     lv_obj_align(meter1, LV_ALIGN_CENTER, meterDiameter/2+meterSpacing, -meterDiameter/2-meterSpacing);
   
     //Assign style to all meters
     lv_obj_add_style(meter0, &style_meter, 0); //Default style for meters
+    lv_obj_add_style(meter0withoutNeedle, &style_meter, 0); //Default style for meters
     lv_obj_add_style(meter1, &style_meter, 0); //Default style for meters
   
     //Meter 0 scale
     lv_meter_scale_t * meter0Scale0 = lv_meter_add_scale(meter0);
     lv_meter_set_scale_ticks(meter0, meter0Scale0, 5, 2, 10, lv_palette_main(LV_PALETTE_RED));
-    //lv_meter_set_scale_major_ticks(meter0, meter0Scale0, 8, 4, 10, lv_color_black(), 10);
     lv_meter_set_scale_range(meter0, meter0Scale0, 0, 360, 360, -90);
+    lv_meter_scale_t * meter0Scale0withoutNeedle = lv_meter_add_scale(meter0withoutNeedle);
+    lv_meter_set_scale_ticks(meter0withoutNeedle, meter0Scale0withoutNeedle, 5, 2, 10, lv_palette_main(LV_PALETTE_RED));
+    lv_meter_set_scale_range(meter0withoutNeedle, meter0Scale0withoutNeedle, 0, 360, 360, -90);
     
     lv_meter_scale_t * scale1 = lv_meter_add_scale(meter0);
     lv_meter_set_scale_ticks(meter0, scale1, 17, 4, 5, lv_palette_main(LV_PALETTE_GREY));
-    //lv_meter_set_scale_major_ticks(meter0, scale1, 8, 4, 10, lv_color_black(), 10);
     lv_meter_set_scale_range(meter0, scale1, 0, 360, 360, -90);
+    lv_meter_scale_t * scale1withoutTicks = lv_meter_add_scale(meter0withoutNeedle);
+    lv_meter_set_scale_ticks(meter0withoutNeedle, scale1withoutTicks, 17, 4, 5, lv_palette_main(LV_PALETTE_GREY));
+    lv_meter_set_scale_range(meter0withoutNeedle, scale1withoutTicks, 0, 360, 360, -90);
   
     //Meter 1 scale
     lv_meter_scale_t * meter1Scale0 = lv_meter_add_scale(meter1);
@@ -183,6 +191,7 @@
   
     //Hide the meters
     lv_obj_add_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(meter1, LV_OBJ_FLAG_HIDDEN);
   
     //Meter 0 label
@@ -265,7 +274,7 @@
   }
   void showMeters()
   {
-    lv_obj_clear_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(meter0label0, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(meter1, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(meter1label0, LV_OBJ_FLAG_HIDDEN);
@@ -277,6 +286,7 @@
   void hideMeters()
   {
     lv_obj_add_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(meter0label0, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(meter1, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(meter1label0, LV_OBJ_FLAG_HIDDEN);
@@ -287,12 +297,13 @@
   }
   void updateHomeTab()
   {
-    if(currentlyTrackedBeacon != maximumNumberOfDevices)
+    if(currentlyTrackedBeacon != maximumNumberOfDevices && currentLvglUiState == deviceState::tracking)
     {
       //Course to tracked beacon
-      //if(device[0].speed > 1)
+      if(device[0].speed > 0)
       {
-        //lv_obj_clear_flag(needle0, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
         uint16_t courseToIndicate = device[currentlyTrackedBeacon].courseTo - device[0].course;
         if(courseToIndicate > 360)
         {
@@ -303,14 +314,12 @@
           courseToIndicate += 360;
         }
         lv_meter_set_indicator_value(meter0, needle0, courseToIndicate);
-        //meterDiameter
       }
-      /*
       else
       {
-        lv_obj_add_flag(needle0, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
       }
-      */
       if(rangeToIndicate(currentlyTrackedBeacon) < maximumEffectiveRange) //Limit is 100m on dial
       {
         lv_meter_set_indicator_value(meter1, needle1, rangeToIndicate(currentlyTrackedBeacon));
@@ -1183,6 +1192,22 @@
     }
     else if(currentLvglUiState == deviceState::tracking)
     {
+      if(millis() - lastLvglTabUpdate > lvglTabUpdateInterval)
+      {
+        lastLvglTabUpdate = millis();
+        #if defined(LVGL_SUPPORT_HOME_TAB)
+          if(enableHomeTab)
+          {
+            updateHomeTab();
+          }
+        #endif
+        #if defined(LVGL_SUPPORT_GPS_TAB)
+          if(enableGpsTab)
+          {
+            updateGpsTab();
+          }
+        #endif
+      }
       if(device[0].hasGpsFix == false)  //Lost location
       {
         hideMeters();
@@ -1206,7 +1231,7 @@
     #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
       if(enableInfoTab)
       {
-        if(millis() - lastScanInfoTabUpdate > 10E3 && findableDevicesChanged == true)
+        if(millis() - lastScanInfoTabUpdate > 10E3)// && findableDevicesChanged == true)
         {
           lastScanInfoTabUpdate = millis();
           findableDevicesChanged = false;
