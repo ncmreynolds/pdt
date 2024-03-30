@@ -871,6 +871,9 @@
             response->print(startFourColumns);
             response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
             response->print(endColumn);
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
             response->print(endRow);
             response->printf_P(h2printfFormatString, PSTR("Configuration"));
             response->print(startRow);
@@ -1110,11 +1113,14 @@
               response->print(F("<option value=\"50\""));response->print(maximumEffectiveRange == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50m</option>"));
               response->print(F("<option value=\"75\""));response->print(maximumEffectiveRange == 75 ? selectValueSelected:selectValueNotSelected);response->print(F("75m</option>"));
               response->print(F("<option value=\"99\""));response->print(maximumEffectiveRange == 99 ? selectValueSelected:selectValueNotSelected);response->print(F("99m</option>"));
+              response->print(F("<option value=\"100\""));response->print(maximumEffectiveRange == 100 ? selectValueSelected:selectValueNotSelected);response->print(F("100m</option>"));
               response->print(F("<option value=\"150\""));response->print(maximumEffectiveRange == 150 ? selectValueSelected:selectValueNotSelected);response->print(F("150m</option>"));
               response->print(F("<option value=\"250\""));response->print(maximumEffectiveRange == 250 ? selectValueSelected:selectValueNotSelected);response->print(F("250m</option>"));
+              response->print(F("<option value=\"500\""));response->print(maximumEffectiveRange == 500 ? selectValueSelected:selectValueNotSelected);response->print(F("500m</option>"));
               response->print(F("<option value=\"750\""));response->print(maximumEffectiveRange == 750 ? selectValueSelected:selectValueNotSelected);response->print(F("750m</option>"));
               response->print(F("<option value=\"1000\""));response->print(maximumEffectiveRange == 1000 ? selectValueSelected:selectValueNotSelected);response->print(F("1000m</option>"));
               response->print(F("<option value=\"9999\""));response->print(maximumEffectiveRange == 9999 ? selectValueSelected:selectValueNotSelected);response->print(F("9999m</option>"));
+              response->print(F("<option value=\"10000\""));response->print(maximumEffectiveRange == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10000m</option>"));
               response->print(F("<option value=\""));response->print(effectivelyUnreachable);response->print('"');response->print(maximumEffectiveRange == effectivelyUnreachable ? selectValueSelected:selectValueNotSelected);response->print(F("Unlimited</option>"));
               response->print(endSelect);
               response->print(endColumn);

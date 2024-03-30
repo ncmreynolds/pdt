@@ -138,13 +138,15 @@
     lv_meter_set_scale_ticks(meter0, meter0Scale0, 5, 2, 10, lv_palette_main(LV_PALETTE_RED));
     //lv_meter_set_scale_major_ticks(meter0, meter0Scale0, 8, 4, 10, lv_color_black(), 10);
     lv_meter_set_scale_range(meter0, meter0Scale0, 0, 360, 360, -90);
-    lv_meter_scale_t * scale2 = lv_meter_add_scale(meter0);
-    lv_meter_set_scale_ticks(meter0, scale2, 17, 4, 5, lv_palette_main(LV_PALETTE_GREY));
-    //lv_meter_set_scale_major_ticks(meter0, scale2, 8, 4, 10, lv_color_black(), 10);
-    lv_meter_set_scale_range(meter0, scale2, 0, 360, 360, -90);
+    
+    lv_meter_scale_t * scale1 = lv_meter_add_scale(meter0);
+    lv_meter_set_scale_ticks(meter0, scale1, 17, 4, 5, lv_palette_main(LV_PALETTE_GREY));
+    //lv_meter_set_scale_major_ticks(meter0, scale1, 8, 4, 10, lv_color_black(), 10);
+    lv_meter_set_scale_range(meter0, scale1, 0, 360, 360, -90);
   
     //Meter 1 scale
     lv_meter_scale_t * meter1Scale0 = lv_meter_add_scale(meter1);
+    lv_meter_set_scale_range(meter1, meter1Scale0, 0, maximumEffectiveRange, 300, 120);
     lv_meter_set_scale_ticks(meter1, meter1Scale0, 41, 2/*width*/, 4/*length*/, lv_palette_main(LV_PALETTE_GREY));
     lv_meter_set_scale_major_ticks(meter1, meter1Scale0, 8, 4/*width*/, 7/*length*/, lv_color_black(), 10);
   
@@ -153,22 +155,22 @@
     //Red arc
     colourArcs = lv_meter_add_arc(meter1, meter1Scale0, 2/*width*/, lv_palette_main(LV_PALETTE_RED), 0);
     lv_meter_set_indicator_start_value(meter1, colourArcs, 0);
-    lv_meter_set_indicator_end_value(meter1, colourArcs, 20);
+    lv_meter_set_indicator_end_value(meter1, colourArcs, (20*maximumEffectiveRange)/100);
   
     //Red tics
     colourArcs = lv_meter_add_scale_lines(meter1, meter1Scale0, lv_palette_main(LV_PALETTE_RED), lv_palette_main(LV_PALETTE_RED), false, 0);
     lv_meter_set_indicator_start_value(meter1, colourArcs, 0);
-    lv_meter_set_indicator_end_value(meter1, colourArcs, 20);
+    lv_meter_set_indicator_end_value(meter1, colourArcs, (20*maximumEffectiveRange)/100);
   
     //Green arc
     colourArcs = lv_meter_add_arc(meter1, meter1Scale0, 2/*width*/, lv_palette_main(LV_PALETTE_GREEN), 0);
-    lv_meter_set_indicator_start_value(meter1, colourArcs, 80);
-    lv_meter_set_indicator_end_value(meter1, colourArcs, 100);
+    lv_meter_set_indicator_start_value(meter1, colourArcs, (80*maximumEffectiveRange)/100);
+    lv_meter_set_indicator_end_value(meter1, colourArcs, maximumEffectiveRange);
   
     //Green tics
     colourArcs = lv_meter_add_scale_lines(meter1, meter1Scale0, lv_palette_main(LV_PALETTE_GREEN), lv_palette_main(LV_PALETTE_GREEN), false, 0);
-    lv_meter_set_indicator_start_value(meter1, colourArcs, 80);
-    lv_meter_set_indicator_end_value(meter1, colourArcs, 100);
+    lv_meter_set_indicator_start_value(meter1, colourArcs, (80*maximumEffectiveRange)/100);
+    lv_meter_set_indicator_end_value(meter1, colourArcs, maximumEffectiveRange);
   
     //Meter 0 needle
     needle0 = lv_meter_add_needle_line(meter0, meter0Scale0, 4, lv_color_black(), -10);
@@ -248,7 +250,7 @@
   
     chart1label0 = lv_label_create(homeTab);
     lv_obj_align(chart1label0, LV_ALIGN_CENTER, 0, chartY + chartY/2 + chartLabelSpacing);
-    lv_label_set_text(chart1label0, "Anomaly amplitude");
+    lv_label_set_text(chart1label0, "Interference level");
     lv_obj_add_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
   }
   void showStatusSpinner()
@@ -291,7 +293,7 @@
       //if(device[0].speed > 1)
       {
         //lv_obj_clear_flag(needle0, LV_OBJ_FLAG_HIDDEN);
-        uint16_t courseToIndicate = device[currentlyTrackedBeacon].courseTo - device[0].courseTo;
+        uint16_t courseToIndicate = device[currentlyTrackedBeacon].courseTo - device[0].course;
         if(courseToIndicate > 360)
         {
           courseToIndicate -= 360;
@@ -301,6 +303,7 @@
           courseToIndicate += 360;
         }
         lv_meter_set_indicator_value(meter0, needle0, courseToIndicate);
+        //meterDiameter
       }
       /*
       else
@@ -308,13 +311,13 @@
         lv_obj_add_flag(needle0, LV_OBJ_FLAG_HIDDEN);
       }
       */
-      if(rangeToIndicate(currentlyTrackedBeacon) < 100) //Limit is 100m on dial
+      if(rangeToIndicate(currentlyTrackedBeacon) < maximumEffectiveRange) //Limit is 100m on dial
       {
         lv_meter_set_indicator_value(meter1, needle1, rangeToIndicate(currentlyTrackedBeacon));
       }
       else
       {
-        lv_meter_set_indicator_value(meter1, needle1, 100);
+        lv_meter_set_indicator_value(meter1, needle1, maximumEffectiveRange);
       }
     }
     else
@@ -355,8 +358,10 @@
     #elif defined(SUPPORT_TREACLE)
       if(currentlyTrackedBeacon != maximumNumberOfDevices)
       {
-        lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)>>12));
-        lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)>>12));
+        lv_chart_set_next_value(chart0, chart0ser0, countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)));
+        lv_chart_set_next_value(chart0, chart0ser1, countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)));
+        //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)>>12));
+        //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)>>12));
         //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id));
         //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id));
       }
@@ -929,7 +934,7 @@
           }
           else
           {
-            lv_label_set_text(icDescription_label, "No information available on anomaly");
+            lv_label_set_text(icDescription_label, "No information available");
             #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
               //SERIAL_DEBUG_PORT.print(F("CALLBACK icDescription == nullptr -> Nothing useful detected"));
             #endif
@@ -1066,9 +1071,9 @@
         }
         else
         {
-          lv_label_set_text(icDescription_label, "No information available on anomaly");
+          lv_label_set_text(icDescription_label, "No information available");
           #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-            //SERIAL_DEBUG_PORT.print(F(" icDescription == nullptr -> No information available on anomaly"));
+            //SERIAL_DEBUG_PORT.print(F(" icDescription == nullptr -> No information available"));
           #endif
         }
       }
