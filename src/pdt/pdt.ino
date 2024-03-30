@@ -36,7 +36,7 @@
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 5
-#define PDT_PATCH_VERSION 0
+#define PDT_PATCH_VERSION 1
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -708,7 +708,7 @@
   uint32_t lastGPSstateChange = 0;
   uint32_t gpsTimeCheckInterval = 30000;
   uint32_t lastDistanceCalculation = 0;
-  uint16_t distanceCalculationInterval = 10000;
+  uint16_t distanceCalculationInterval = 1000;
   uint32_t lastGPSstatus = 0;
   uint32_t gpsChars = 0;
   uint16_t gpsSentences = 0;
