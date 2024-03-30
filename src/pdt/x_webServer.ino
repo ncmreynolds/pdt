@@ -2583,14 +2583,14 @@
               //Spreading factor
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"loRaSpreadingFactor\">LoRa perimiter 1</label>"));
+              response->print(F("<label for=\"loRaSpreadingFactor\">LoRa spreading factor</label>"));
               response->print(F("<select class=\"u-full-width\" id=\"loRaSpreadingFactor\" name=\"loRaSpreadingFactor\">"));
               for(uint8_t value = 7; value <= 12; value++)
               {
                 response->printf_P(PSTR("<option value=\"%u\""), value);
                 response->print(loRaSpreadingFactor == value ? selectValueSelected:selectValueNotSelected);
                 response->print(value);
-                response->print(F("dBm</option>"));
+                response->print(F("</option>"));
               }
               response->print(endSelect);
               response->print(endColumn);
@@ -2598,7 +2598,7 @@
               //Signal bandwidth
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"loRaSignalBandwidth\">LoRa beacon interval 1</label>"));
+              response->print(F("<label for=\"loRaSignalBandwidth\">LoRa signal bandwidth</label>"));
               response->print(F("<select class=\"u-full-width\" id=\"loRaSignalBandwidth\" name=\"loRaSignalBandwidth\">"));
               for(uint8_t index = 0; index < 10; index++)
               {
