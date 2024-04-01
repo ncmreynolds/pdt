@@ -214,7 +214,7 @@
           {
             if(device[0].hdop < normalHdopThreshold)
             {
-              device[0].smoothedSpeed = (device[0].smoothedSpeed * 0.9) + (device[0].speed *0.1);
+              device[0].smoothedSpeed = (device[0].smoothedSpeed * 0.75) + (device[0].speed *0.25);
               if(device[0].smoothedSpeed < stationaryThreshold)
               {
                 if(device[0].moving == true)

@@ -317,7 +317,7 @@
         unpacker.unpack(device[deviceIndex].hdop);
         if(device[deviceIndex].hdop < normalHdopThreshold)
         {
-          device[deviceIndex].smoothedSpeed = (device[deviceIndex].smoothedSpeed * 0.9) + (device[deviceIndex].speed *0.1);
+          device[deviceIndex].smoothedSpeed = (device[deviceIndex].smoothedSpeed * 0.75) + (device[deviceIndex].speed *0.25);
           if(device[deviceIndex].smoothedSpeed < stationaryThreshold)
           {
             if(device[deviceIndex].moving == true)

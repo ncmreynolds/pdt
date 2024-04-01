@@ -3,6 +3,12 @@
  * This file contains functions related to storing/retrieving configuration from JSON files on the local flash filesystem
  * 
  */
+const char string_colonSpace[] PROGMEM = ": ";
+const char string_ltNoneGt[] PROGMEM = "<none>";
+const char string_ltSetGt[] PROGMEM = "<set>";
+const char string_enabled[] PROGMEM = "enabled";
+const char string_disabled[] PROGMEM = "disabled";
+
 bool saveConfiguration(const char* filename)  //Saves the configuration
 {
   backupConfiguration(filename);
@@ -10,72 +16,72 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   localLog(filename);
   localLog(F("\": "));
   DynamicJsonDocument configuration(2048);
-  configuration["deviceName"] = device[0].name;
-  configuration["configurationComment"] = configurationComment;
+  configuration[string_deviceName] = device[0].name;
+  configuration[string_configurationComment] = configurationComment;
   #if defined(SUPPORT_WIFI)
-    configuration["SSID"] = SSID;
-    configuration["PSK"] = PSK;
-    configuration["startWiFiClientOnBoot"] = startWiFiClientOnBoot;
-    configuration["APSSID"] = APSSID;
-    configuration["APPSK"] = APPSK;
-    configuration["startWiFiApOnBoot"] = startWiFiApOnBoot;
-    configuration["softApChannel"] = softApChannel;
+    configuration[string_SSID] = SSID;
+    configuration[string_PSK] = PSK;
+    configuration[string_startWiFiClientOnBoot] = startWiFiClientOnBoot;
+    configuration[string_APSSID] = APSSID;
+    configuration[string_APPSK] = APPSK;
+    configuration[string_startWiFiApOnBoot] = startWiFiApOnBoot;
+    configuration[string_softApChannel] = softApChannel;
     #if defined(ENABLE_LOCAL_WEBSERVER)
-      configuration["enableCaptivePortal"] = enableCaptivePortal;
+      configuration[string_enableCaptivePortal] = enableCaptivePortal;
     #endif
-    configuration["wiFiClientInactivityTimer"]  = wiFiClientInactivityTimer;
-    configuration["wifiClientTimeout"]  = wifiClientTimeout;
+    configuration[string_wiFiClientInactivityTimer]  = wiFiClientInactivityTimer;
+    configuration[string_wifiClientTimeout]  = wifiClientTimeout;
   #endif
   #if defined(ENABLE_LOCAL_WEBSERVER)
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-      configuration["http_user"] = http_user;
-      configuration["basicAuthEnabled"] = basicAuthEnabled;
+      configuration[string_http_user] = http_user;
+      configuration[string_basicAuthEnabled] = basicAuthEnabled;
     #endif
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
-      configuration["http_password"] = http_password;
+      configuration[string_http_password] = http_password;
     #endif
   #endif
   #if defined(SUPPORT_HACKING)
-    configuration["gameLength"] = gameLength;
-    configuration["gameRetries"] = gameRetries;
-    configuration["gameSpeedup"] = gameSpeedup;
+    configuration[string_gameLength] = gameLength;
+    configuration[string_gameRetries] = gameRetries;
+    configuration[string_gameSpeedup] = gameSpeedup;
   #endif
-  configuration["timeServer"] = timeServer;
-  configuration["timeZone"] = timeZone;
+  configuration[string_timeServer] = timeServer;
+  configuration[string_timeZone] = timeZone;
   #if defined(SUPPORT_GPS)
-    configuration["useGpsForTimeSync"] = useGpsForTimeSync;
+    configuration[string_useGpsForTimeSync] = useGpsForTimeSync;
     #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
-      configuration["gpsStationaryTimeout"] = gpsStationaryTimeout;
-      configuration["gpsCheckInterval"] = gpsCheckInterval;
+      configuration[string_useGpsForTimeSync] = gpsStationaryTimeout;
+      configuration[string_gpsCheckInterval] = gpsCheckInterval;
     #endif
   #endif
   #if defined(SUPPORT_BATTERY_METER)
-    configuration["enableBatteryMonitor"] = enableBatteryMonitor;
-    configuration["topLadderResistor"] = topLadderResistor;
-    configuration["bottomLadderResistor"] = bottomLadderResistor;
+    configuration[string_enableBatteryMonitor] = enableBatteryMonitor;
+    configuration[string_topLadderResistor] = topLadderResistor;
+    configuration[string_bottomLadderResistor] = bottomLadderResistor;
   #endif
   #if defined(SUPPORT_BEEPER)
-    configuration["beeperEnabled"] = beeperEnabled;
+    configuration[string_beeperEnabled] = beeperEnabled;
     #if defined(SUPPORT_BUTTON)
-      configuration["beepOnPress"] = beepOnPress;
+      configuration[string_beepOnPress] = beepOnPress;
     #endif
   #endif
   #if defined(SUPPORT_VIBRATION)
-    configuration["vibrationEnabled"] = vibrationEnabled;
-    configuration["vibrationLevel"] = vibrationLevel;
+    configuration[string_vibrationEnabled] = vibrationEnabled;
+    configuration[string_vibrationLevel] = vibrationLevel;
   #endif
   #if defined(ACT_AS_TRACKER)
-    configuration["maximumEffectiveRange"] = maximumEffectiveRange;
-    configuration["trackingSensitivity"] = trackingSensitivity;
-    configuration["trackerPriority"] = trackerPriority;
+    configuration[string_maximumEffectiveRange] = maximumEffectiveRange;
+    configuration[string_trackingSensitivity] = trackingSensitivity;
+    configuration[string_trackerPriority] = trackerPriority;
   #elif defined(ACT_AS_BEACON)
-    configuration["icName"] = device[0].icName;
-    configuration["icDescription"] = device[0].icDescription;
-    configuration["diameter"] = device[0].diameter;
-    configuration["height"] = device[0].height;
+    configuration[string_icName] = device[0].icName;
+    configuration[string_icDescription] = device[0].icDescription;
+    configuration[string_diameter] = device[0].diameter;
+    configuration[string_diameter] = device[0].height;
   #endif
   #if defined(SUPPORT_ESPNOW)
-    configuration["espNowEnabled"] = espNowEnabled;
+    configuration[string_espNowEnabled] = espNowEnabled;
     configuration["espNowPreferredChannel"] = espNowPreferredChannel;
     configuration["espNowDeviceInfoInterval"] = espNowDeviceInfoInterval;
     configuration["defaultEspNowLocationInterval"] = defaultEspNowLocationInterval;
@@ -93,7 +99,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["ftmPSK"] = ftmPSK;
   #endif
   #if defined(SUPPORT_LORA)
-    configuration["loRaEnabled"] = loRaEnabled;
+    configuration[string_loRaEnabled] = loRaEnabled;
     configuration["loRaDeviceInfoInterval"] = loRaDeviceInfoInterval;
     configuration["defaultLoRaLocationInterval"] = defaultLoRaLocationInterval;
     configuration["loRaLocationInterval1"] = loRaLocationInterval1;
@@ -109,38 +115,39 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     #endif
   #endif
   #if defined(SUPPORT_TREACLE)
-    configuration["id"] = device[0].id;
-    configuration["espNowEnabled"] = espNowEnabled;
-    configuration["espNowTickInterval"] = espNowTickInterval;
-    configuration["loRaEnabled"] = loRaEnabled;
-    configuration["loRaTickInterval"] = loRaTickInterval;
-    configuration["loRaFrequency"] = loRaFrequency;
-    configuration["loRaTxPower"] = loRaTxPower;
-    configuration["loRaRxGain"] = loRaRxGain;
-    configuration["loRaSpreadingFactor"] = loRaSpreadingFactor;
-    configuration["loRaSignalBandwidth"] = loRaSignalBandwidth;
+    configuration[string_id] = device[0].id;
+    configuration[string_treacleEncryptionEnabled] = treacleEncryptionEnabled;
+    configuration[string_espNowEnabled] = espNowEnabled;
+    configuration[string_espNowTickInterval] = espNowTickInterval;
+    configuration[string_loRaEnabled] = loRaEnabled;
+    configuration[string_loRaTickInterval] = loRaTickInterval;
+    configuration[string_loRaFrequency] = loRaFrequency;
+    configuration[string_loRaTxPower] = loRaTxPower;
+    configuration[string_loRaRxGain] = loRaRxGain;
+    configuration[string_loRaSpreadingFactor] = loRaSpreadingFactor;
+    configuration[string_loRaSignalBandwidth] = loRaSignalBandwidth;
   #endif
   #if defined(SUPPORT_LVGL)
-    configuration["units"] = units;
-    configuration["dateFormat"] = dateFormat;
-    configuration["displayTimeout"] = displayTimeout;
-    configuration["minimumBrightnessLevel"] = minimumBrightnessLevel;
-    configuration["maximumBrightnessLevel"] = maximumBrightnessLevel;
-    configuration["screenRotation"] = screenRotation;
-    configuration["enableHomeTab"] = enableHomeTab;
-    configuration["enableInfoTab"] = enableInfoTab;
-    configuration["enableGpsTab"] = enableGpsTab;
-    configuration["enableSettingsTab"] = enableSettingsTab;
+    configuration[string_units] = units;
+    configuration[string_dateFormat] = dateFormat;
+    configuration[string_displayTimeout] = displayTimeout;
+    configuration[string_minimumBrightnessLevel] = minimumBrightnessLevel;
+    configuration[string_maximumBrightnessLevel] = maximumBrightnessLevel;
+    configuration[string_screenRotation] = screenRotation;
+    configuration[string_enableHomeTab] = enableHomeTab;
+    configuration[string_enableInfoTab] = enableInfoTab;
+    configuration[string_enableGpsTab] = enableGpsTab;
+    configuration[string_enableSettingsTab] = enableSettingsTab;
     #if defined(SUPPORT_TOUCHSCREEN)
-      configuration["touchScreenMinimumX"] = touchScreenMinimumX;
-      configuration["touchScreenMaximumX"] = touchScreenMaximumX;
-      configuration["touchScreenMinimumY"] = touchScreenMinimumY;
-      configuration["touchScreenMaximumY"] = touchScreenMaximumY;
+      configuration[string_touchScreenMinimumX] = touchScreenMinimumX;
+      configuration[string_touchScreenMaximumX] = touchScreenMaximumX;
+      configuration[string_touchScreenMinimumY] = touchScreenMinimumY;
+      configuration[string_touchScreenMaximumY] = touchScreenMaximumY;
     #endif
   #endif
-  configuration["loggingBufferSize"] = loggingBufferSize;
-  configuration["logFlushThreshold"] = logFlushThreshold;
-  configuration["logFlushInterval"] = logFlushInterval;
+  configuration[string_loggingBufferSize] = loggingBufferSize;
+  configuration[string_logFlushThreshold] = logFlushThreshold;
+  configuration[string_logFlushInterval] = logFlushInterval;
   updateTimestamp();  //Put a timestamp on the change
   configuration["configurationSaved"] = timestamp;
   File f = openFileForWriting(filename);
@@ -218,29 +225,29 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     }
     //Simple values
     #if defined(SUPPORT_GPS)
-      useGpsForTimeSync = configuration["useGpsForTimeSync"] | true;
+      useGpsForTimeSync = configuration[string_useGpsForTimeSync] | true;
       #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
-        gpsStationaryTimeout = configuration["gpsStationaryTimeout"] | 300E6;
-        gpsCheckInterval = configuration["gpsCheckInterval"] | 300E6;
+        gpsStationaryTimeout = configuration[string_useGpsForTimeSync"] | 300E6;
+        gpsCheckInterval = configuration[string_gpsCheckInterval] | 300E6;
       #endif
     #endif
     #if defined(ACT_AS_TRACKER)
-      maximumEffectiveRange = configuration["maximumEffectiveRange"] | 99;
-      trackingSensitivity = configuration["trackingSensitivity"] | 1;
-      trackerPriority = configuration["trackerPriority"];
+      maximumEffectiveRange = configuration[string_maximumEffectiveRange] | 99;
+      trackingSensitivity = configuration[string_trackingSensitivity] | 1;
+      trackerPriority = configuration[string_trackerPriority];
     #elif defined(ACT_AS_BEACON)
-      if(configuration["icName"])
+      if(configuration[string_icName])
       {
-        device[0].icName = new char[strlen(configuration["icName"]) + 1];
-        strlcpy(device[0].icName,configuration["icName"],strlen(configuration["icName"]) + 1);
+        device[0].icName = new char[strlen(configuration[string_icName]) + 1];
+        strlcpy(device[0].icName,configuration[string_icName],strlen(configuration[string_icName]) + 1);
       }
-      if(configuration["icDescription"])
+      if(configuration[string_icDescription])
       {
-        device[0].icDescription = new char[strlen(configuration["icDescription"]) + 1];
-        strlcpy(device[0].icDescription,configuration["icDescription"],strlen(configuration["icDescription"]) + 1);
+        device[0].icDescription = new char[strlen(configuration[string_icDescription]) + 1];
+        strlcpy(device[0].icDescription,configuration[string_icDescription],strlen(configuration[string_icDescription]) + 1);
       }
-      device[0].diameter = configuration["diameter"] | 0;
-      device[0].height = configuration["height"] | 0;
+      device[0].diameter = configuration[string_diameter] | 1;
+      device[0].height = configuration[string_height] | 2;
     #endif
     #if defined(SUPPORT_FTM)
       ftmEnabled = configuration["ftmEnabled"] | true;
@@ -267,7 +274,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       }
     #endif
     #if defined(SUPPORT_ESPNOW)
-      espNowEnabled = configuration["espNowEnabled"] | true;
+      espNowEnabled = configuration[string_espNowEnabled] | true;
       espNowPreferredChannel = configuration["espNowPreferredChannel"] | 1;
       espNowDeviceInfoInterval = configuration["espNowDeviceInfoInterval"] | 60000;
       defaultEspNowLocationInterval = configuration["defaultEspNowLocationInterval"] | 60000;
@@ -279,7 +286,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       espNowPerimiter3 = configuration["espNowPerimiter3"] | 100;
     #endif
     #if defined(SUPPORT_LORA)
-      loRaEnabled = configuration["loRaEnabled"] | true;
+      loRaEnabled = configuration[string_loRaEnabled] | true;
       loRaDeviceInfoInterval = configuration["loRaDeviceInfoInterval"] | 60000;
       defaultLoRaLocationInterval = configuration["defaultLoRaLocationInterval"] | 60000;
       loRaLocationInterval1 = configuration["loRaLocationInterval1"] | 5000;
@@ -295,29 +302,30 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       #endif
     #endif
     #if defined(SUPPORT_TREACLE)
-      device[0].id = configuration["id"] | 0;
-      espNowEnabled = configuration["espNowEnabled"] | true;
-      espNowTickInterval = configuration["espNowTickInterval"] | 10e3;
-      loRaTickInterval = configuration["loRaTickInterval"] | 45e3;
-      loRaEnabled = configuration["loRaEnabled"] | true;
-      loRaFrequency = configuration["loRaFrequency"] | 868E6;
-      loRaTxPower = configuration["loRaTxPower"] | 17;
-      loRaRxGain = configuration["loRaRxGain"] | 0;
-      loRaSpreadingFactor = configuration["loRaSpreadingFactor"] | 9;
-      loRaSignalBandwidth = configuration["loRaSignalBandwidth"] | 62.5E3;
+      device[0].id = configuration[string_id] | 0;
+      treacleEncryptionEnabled = configuration[string_treacleEncryptionEnabled] | false;
+      espNowEnabled = configuration[string_espNowEnabled] | true;
+      espNowTickInterval = configuration[string_espNowTickInterval] | 10e3;
+      loRaTickInterval = configuration[string_loRaTickInterval] | 45e3;
+      loRaEnabled = configuration[string_loRaEnabled] | true;
+      loRaFrequency = configuration[string_loRaFrequency] | 868E6;
+      loRaTxPower = configuration[string_loRaTxPower] | 17;
+      loRaRxGain = configuration[string_loRaRxGain] | 0;
+      loRaSpreadingFactor = configuration[string_loRaSpreadingFactor] | 9;
+      loRaSignalBandwidth = configuration[string_loRaSignalBandwidth] | 62.5E3;
     #endif
     #if defined(SUPPORT_BATTERY_METER)
-      enableBatteryMonitor = configuration["enableBatteryMonitor"] | true;
-      topLadderResistor = configuration["topLadderResistor"] | 330;
-      bottomLadderResistor = configuration["bottomLadderResistor"] | 90;
+      enableBatteryMonitor = configuration[string_enableBatteryMonitor] | true;
+      topLadderResistor = configuration[string_topLadderResistor] | 330;
+      bottomLadderResistor = configuration[string_bottomLadderResistor] | 90;
     #endif
-    loggingBufferSize = configuration["loggingBufferSize"] | 2048;
-    logFlushThreshold = configuration["logFlushThreshold"] | 2000;
-    logFlushInterval = configuration["logFlushInterval"] | 57600;
-    if(configuration["deviceName"])
+    loggingBufferSize = configuration[string_loggingBufferSize] | 2048;
+    logFlushThreshold = configuration[string_logFlushThreshold] | 2000;
+    logFlushInterval = configuration[string_logFlushInterval] | 57600;
+    if(configuration[string_deviceName])
     {
-      device[0].name = new char[strlen(configuration["deviceName"]) + 1];
-      strlcpy(device[0].name,configuration["deviceName"],strlen(configuration["deviceName"]) + 1);
+      device[0].name = new char[strlen(configuration[string_deviceName]) + 1];
+      strlcpy(device[0].name,configuration[string_deviceName],strlen(configuration[string_deviceName]) + 1);
     }
     else
     {
@@ -328,10 +336,10 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
       #endif
     }
-    if(configuration["configurationComment"])
+    if(configuration[string_configurationComment])
     {
-      configurationComment = new char[strlen(configuration["configurationComment"]) + 1];
-      strlcpy(configurationComment,configuration["configurationComment"],strlen(configuration["configurationComment"]) + 1);
+      configurationComment = new char[strlen(configuration[string_configurationComment]) + 1];
+      strlcpy(configurationComment,configuration[string_configurationComment],strlen(configuration[string_configurationComment]) + 1);
     }
     else
     {
@@ -339,37 +347,37 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       strlcpy(configurationComment,default_configurationComment,strlen(default_configurationComment) + 1);
     }
     #if defined(SUPPORT_WIFI)
-      if(configuration["SSID"] && strlen(configuration["SSID"]) > 0)
+      if(configuration[string_SSID] && strlen(configuration[string_SSID]) > 0)
       {
-        SSID = new char[strlen(configuration["SSID"]) + 1];
-        strlcpy(SSID,configuration["SSID"],strlen(configuration["SSID"]) + 1);
+        SSID = new char[strlen(configuration[string_SSID]) + 1];
+        strlcpy(SSID,configuration[string_SSID],strlen(configuration[string_SSID]) + 1);
       }
       else
       {
         SSID = new char[strlen(default_WiFi_SSID) + 1];
         strlcpy(SSID,default_WiFi_SSID,strlen(default_WiFi_SSID) + 1);
       }
-      if(configuration["PSK"])
+      if(configuration[string_PSK])
       {
-        PSK = new char[strlen(configuration["PSK"]) + 1];
-        strlcpy(PSK,configuration["PSK"],strlen(configuration["PSK"]) + 1);
+        PSK = new char[strlen(configuration[string_PSK]) + 1];
+        strlcpy(PSK,configuration[string_PSK],strlen(configuration[string_PSK]) + 1);
       }
       else
       {
         PSK = new char[strlen(default_WiFi_PSK) + 1];
         strlcpy(PSK,default_WiFi_PSK,strlen(default_WiFi_PSK) + 1);
       }
-      startWiFiClientOnBoot = configuration["startWiFiClientOnBoot"] | true;
-      startWiFiApOnBoot = configuration["startWiFiApOnBoot"] | true;
-      softApChannel = configuration["softApChannel"] | 1;
-      if(configuration["APSSID"] && strlen(configuration["APSSID"]) > 0)
+      startWiFiClientOnBoot = configuration[string_startWiFiClientOnBoot] | true;
+      startWiFiApOnBoot = configuration[string_startWiFiApOnBoot] | true;
+      softApChannel = configuration[string_softApChannel] | 1;
+      if(configuration[string_APSSID] && strlen(configuration[string_APSSID]) > 0)
       {
-        APSSID = new char[strlen(configuration["APSSID"]) + 1];
-        strlcpy(APSSID,configuration["APSSID"],strlen(configuration["APSSID"]) + 1);
-        if(configuration["APPSK"] && strlen(configuration["APPSK"]) > 0)
+        APSSID = new char[strlen(configuration[string_APSSID]) + 1];
+        strlcpy(APSSID,configuration[string_APSSID],strlen(configuration[string_APSSID]) + 1);
+        if(configuration[string_APPSK] && strlen(configuration[string_APPSK]) > 0)
         {
-          APPSK = new char[strlen(configuration["APPSK"]) + 1];
-          strlcpy(APPSK,configuration["APPSK"],strlen(configuration["APPSK"]) + 1);
+          APPSK = new char[strlen(configuration[string_APPSK]) + 1];
+          strlcpy(APPSK,configuration[string_APPSK],strlen(configuration[string_APPSK]) + 1);
         }
         else
         {
@@ -388,28 +396,28 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         APPSK = new char[strlen(default_AP_PSK) + 1];
         strlcpy(APPSK,default_AP_PSK,strlen(default_AP_PSK) + 1);
       }
-      wiFiClientInactivityTimer = configuration["wiFiClientInactivityTimer"] | 0;
-      wifiClientTimeout = configuration["wifiClientTimeout"] | 30;
+      wiFiClientInactivityTimer = configuration[string_wiFiClientInactivityTimer] | 0;
+      wifiClientTimeout = configuration[string_wifiClientTimeout] | 30;
     #endif
     #if defined(ENABLE_LOCAL_WEBSERVER)
       #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-        if(configuration["http_user"])
+        if(configuration[string_http_user])
         {
-          http_user = new char[strlen(configuration["http_user"]) + 1];
-          strlcpy(http_user,configuration["http_user"],strlen(configuration["http_user"]) + 1);
+          http_user = new char[strlen(configuration[string_http_user]) + 1];
+          strlcpy(http_user,configuration[string_http_user],strlen(configuration[string_http_user]) + 1);
         }
         else
         {
           http_user = new char[strlen(default_http_user) + 1];
           strlcpy(http_user,default_http_user,strlen(default_http_user) + 1);
         }
-        basicAuthEnabled = configuration["basicAuthEnabled"] | false;
+        basicAuthEnabled = configuration[string_basicAuthEnabled] | false;
       #endif
       #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
-        if(configuration["http_password"])
+        if(configuration[string_http_password])
         {
-          http_password = new char[strlen(configuration["http_password"]) + 1];
-          strlcpy(http_password,configuration["http_password"],strlen(configuration["http_password"]) + 1);
+          http_password = new char[strlen(configuration[string_http_password]) + 1];
+          strlcpy(http_password,configuration[string_http_password],strlen(configuration[string_http_password]) + 1);
         }
         else
         {
@@ -418,20 +426,20 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         }
       #endif
     #endif
-    if(configuration["timeServer"])
+    if(configuration[string_timeServer])
     {
-      timeServer = new char[strlen(configuration["timeServer"]) + 1];
-      strlcpy(timeServer,configuration["timeServer"],strlen(configuration["timeServer"]) + 1);
+      timeServer = new char[strlen(configuration[string_timeServer]) + 1];
+      strlcpy(timeServer,configuration[string_timeServer],strlen(configuration[string_timeServer]) + 1);
     }
     else
     {
       timeServer = new char[strlen(default_timeServer) + 1];
       strlcpy(timeServer,default_timeServer,strlen(default_timeServer) + 1);
     }
-    if(configuration["timeZone"])
+    if(configuration[string_timeZone])
     {
-      timeZone = new char[strlen(configuration["timeZone"]) + 1];
-      strlcpy(timeZone,configuration["timeZone"],strlen(configuration["timeZone"]) + 1);
+      timeZone = new char[strlen(configuration[string_timeZone]) + 1];
+      strlcpy(timeZone,configuration[string_timeZone],strlen(configuration[string_timeZone]) + 1);
     }
     else
     {
@@ -439,37 +447,37 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       strlcpy(timeZone,default_timeZone,strlen(default_timeZone) + 1);
     }
     #if defined(SUPPORT_BEEPER)
-      beeperEnabled = configuration["beeperEnabled"] | false;
+      beeperEnabled = configuration[string_beeperEnabled] | false;
       #if defined(SUPPORT_BUTTON)
-        beepOnPress = configuration["beepOnPress"] | true;
+        beepOnPress = configuration[string_beepOnPress] | true;
       #endif
     #endif
     #if defined(SUPPORT_VIBRATION)
-      vibrationEnabled = configuration["vibrationEnabled"] | true;
-      vibrationLevel = configuration["vibrationLevel"] | 100;
+      vibrationEnabled = configuration[string_vibrationEnabled] | true;
+      vibrationLevel = configuration[string_vibrationLevel] | 100;
     #endif
     #if defined(SUPPORT_LVGL)
       #if defined(SUPPORT_TOUCHSCREEN)
-        touchScreenMinimumX = configuration["touchScreenMinimumX"] | 0;
-        touchScreenMaximumX = configuration["touchScreenMaximumX"] | 0;
-        touchScreenMinimumY = configuration["touchScreenMinimumY"] | 0;
-        touchScreenMaximumY = configuration["touchScreenMaximumY"] | 0;
+        touchScreenMinimumX = configuration[string_touchScreenMinimumX] | 0;
+        touchScreenMaximumX = configuration[string_touchScreenMaximumX] | 0;
+        touchScreenMinimumY = configuration[string_touchScreenMinimumY] | 0;
+        touchScreenMaximumY = configuration[string_touchScreenMaximumY] | 0;
       #endif
-      units = configuration["units"] | 0;
-      dateFormat = configuration["dateFormat"] | 0;
-      displayTimeout = configuration["displayTimeout"] | 0;
-      minimumBrightnessLevel = configuration["minimumBrightnessLevel"] | absoluteMinimumBrightnessLevel;
-      maximumBrightnessLevel = configuration["maximumBrightnessLevel"] | absoluteMaximumBrightnessLevel;
-      screenRotation = configuration["screenRotation"];
-      enableHomeTab = configuration["enableHomeTab"] | true;
-      enableInfoTab = configuration["enableInfoTab"] | true;
-      enableGpsTab = configuration["enableGpsTab"] | true;
-      enableSettingsTab = configuration["enableSettingsTab"] | true;
+      units = configuration[string_units] | 0;
+      dateFormat = configuration[string_dateFormat] | 0;
+      displayTimeout = configuration[string_displayTimeout] | 0;
+      minimumBrightnessLevel = configuration[string_minimumBrightnessLevel] | absoluteMinimumBrightnessLevel;
+      maximumBrightnessLevel = configuration[string_maximumBrightnessLevel] | absoluteMaximumBrightnessLevel;
+      screenRotation = configuration[string_screenRotation];
+      enableHomeTab = configuration[string_enableHomeTab] | true;
+      enableInfoTab = configuration[string_enableInfoTab] | true;
+      enableGpsTab = configuration[string_enableGpsTab] | true;
+      enableSettingsTab = configuration[string_enableSettingsTab] | true;
     #endif
     #if defined(SUPPORT_HACKING)
-      gameLength = configuration["gameLength"] | 10 ;
-      gameRetries = configuration["gameRetries"] | 0;
-      gameSpeedup = configuration["gameSpeedup"] | 500;
+      gameLength = configuration[string_gameLength] | 10 ;
+      gameRetries = configuration[string_gameRetries] | 0;
+      gameSpeedup = configuration[string_gameSpeedup] | 500;
     #endif
     localLogLn(F("OK"));
     return true;
@@ -523,188 +531,188 @@ bool loadDefaultConfiguration()
 void printConfiguration()
 {
   localLogLn(F("==Current configuration=="));
-  localLog(F("deviceName: "));
+  localLog(string_deviceName); localLog(string_colonSpace);
   if(device[0].name != nullptr)
   {
     localLogLn(device[0].name);
   }
   else
   {
-    localLogLn(F("<none>"));
+    localLogLn(F(string_ltNoneGt));
   }
-  localLog(F("configurationComment: "));
+  localLog(string_configurationComment); localLog(string_colonSpace);
   if(configurationComment != nullptr)
   {
     localLogLn(configurationComment);
   }
   else
   {
-    localLogLn(F("<none>"));
+    localLogLn(F(string_ltNoneGt));
   }
   #if defined(SUPPORT_WIFI)
-    localLog(F("startWiFiClientOnBoot: "));
+    localLog(string_startWiFiClientOnBoot); localLog(string_colonSpace);
     if(startWiFiClientOnBoot)
     {
-      localLogLn(F("enabled"));
+      localLogLn(string_enabled);
     }
     else
     {
-      localLogLn(F("disabled"));
+      localLogLn(string_disabled);
     }
-    localLog(F("SSID: "));
+    localLog(string_SSID); localLog(string_colonSpace);
     if(SSID != nullptr)
     {
       localLogLn(SSID);
     }
     else
     {
-      localLogLn(F("<none>"));
+      localLogLn(F(string_ltNoneGt));
     }
-    localLog(F("PSK: "));
+    localLog(string_PSK); localLog(string_colonSpace);
     if(PSK != nullptr)
     {
-      localLogLn(F("<set>"));
+      localLogLn(string_ltSetGt);
     }
     else
     {
-      localLogLn(F("<none>"));
+      localLogLn(F(string_ltNoneGt));
     }
-    localLog(F("wifiClientTimeout: ")); localLogLn(wifiClientTimeout);
-    localLog(F("wiFiClientInactivityTimer: ")); localLogLn(wiFiClientInactivityTimer);
-    localLog(F("startWiFiApOnBoot: "));
+    localLog(string_wifiClientTimeout); localLog(string_colonSpace); localLogLn(wifiClientTimeout);
+    localLog(string_wiFiClientInactivityTimer); localLog(string_colonSpace); localLogLn(wiFiClientInactivityTimer);
+    localLog(string_startWiFiApOnBoot); localLog(string_colonSpace);
     if(startWiFiApOnBoot)
     {
-      localLogLn(F("enabled"));
+      localLogLn(string_enabled);
     }
     else
     {
-      localLogLn(F("disabled"));
+      localLogLn(string_disabled);
     }
-    localLog(F("softApChannel: ")); localLogLn(softApChannel);
-    localLog(F("AP SSID: "));
+    localLog(string_softApChannel); localLog(string_colonSpace); localLogLn(softApChannel);
+    localLog(string_APSSID); localLog(string_colonSpace);
     if(APSSID != nullptr)
     {
       localLogLn(APSSID);
     }
     else
     {
-      localLogLn(F("<none>"));
+      localLogLn(F(string_ltNoneGt));
     }
-    localLog(F("AP PSK: "));
+    localLog(string_APPSK); localLog(string_colonSpace);
     if(APPSK != nullptr)
     {
-      localLogLn(F("<set>"));
+      localLogLn(string_ltSetGt);
     }
     else
     {
-      localLogLn(F("<none>"));
+      localLogLn(F(string_ltNoneGt));
     }
     #if defined(ENABLE_LOCAL_WEBSERVER)
-      localLog(F("enableCaptivePortal: "));
+      localLog(string_enableCaptivePortal); localLog(string_colonSpace);
       if(enableCaptivePortal)
       {
-        localLogLn(F("enabled"));
+        localLogLn(string_enabled);
       }
       else
       {
-        localLogLn(F("disabled"));
+        localLogLn(string_disabled);
       }
     #endif
-    localLog(F("timeServer: "));
+    localLog(string_timeServer); localLog(string_colonSpace);
     if(timeServer != nullptr)
     {
       localLogLn(timeServer);
     }
     else
     {
-      localLogLn(F("<none>"));
+      localLogLn(F(string_ltNoneGt));
     }
-    localLog(F("timeZone: "));
+    localLog(string_timeZone); localLog(string_colonSpace);
     if(timeZone != nullptr)
     {
       localLogLn(timeZone);
     }
     else
     {
-      localLogLn(F("<none>"));
+      localLogLn(F(string_ltNoneGt));
     }
   #endif
   #if defined(ENABLE_LOCAL_WEBSERVER)
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-      localLog(F("basicAuthEnabled: "));
+      localLog(string_basicAuthEnabled); localLog(string_colonSpace);
       if(basicAuthEnabled)
       {
-        localLogLn(F("enabled"));
+        localLogLn(string_enabled);
       }
       else
       {
-        localLogLn(F("disabled"));
+        localLogLn(string_disabled);
       }
-      localLog(F("http_user: "));
+      localLog(string_http_user); localLog(string_colonSpace);
       if(http_user != nullptr)
       {
         localLogLn(http_user);
       }
       else
       {
-        localLogLn(F("<none>"));
+        localLogLn(F(string_ltNoneGt));
       }
     #endif
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH) || defined(ENABLE_OTA_UPDATE)
-      localLog(F("http_password: "));
+      localLog(string_http_password); localLog(string_colonSpace);
       if(http_password != nullptr)
       {
-        localLogLn(F("<set>"));
+        localLogLn(string_ltSetGt);
       }
       else
       {
-        localLogLn(F("<not set>"));
+        localLogLn(string_ltNoneGt);
       }
     #endif
   #endif
   #if defined(ENABLE_OTA_UPDATE)
-    localLog(F("otaEnabled: ")); localLogLn(otaEnabled);
-    localLog(F("otaAuthenticationEnabled: ")); localLogLn(otaAuthenticationEnabled);
+    localLog(string_otaEnabled); localLog(string_colonSpace); localLogLn(otaEnabled);
+    localLog(string_otaAuthenticationEnabled); localLog(string_colonSpace); localLogLn(otaAuthenticationEnabled);
   #endif
   #if defined(SUPPORT_GPS)
-    localLog(F("useGpsForTimeSync: "));
+    localLog(string_useGpsForTimeSync); localLog(string_colonSpace);
     if(useGpsForTimeSync)
     {
-      localLogLn(F("enabled"));
+      localLogLn(string_enabled);
     }
     else
     {
-      localLogLn(F("disabled"));
+      localLogLn(string_disabled);
     }
     #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
-      localLog(F("gpsStationaryTimeout: ")); localLogLn(gpsStationaryTimeout);
-      localLog(F("gpsCheckInterval: ")); localLogLn(gpsCheckInterval);
+      localLog(string_useGpsForTimeSync); localLog(string_colonSpace); localLogLn(gpsStationaryTimeout);
+      localLog(string_gpsCheckInterval); localLog(string_colonSpace); localLogLn(gpsCheckInterval);
     #endif
   #endif
   #if defined(ACT_AS_TRACKER)
-    localLog(F("maximumEffectiveRange: ")); localLogLn(maximumEffectiveRange);
-    localLog(F("trackingSensitivity: ")); localLogLn(sensitivityValues[trackingSensitivity]);
-    localLog(F("trackerPriority: ")); localLogLn(trackerPriority);
+    localLog(string_maximumEffectiveRange); localLog(string_colonSpace); localLogLn(maximumEffectiveRange);
+    localLog(string_trackingSensitivity); localLog(string_colonSpace); localLogLn(sensitivityValues[trackingSensitivity]);
+    localLog(string_trackerPriority); localLog(string_colonSpace); localLogLn(trackerPriority);
   #elif defined(ACT_AS_BEACON)
-    localLog(F("icName: ")); localLogLn(device[0].icName);
-    localLog(F("icDescription: ")); localLogLn(device[0].icDescription);
-    localLog(F("diameter: ")); localLogLn(device[0].diameter);
-    localLog(F("height: ")); localLogLn(device[0].height);
+    localLog(string_icName); localLog(string_colonSpace); localLogLn(device[0].icName);
+    localLog(string_icDescription); localLog(string_colonSpace); localLogLn(device[0].icDescription);
+    localLog(string_diameter); localLog(string_colonSpace); localLogLn(device[0].diameter);
+    localLog(string_height); localLog(string_colonSpace); localLogLn(device[0].height);
   #endif
   #if defined(SUPPORT_FTM)
-    localLog(F("ftmEnabled: ")); localLogLn(ftmEnabled);
+    localLog(string_ftmEnabled); localLog(string_colonSpace); localLogLn(ftmEnabled);
     if(ftmSSID != nullptr)
     {
-      localLog(F("ftmSSID: ")); localLogLn(ftmSSID);
+      localLog(string_ftmSSID); localLog(string_colonSpace); localLogLn(ftmSSID);
     }
-    localLog(F("ftmHideSSID: ")); localLogLn(ftmHideSSID);
+    localLog(string_ftmHideSSID); localLog(string_colonSpace); localLogLn(ftmHideSSID);
     if(ftmPSK != nullptr)
     {
-      localLog(F("ftmPSK: ")); localLogLn(ftmPSK);
+      localLog(string_ftmPSK); localLog(string_colonSpace); localLogLn(ftmPSK);
     }
   #endif
   #if defined(SUPPORT_ESPNOW)
-    localLog(F("espNowEnabled: ")); localLogLn(espNowEnabled);
+    localLog(string_espNowEnabled); localLog(string_colonSpace); localLogLn(espNowEnabled);
     localLog(F("espNowPreferredChannel: ")); localLogLn(espNowPreferredChannel);
     localLog(F("espNowDeviceInfoInterval: ")); localLogLn(espNowDeviceInfoInterval);
     localLog(F("defaultEspNowLocationInterval: ")); localLogLn(defaultEspNowLocationInterval);
@@ -732,59 +740,60 @@ void printConfiguration()
     #endif
   #endif
   #if defined(SUPPORT_TREACLE)
-    localLog(F("id: ")); localLogLn(device[0].id);
-    localLog(F("espNowEnabled: ")); localLogLn(espNowEnabled);
-    localLog(F("espNowTickInterval: ")); localLogLn(espNowTickInterval);
-    localLog(F("loRaEnabled: ")); localLogLn(loRaEnabled);
-    localLog(F("loRaTickInterval: ")); localLogLn(loRaTickInterval);
-    localLog(F("loRaFrequency: ")); localLogLn(loRaFrequency/1e6);
-    localLog(F("loRaTxPower: ")); localLogLn(loRaTxPower);
-    localLog(F("loRaRxGain: ")); localLogLn(loRaRxGain);
-    localLog(F("loRaSpreadingFactor: ")); localLogLn(loRaSpreadingFactor);
-    localLog(F("loRaSignalBandwidth: ")); localLogLn(loRaSignalBandwidth);
+    localLog(string_id); localLog(string_colonSpace); localLogLn(device[0].id);
+    localLog(string_treacleEncryptionEnabled); localLog(string_colonSpace); localLogLn(treacleEncryptionEnabled);
+    localLog(string_espNowEnabled); localLog(string_colonSpace); localLogLn(espNowEnabled);
+    localLog(string_espNowTickInterval); localLog(string_colonSpace); localLogLn(espNowTickInterval);
+    localLog(string_loRaEnabled); localLog(string_colonSpace); localLogLn(loRaEnabled);
+    localLog(string_loRaTickInterval); localLog(string_colonSpace); localLogLn(loRaTickInterval);
+    localLog(string_loRaFrequency); localLog(string_colonSpace); localLogLn(loRaFrequency/1e6);
+    localLog(string_loRaTxPower); localLog(string_colonSpace); localLogLn(loRaTxPower);
+    localLog(string_loRaRxGain); localLog(string_colonSpace); localLogLn(loRaRxGain);
+    localLog(string_loRaSpreadingFactor); localLog(string_colonSpace); localLogLn(loRaSpreadingFactor);
+    localLog(string_loRaSignalBandwidth); localLog(string_colonSpace); localLogLn(loRaSignalBandwidth);
   #endif
   #if defined(SUPPORT_BATTERY_METER)
-    localLog(F("enableBatteryMonitor: ")); localLogLn(enableBatteryMonitor);
-    localLog(F("topLadderResistor: ")); localLogLn(topLadderResistor);
-    localLog(F("bottomLadderResistor: ")); localLogLn(bottomLadderResistor);
+    localLog(string_enableBatteryMonitor); localLog(string_colonSpace); localLogLn(enableBatteryMonitor);
+    localLog(string_topLadderResistor); localLog(string_colonSpace); localLogLn(topLadderResistor);
+    localLog(string_bottomLadderResistor); localLog(string_colonSpace); localLogLn(bottomLadderResistor);
   #endif
   #if defined(SUPPORT_BEEPER)
-    localLog(F("beeperEnabled: ")); localLogLn(beeperEnabled);
+    localLog(string_beeperEnabled); localLog(string_colonSpace); localLogLn(beeperEnabled);
     #if defined(SUPPORT_BUTTON)
-      localLog(F("beepOnPress: ")); localLogLn(beepOnPress);
+      localLog(string_beepOnPress); localLog(string_colonSpace); localLogLn(beepOnPress);
     #endif
   #endif
   #if defined(SUPPORT_VIBRATION)
-    localLog(F("vibrationEnabled: ")); localLogLn(vibrationEnabled);
-    localLog(F("vibrationLevel: ")); localLogLn(vibrationLevel);
+    localLog(string_vibrationEnabled); localLog(string_colonSpace); localLogLn(vibrationEnabled);
+    localLog(string_vibrationLevel); localLog(string_colonSpace); localLogLn(vibrationLevel);
   #endif
   #if defined(SUPPORT_LVGL)
     #if defined(SUPPORT_TOUCHSCREEN)
-      localLog(F("touchScreenMinimumX: ")); localLogLn(touchScreenMinimumX);
-      localLog(F("touchScreenMaximumX: ")); localLogLn(touchScreenMaximumX);
-      localLog(F("touchScreenMinimumY: ")); localLogLn(touchScreenMinimumY);
-      localLog(F("touchScreenMaximumY: ")); localLogLn(touchScreenMaximumY);
+      localLog(string_touchScreenMinimumX); localLog(string_colonSpace); localLogLn(touchScreenMinimumX);
+      localLog(string_touchScreenMaximumX); localLog(string_colonSpace); localLogLn(touchScreenMaximumX);
+      localLog(string_touchScreenMinimumY); localLog(string_colonSpace); localLogLn(touchScreenMinimumY);
+      localLog(string_touchScreenMaximumY); localLog(string_colonSpace); localLogLn(touchScreenMaximumY);
     #endif
-    localLog(F("units: ")); localLogLn(units);
-    localLog(F("dateFormat: ")); localLogLn(dateFormat);
-    localLog(F("displayTimeout: ")); localLogLn(displayTimeout);
-    localLog(F("minimumBrightnessLevel: ")); localLogLn(minimumBrightnessLevel);
-    localLog(F("maximumBrightnessLevel: ")); localLogLn(maximumBrightnessLevel);
-    localLog(F("screenRotation: ")); localLogLn(screenRotation);
-    localLog(F("enableHomeTab: ")); localLogLn(enableHomeTab);
-    localLog(F("enableInfoTab: ")); localLogLn(enableInfoTab);
-    localLog(F("enableGpsTab: ")); localLogLn(enableGpsTab);
-    localLog(F("enableSettingsTab: ")); localLogLn(enableSettingsTab);
+    localLog(string_units); localLog(string_colonSpace); localLogLn(units);
+    localLog(string_dateFormat); localLog(string_colonSpace); localLogLn(dateFormat);
+    localLog(string_displayTimeout); localLog(string_colonSpace); localLogLn(displayTimeout);
+    localLog(string_minimumBrightnessLevel); localLog(string_colonSpace); localLogLn(minimumBrightnessLevel);
+    localLog(string_maximumBrightnessLevel); localLog(string_colonSpace); localLogLn(maximumBrightnessLevel);
+    localLog(string_screenRotation); localLog(string_colonSpace); localLogLn(screenRotation);
+    localLog(string_enableHomeTab); localLog(string_colonSpace); localLogLn(enableHomeTab);
+    localLog(string_enableInfoTab); localLog(string_colonSpace); localLogLn(enableInfoTab);
+    localLog(string_enableGpsTab); localLog(string_colonSpace); localLogLn(enableGpsTab);
+    localLog(string_enableSettingsTab); localLog(string_colonSpace); localLogLn(enableSettingsTab);
   #endif
-  localLog(F("loggingBufferSize: ")); localLogLn(loggingBufferSize);
-  localLog(F("logFlushThreshold: ")); localLogLn(logFlushThreshold);
-  localLog(F("logFlushInterval: ")); localLogLn(logFlushInterval);
+  localLog(string_loggingBufferSize); localLog(string_colonSpace); localLogLn(loggingBufferSize);
+  localLog(string_logFlushThreshold); localLog(string_colonSpace); localLogLn(logFlushThreshold);
+  localLog(string_logFlushInterval); localLog(string_colonSpace); localLogLn(logFlushInterval);
   #if defined(SUPPORT_HACKING)
-    localLog(F("gameLength: "));
+    localLog(string_gameLength); localLog(string_colonSpace);
     localLogLn(gameLength);
-    localLog(F("gameRetries: "));
+    localLog(string_gameRetries); localLog(string_colonSpace);
     localLogLn(gameRetries);
-    localLog(F("gameSpeedup: "));
+    localLog(string_gameSpeedup); localLog(string_colonSpace);
     localLogLn(gameSpeedup);
   #endif
   localLogLn(F("========================="));

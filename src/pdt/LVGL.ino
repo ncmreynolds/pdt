@@ -300,7 +300,7 @@
     if(currentlyTrackedBeacon != maximumNumberOfDevices && currentLvglUiState == deviceState::tracking)
     {
       //Course to tracked beacon
-      if(device[0].speed > 0)
+      if(device[0].moving == true)
       {
         lv_obj_clear_flag(meter0, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);

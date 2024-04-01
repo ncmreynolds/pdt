@@ -546,6 +546,7 @@
     //#include <esp_wifi.h> // only for esp_wifi_set_channel()
   }
   bool espNowEnabled = true;
+  const char string_espNowEnabled[] PROGMEM = "espNowEnabled";
   bool espNowInitialised = false;
   uint8_t espNowPreferredChannel = 1;
   uint8_t espNowChannel = 1;
@@ -595,6 +596,7 @@
   float calculatedLoRaDutyCycle = 0.0;  //Calculated from loRaTxTime and millis()
   static const uint8_t maxLoRaBufferSize = 255;
   bool loRaEnabled = true;
+  const char string_loRaEnabled[] PROGMEM = "loRaEnabled";
   bool loRaInitialised = false;   // Has the radio initialised OK
   #if defined(LORA_ASYNC_METHODS)
     #ifdef ESP32
@@ -649,18 +651,34 @@
  */
 #if defined(SUPPORT_TREACLE)
   #include <treacle.h>
+  const char string_id[] PROGMEM = "id";
   bool treacleIntialised = false;
   uint8_t localMacAddress[6] = {};
+  bool treacleEncryptionEnabled = false;
+  const char string_treacleEncryptionEnabled[] PROGMEM = "treacleEncryptionEnabled";
+  //ESP-Now
   bool espNowEnabled =  true;
+  const char string_espNowEnabled[] PROGMEM = "espNowEnabled";
   uint32_t espNowTickInterval = 10e3;
+  const char string_espNowTickInterval[] PROGMEM = "espNowTickInterval";
+  //LoRa
   bool loRaEnabled  = true;
+  const char string_loRaEnabled[] PROGMEM = "loRaEnabled";
   uint32_t loRaTickInterval = 45e3;
+  const char string_loRaTickInterval[] PROGMEM = "loRaTickInterval";
   uint32_t loRaFrequency = 868E6;
+  const char string_loRaFrequency[] PROGMEM = "loRaFrequency";
   uint8_t loRaTxPower = 17;
+  const char string_loRaTxPower[] PROGMEM = "loRaTxPower";
   uint8_t loRaRxGain = 0;
+  const char string_loRaRxGain[] PROGMEM = "loRaRxGain";
   uint8_t loRaSpreadingFactor = 9;
+  const char string_loRaSpreadingFactor[] PROGMEM = "loRaSpreadingFactor";
   uint32_t loRaSignalBandwidth = 62.5E3;
+  const char string_loRaSignalBandwidth[] PROGMEM = "loRaSignalBandwidth";
   uint32_t validLoRaSignalBandwidth[] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
+  //MQTT
+  //COBS
 #endif
 /*
 
@@ -712,6 +730,7 @@
   uint16_t gpsSentences = 0;
   uint16_t gpsErrors = 0;
   bool useGpsForTimeSync = true;
+  const char string_useGpsForTimeSync[] PROGMEM = "useGpsForTimeSync";
 #endif
 /*
  * 
@@ -720,6 +739,9 @@
  */
 #if defined(SUPPORT_BATTERY_METER)
   bool enableBatteryMonitor = true;
+  const char string_enableBatteryMonitor[] PROGMEM = "enableBatteryMonitor";
+  const char string_topLadderResistor[] PROGMEM = "topLadderResistor";
+  const char string_bottomLadderResistor[] PROGMEM = "bottomLadderResistor";
   float chargingVoltage = 4.19;
 #endif
 /*
@@ -735,6 +757,7 @@
   bool buttonLongPress = false;
   #if defined(SUPPORT_BEEPER)
     bool beepOnPress = false;
+    const char string_beepOnPress[] PROGMEM = "beepOnPress";
   #endif
 #endif
 /*
@@ -757,12 +780,15 @@ char default_configurationComment[] = "";
 #if defined(ENABLE_LOCAL_WEBSERVER) && defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
   const char default_http_user[] = "pdt";
   char* http_user = nullptr;
+  const char string_http_user[] PROGMEM = "http_user";
 #endif
 //Password for the Web UI and over-the-air update
 #if (defined(ENABLE_LOCAL_WEBSERVER) && defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)) || defined(ENABLE_OTA_UPDATE)
   const char default_http_password[] = "pdtpassword";
   char* http_password = nullptr;
+  const char string_http_password[] PROGMEM = "http_password";
   bool basicAuthEnabled = false;
+  const char string_basicAuthEnabled[] PROGMEM = "basicAuthEnabled";
 #endif
 File openFileForReading(const char* filename); //This only exists to improve code readibility by removing the SPIFFS/LittleFS conditional compilation
 File openFileForWriting(const char* filename); //This only exists to improve code readibility by removing the SPIFFS/LittleFS conditional compilation
@@ -788,8 +814,10 @@ uint32_t saveConfigurationSoon = 0; //Used to delay saving configuration immedia
  */
 const char* default_timeServer = "pool.ntp.org";  //The default time server
 char* timeServer = nullptr;
+const char string_timeServer[] PROGMEM = "timeServer";
 const char* default_timeZone = "GMT0BST,M3.5.0/1,M10.5.0"; //The default DST setting for Europe/London, see https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 char* timeZone = nullptr;
+const char string_timeZone[] PROGMEM = "timeZone";
 //const char* timeZone = "UTC0"; //Use this for UTC
 char timestamp[] = "XX:XX:XX XX-XX-XXXX"; //A string overwritten with the current timestamp for logging.
 uint64_t bootTime = 0; //Use the moment the system got a valid NTP time to calculate the boot time for approximate uptime calculations
@@ -802,22 +830,32 @@ uint32_t wipeTimer = 0;  //Used to schedule a wipe
  */
 #if defined(SUPPORT_WIFI)
   bool startWiFiClientOnBoot = false;
+  const char string_startWiFiClientOnBoot[] PROGMEM = "startWiFiClientOnBoot";
   bool startWiFiApOnBoot = true;
+  const char string_startWiFiApOnBoot[] PROGMEM = "startWiFiApOnBoot";
   #if defined(ENABLE_LOCAL_WEBSERVER)
     bool enableCaptivePortal = true;
+    const char string_enableCaptivePortal[] PROGMEM = "enableCaptivePortal";
     DNSServer* dnsServer = nullptr; //May not be used so don't create the object unless it is enabled
   #endif
   uint32_t wiFiClientInactivityTimer = 0;
+  const char string_wiFiClientInactivityTimer[] PROGMEM = "wiFiClientInactivityTimer";
   uint32_t lastWifiActivity = 0;
-  const char* default_WiFi_SSID = WIFI_PSK;
-  const char* default_WiFi_PSK = WIFI_SSID;
+  const char* default_WiFi_SSID = WIFI_SSID;
+  const char* default_WiFi_PSK = WIFI_PSK;
   char* SSID = nullptr;
+  const char string_SSID[] PROGMEM = "SSID";
   char* PSK = nullptr;
+  const char string_PSK[] PROGMEM = "PSK";
   const char* default_AP_PSK = "12345678";
   char* APSSID = nullptr;
+  const char string_APSSID[] PROGMEM = "APSSID";
   char* APPSK = nullptr;
+  const char string_APPSK[] PROGMEM = "APPSK";
   uint8_t softApChannel = 1;
+  const char string_softApChannel[] PROGMEM = "softApChannel";
   uint8_t wifiClientTimeout = 30;
+  const char string_wifiClientTimeout[] PROGMEM = "wifiClientTimeout";
   const int8_t networkTimeout = 30;  //Timeout in seconds for network connection
   static bool wifiClientConnected = false; //Is the network connected?
   static bool wifiApStarted = false; //Is the WiFi AP started?
@@ -855,11 +893,14 @@ uint16_t logfileYear = 0; //Used to detect rollover
 bool startOfLogLine = true; //If true then the logging add the time/date at the start of the line
 String loggingBuffer = ""; //A logging backlog buffer
 uint32_t loggingBufferSize = 4096; //The space to reserve for a logging backlog. This is not a hard limit, it is to reduce heap fragmentation.
+const char string_loggingBufferSize[] PROGMEM = "loggingBufferSize";
 uint32_t logLastFlushed = 0;  //Time (millis) of the last log flush
 bool autoFlush = false;
 bool flushLogNow = false;
 uint32_t logFlushInterval = 60; //Frequency in seconds of log flush, this is 60s
+const char string_logFlushInterval[] PROGMEM = "logFlushInterval";
 uint32_t logFlushThreshold = loggingBufferSize*3/4; //Threshold for forced log flush
+const char string_logFlushThreshold[] PROGMEM = "logFlushThreshold";
 SemaphoreHandle_t loggingSemaphore = NULL;
 static const uint16_t loggingSemaphoreTimeout = 50;
 TaskHandle_t loggingManagementTask = NULL;
@@ -918,9 +959,15 @@ static const uint16_t loggingYieldTime = 100;
     uint32_t diameter = 1;
     uint32_t height = 2;
   };
+  const char string_icName[] PROGMEM = "icName";
+  const char string_icDescription[] PROGMEM = "icDescription";
+  const char string_diameter[] PROGMEM = "diameter";
+  const char string_height[] PROGMEM = "height";
+  const char string_deviceName[] PROGMEM = "deviceName";
+  const char string_configurationComment[] PROGMEM = "configurationComment";
   static const uint8_t maximumNumberOfDevices = 16;
   deviceInfo device[maximumNumberOfDevices];
-  uint8_t stationaryThreshold = 1;    
+  uint8_t stationaryThreshold = 0.25;
   uint8_t numberOfDevices = 0;
   double effectivelyUnreachable = 1E10;
   #if defined(ACT_AS_TRACKER)
@@ -928,10 +975,13 @@ static const uint16_t loggingYieldTime = 100;
   #else
     uint8_t trackingSensitivity = 3;
   #endif
+  const char string_trackingSensitivity[] PROGMEM = "trackingSensitivity";
   uint16_t sensitivityValues[4] = {0x0FFF, 0x00FF, 0x000F, 0x0007};
   #if defined(ACT_AS_TRACKER)
     double maximumEffectiveRange = 250;
+    const char string_maximumEffectiveRange[] PROGMEM = "maximumEffectiveRange";
     uint8_t trackerPriority = 0;
+    const char string_trackerPriority[] PROGMEM = "trackerPriority";
     uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
     bool distanceToCurrentBeaconChanged = false;
     uint32_t lastDistanceChangeUpdate = 0;
@@ -994,6 +1044,7 @@ static const uint16_t loggingYieldTime = 100;
   static const uint16_t screenHeight = 320;
   static const uint8_t bufferFraction = 16;
   uint8_t screenRotation = 0; //0 = USB at bottom, 1 = USB on right, 2 = USB at top, 3 = USB on left
+  const char string_screenRotation[] PROGMEM = "screenRotation";
 
   #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
     #include <XPT2046_Touchscreen.h>
@@ -1013,6 +1064,10 @@ static const uint16_t loggingYieldTime = 100;
       uint32_t lastCheckForTouch = 0;
     #endif
     uint16_t touchScreenMinimumX = 0, touchScreenMaximumX = 0, touchScreenMinimumY = 0,touchScreenMaximumY = 0;
+    const char string_touchScreenMinimumX[] PROGMEM = "touchScreenMinimumX";
+    const char string_touchScreenMaximumX[] PROGMEM = "touchScreenMaximumX";
+    const char string_touchScreenMinimumY[] PROGMEM = "touchScreenMinimumY";
+    const char string_touchScreenMaximumY[] PROGMEM = "touchScreenMaximumY";
     bool touchscreenInitialised = false;
   #endif
   
@@ -1039,6 +1094,7 @@ static const uint16_t loggingYieldTime = 100;
   //Home tab
   #if defined(LVGL_SUPPORT_HOME_TAB)
     bool enableHomeTab = true;
+    const char string_enableHomeTab[] PROGMEM = "enableHomeTab";
     lv_obj_t * homeTab = nullptr;
     static const char homeTabLabel[] = "Home";
     lv_obj_t * status_spinner = nullptr;
@@ -1082,6 +1138,7 @@ static const uint16_t loggingYieldTime = 100;
   //GPS tab
   #if defined(LVGL_SUPPORT_GPS_TAB)
     bool enableGpsTab = true;
+    const char string_enableGpsTab[] PROGMEM = "enableGpsTab";
     lv_obj_t * gpsTab = nullptr;
     static const char gpsTabLabel[] = "GPS";
     uint32_t lastLvglTabUpdate = 0;
@@ -1101,6 +1158,7 @@ static const uint16_t loggingYieldTime = 100;
   //Scan info tab
   #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
     bool enableInfoTab = true;
+    const char string_enableInfoTab[] PROGMEM = "enableInfoTab";
     static const char infoTabLabel[] = "Info";
     lv_obj_t * scanInfoTab = nullptr;
     lv_obj_t * button0 = nullptr; //Nearest
@@ -1118,6 +1176,7 @@ static const uint16_t loggingYieldTime = 100;
   //Settings/preferences tab
   #if defined(LVGL_SUPPORT_SETTINGS_TAB)
     bool enableSettingsTab = true;
+    const char string_enableSettingsTab[] PROGMEM = "enableSettingsTab";
     lv_obj_t * settingsTab = nullptr;
     static const char settingsTabLabel[] = "Pref";
 
@@ -1140,7 +1199,9 @@ static const uint16_t loggingYieldTime = 100;
     static const uint8_t uiInactiveBrightnessLevel = absoluteMinimumBrightnessLevel;
     static const uint8_t absoluteMaximumBrightnessLevel = 255;
     uint8_t minimumBrightnessLevel = 64;
+    const char string_minimumBrightnessLevel[] PROGMEM = "minimumBrightnessLevel";
     uint8_t maximumBrightnessLevel = 192;
+    const char string_maximumBrightnessLevel[] PROGMEM = "maximumBrightnessLevel";
     uint8_t currentBrightnessLevel = 128;
     // use first channel of 16 channels (started from zero)
     #define LEDC_CHANNEL_0     1
@@ -1152,8 +1213,11 @@ static const uint16_t loggingYieldTime = 100;
   
   //User interface settings
   uint8_t units = 0;
+  const char string_units[] PROGMEM = "units";
   uint8_t dateFormat = 0;
+  const char string_dateFormat[] PROGMEM = "dateFormat";
   uint8_t displayTimeout = 2;
+  const char string_displayTimeout[] PROGMEM = "displayTimeout";
   uint32_t displayTimeouts[] = {0, 60E3, 60E3 * 5, 60E3 * 15}; //No/1/5/15 minute timeouts on screen
   uint32_t lastUiActivity = 0;
   bool uiActive = true;
@@ -1328,6 +1392,7 @@ static const uint16_t loggingYieldTime = 100;
   static const uint16_t beeperButtonTone = 900;  //Button push tone
   static const uint16_t beeperButtonOnTime = 25; //Button push on time
   bool beeperEnabled = false;
+  const char string_beeperEnabled[] PROGMEM = "beeperEnabled";
 #endif
 /*
  * 
@@ -1367,7 +1432,9 @@ static const uint16_t loggingYieldTime = 100;
   uint32_t vibrationLastStateChange = 0;
   bool vibrationState = false;
   bool vibrationEnabled = true;
+  const char string_vibrationEnabled[] PROGMEM = "vibrationEnabled";
   uint8_t vibrationLevel = 100;
+  const char string_vibrationLevel[] PROGMEM = "vibrationLevel";
 #endif
 /*
  * 
@@ -1378,7 +1445,9 @@ static const uint16_t loggingYieldTime = 100;
   uint32_t powerOffTimer = 0;  //Used to schedule a power off
   #if defined(SUPPORT_GPS)
     uint32_t gpsStationaryTimeout = 300E3;   //Don't switch off by default
+    const char string_gpsStationaryTimeout[] PROGMEM = "gpsStationaryTimeout";
     uint32_t gpsCheckInterval = 300E3;      //Wake up the GPS to see if moving every 5 minutes
+    const char string_gpsCheckInterval[] PROGMEM = "gpsCheckInterval";
   #endif
 #endif
 /*
@@ -1401,8 +1470,11 @@ static const uint16_t loggingYieldTime = 100;
   #include <ESPUIgames.h>
   bool gameEnabled = true;
   uint8_t gameLength = 10;
+  const char string_gameLength[] PROGMEM = "gameLength";
   uint8_t gameRetries = 0;
+  const char string_gameRetries[] PROGMEM = "gameRetries";
   uint32_t gameSpeedup = 500;
+  const char string_gameSpeedup[] PROGMEM = "gameSpeedup";
   ESPUIgames::gameType gametype = ESPUIgames::gameType::simon;
   bool filesTabVisible = false;
   uint16_t filesTabID = 0;

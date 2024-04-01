@@ -16,6 +16,11 @@
   const char liStringPrintfFormatString[] PROGMEM =           "<li>%s: <b>%s</b></li>";
   const char formStart[] PROGMEM =                            "<form method=\"POST\">";
   const char formEnd[] PROGMEM =                              "</form>";
+  const char labelForPrintfFormatString[] PROGMEM =           "<label for=\"%s\">%s</label>";
+  const char selectPrintfFormatString[] PROGMEM =             "<select class=\"u-full-width\" id=\"%s\" name=\"%s\">";
+  const char inputTextPrintfFormatString[] PROGMEM =          "<input class=\"u-full-width\" type=\"text\" id=\"%s\" name=\"%s\" value=\"%s\">";
+  const char inputNumberPrintfFormatString[] PROGMEM =        "<input class=\"u-full-width\" type=\"number\" id=\"%s\" name=\"%s\" value=\"%u\">";
+  const char string_empty[] PROGMEM =                         "";
   const char divEnd[] PROGMEM =                               "</div>";
   const char* endRow = divEnd;
   const char buttonPrintfFormatString[] PROGMEM =             "<a href =\"/%s\"><input class=\"button-primary\" type=\"button\" value=\"%s\" style=\"width: 100%;\"></a>";
@@ -319,7 +324,7 @@
               {
                 response->printf_P(liStringPrintfFormatString, PSTR("Description"), labelNotSet);
               }
-              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Diameter"), device[0].diameter, PSTR("m"));
+              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR(string_diameter), device[0].diameter, PSTR("m"));
               response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Height"), device[0].height, PSTR("m"));
               response->print(startRow);
               response->print(startFourColumns);
@@ -528,79 +533,34 @@
                   #endif
                   response->print(F("s</b> ago</li>"));
                 #endif
-                response->print(F("<li>Latitude: <b>"));
-                response->print(device[0].latitude);
-                response->print(F("</b> Longitude: <b>"));
-                response->print(device[0].longitude);
-                response->print(F("</b> Speed: <b>"));
-                response->print(device[0].speed);
-                response->print(F("</b> HDOP: <b>"));
-                response->print(device[0].hdop);
-                response->print('(');
-                response->print(hdopDescription(device[0].hdop));
-                response->print(F(")</b></li>"));
-                response->print(F("<li>Chars: <b>"));
-                response->print(gpsChars);
-                response->print(F("</b></li>"));
-                response->print(F("<li>Sentences: <b>"));
-                response->print(gpsSentences);
-                response->print(F("</b> Errors: <b>"));
-                response->print(gpsErrors);
-                if(gpsSentences > 0 && gpsErrors > 0)
-                {
-                  response->print('(');
-                  response->print(float(100) * float(gpsErrors)/float(gpsSentences));
-                  response->print(F("%)"));
-                }
-                response->print(F("</b></li>"));
+                response->printf_P(liFloatPrintfFormatString, PSTR("Latitude"), device[0].latitude);
+                response->printf_P(liFloatPrintfFormatString, PSTR("Longitude"), device[0].longitude);
+                response->printf_P(liFloatPrintfFormatString, PSTR("Speed"), device[0].speed);
+                response->printf_P(liFloatPrintfFormatString, PSTR("Speed(smoothed)"), device[0].smoothedSpeed);
+                response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("HDOP"), device[0].hdop, hdopDescription(device[0].hdop));
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Chars"), gpsChars);
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Sentences"), gpsSentences);
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Errors"), gpsErrors);
                 #if defined(ACT_AS_TRACKER)
-                  response->print(F("<li>Distance to tracked beacon: <b>"));
                   if(currentlyTrackedBeacon < maximumNumberOfDevices)
                   {
                     if(device[currentlyTrackedBeacon].hasGpsFix)
                     {
-                      response->print(device[currentlyTrackedBeacon].distanceTo);
-                      response->print(F("m</b></li>"));
-                      response->print(F("<li>Course to tracked beacon: <b>"));
-                      response->print(device[currentlyTrackedBeacon].courseTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Distance to tracked beacon"), device[currentlyTrackedBeacon].distanceTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Course to tracked beacon: "), device[currentlyTrackedBeacon].courseTo);
                     }
-                    else
-                    {
-                      response->print(F("Unknown"));
-                    }
-                  }
-                  else
-                  {
-                    response->print(F("no beacons"));
                   }
                 #elif defined(ACT_AS_BEACON)
-                  response->print(F("<li>Distance to nearest tracker: <b>"));
+                  response->print(F("<li><b>"));
                   if(closestTracker < maximumNumberOfDevices)
                   {
                     if(device[closestTracker].hasGpsFix)
                     {
-                      response->print(device[closestTracker].distanceTo);
-                      response->print(F("m</b></li>"));
-                      response->print(F("<li>Course to nearest tracker: <b>"));
-                      response->print(device[closestTracker].courseTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Distance to nearest tracker"), device[closestTracker].distanceTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Course to nearest tracker"), device[closestTracker].courseTo);
                     }
-                    else
-                    {
-                      response->print(F("Unknown"));
-                    }
-                  }
-                  else
-                  {
-                    response->print(F("no trackers"));
                   }
                 #endif
-                response->print(F("</b></li>"));
-              }
-              else
-              {
-                response->print(F("<li>Chars: <b>"));
-                response->print(gpsChars);
-                response->print(F("</b> - no fix yet</li>"));
               }
               response->print(ulEnd);
               response->print(startRow);
@@ -877,20 +837,10 @@
             response->print(endRow);
             response->printf_P(h2printfFormatString, PSTR("Configuration"));
             response->print(startRow);
-            if(device[0].name != nullptr)
-            {
-              response->print(startTwelveColumns);
-              response->print(F("<label for=\"deviceName\">Node name</label>"));
-              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"deviceName\" name=\"deviceName\">"), device[0].name);
-              response->print(endColumn);
-            }
-            else
-            {
-              response->print(startTwelveColumns);
-              response->print(F("<label for=\"deviceName\">Node name</label>"));
-              response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"deviceName\" name=\"deviceName\">"));
-              response->print(endColumn);
-            }
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_deviceName, PSTR("Node name"));
+            response->printf_P(inputTextPrintfFormatString, string_deviceName, string_deviceName, (device[0].name != nullptr) ? device[0].name : string_empty);
+            response->print(endColumn);
             response->print(endRow);
             response->printf_P(h3printfFormatString, PSTR("Networking"));
             #if defined(SUPPORT_WIFI)
@@ -898,15 +848,15 @@
               //WiFi client
               response->print(startRow);
               response->print(startThreeColumns);
-              response->print(F("<label for=\"startWiFiClientOnBoot\">Enable WiFi client on boot</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"startWiFiClientOnBoot\" name=\"startWiFiClientOnBoot\">"));
+              response->printf_P(labelForPrintfFormatString, string_startWiFiClientOnBoot, PSTR("Enable WiFi client on boot"));
+              response->printf_P(selectPrintfFormatString, string_startWiFiClientOnBoot, string_startWiFiClientOnBoot);
               response->print(selectValueTrue);response->print(startWiFiClientOnBoot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(startWiFiClientOnBoot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
               response->print(endColumn);
               response->print(startThreeColumns);
-              response->print(F("<label for=\"wiFiClientInactivityTimer\">WiFi inactivity timer</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"wiFiClientInactivityTimer\" name=\"wiFiClientInactivityTimer\">"));
+              response->printf_P(labelForPrintfFormatString, string_wiFiClientInactivityTimer, PSTR("WiFi inactivity timer"));
+              response->printf_P(selectPrintfFormatString, string_wiFiClientInactivityTimer, string_wiFiClientInactivityTimer);
               response->print(F("<option value=\"0\""));response->print(wiFiClientInactivityTimer == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Never</option>"));
               response->print(F("<option value=\"60000\""));response->print(wiFiClientInactivityTimer == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("1m</option>"));
               response->print(F("<option value=\"180000\""));response->print(wiFiClientInactivityTimer == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
@@ -914,41 +864,33 @@
               response->print(endSelect);
               response->print(endColumn);
               response->print(startThreeColumns);
-              if(SSID != nullptr)
-              {
-                response->print(F("<label for=\"SSID\">WiFi SSID</label>"));
-                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"SSID\" name=\"SSID\">"), SSID);
-              }
-              else
-              {
-                response->print(F("<label for=\"SSID\">WiFi SSID</label>"));
-                response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"SSID\" name=\"SSID\">"));
-              }
+              response->printf_P(labelForPrintfFormatString, string_SSID, PSTR("WiFi SSID"));
+              response->printf_P(inputTextPrintfFormatString, string_SSID, string_SSID, (SSID != nullptr) ? SSID : string_empty);
               response->print(endColumn);
               response->print(startThreeColumns);
-              response->print(F("<label for=\"PSK\">WiFi PSK</label>"));
+              response->printf_P(labelForPrintfFormatString, string_PSK, PSTR("WiFi PSK"));
               response->print(F("<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"PSK\" name=\"PSK\">"));
               response->print(endColumn);
               response->print(endRow);
               //WiFi AP        
               response->print(startRow);
               response->print(startFourColumns);
-              response->print(F("<label for=\"startWiFiApOnBoot\">Enable WiFi AP on boot</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"startWiFiApOnBoot\" name=\"startWiFiApOnBoot\">"));
+              response->printf_P(labelForPrintfFormatString, string_startWiFiApOnBoot, PSTR("Enable WiFi AP on boot"));
+              response->printf_P(selectPrintfFormatString, string_startWiFiApOnBoot, string_startWiFiApOnBoot);
               response->print(selectValueTrue);response->print(startWiFiApOnBoot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(startWiFiApOnBoot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
               response->print(endColumn);
               response->print(startFourColumns);
-              response->print(F("<label for=\"enableCaptivePortal\">Enable captive portal</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"enableCaptivePortal\" name=\"enableCaptivePortal\">"));
+              response->printf_P(labelForPrintfFormatString, string_enableCaptivePortal, PSTR("Enable captive portal"));
+              response->printf_P(selectPrintfFormatString, string_enableCaptivePortal, string_enableCaptivePortal);
               response->print(selectValueTrue);response->print(enableCaptivePortal == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(enableCaptivePortal == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
               response->print(endColumn);
               response->print(startFourColumns);
-              response->print(F("<label for=\"softApChannel\">Preferred channel</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"softApChannel\" name=\"softApChannel\">"));
+              response->printf_P(labelForPrintfFormatString, string_softApChannel, PSTR("Preferred channel"));
+              response->printf_P(selectPrintfFormatString, string_softApChannel, string_softApChannel);
               response->print(F("<option value=\"1\""));response->print(softApChannel == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("1</option>"));
               response->print(F("<option value=\"6\""));response->print(softApChannel == 6 ? selectValueSelected:selectValueNotSelected);response->print(F("6</option>"));
               response->print(F("<option value=\"11\""));response->print(softApChannel == 11 ? selectValueSelected:selectValueNotSelected);response->print(F("11</option>"));
@@ -956,22 +898,12 @@
               response->print(endColumn);
               response->print(endRow);
               response->print(startRow);
-              if(APSSID != nullptr)
-              {
-                response->print(startSixColumns);
-                response->print(F("<label for=\"APSSID\">AP SSID</label>"));
-                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"APSSID\" name=\"APSSID\">"), APSSID);
-                response->print(endColumn);
-              }
-              else
-              {
-                response->print(startSixColumns);
-                response->print(F("<label for=\"APSSID\">AP SSID</label>"));
-                response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"APSSID\" name=\"APSSID\">"));
-                response->print(endColumn);
-              }
               response->print(startSixColumns);
-              response->print(F("<label for=\"APPSK\">AP PSK</label>"));
+              response->printf_P(labelForPrintfFormatString, string_APSSID, PSTR("AP SSID"));
+              response->printf_P(inputTextPrintfFormatString, string_APSSID, string_APSSID, (APSSID != nullptr) ? APSSID : string_empty);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_APPSK, PSTR("AP PSK"));
               response->print(F("<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"APPSK\" name=\"APPSK\">"));
               response->print(endColumn);
               response->print(endRow);
@@ -979,79 +911,48 @@
             #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
               response->print(startRow);
               response->print(startFourColumns);
-              response->print(F("<label for=\"basicAuthEnabled\">Web UI login</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"basicAuthEnabled\" name=\"basicAuthEnabled\">"));
+              response->printf_P(labelForPrintfFormatString, string_basicAuthEnabled, PSTR("Web UI login"));
+              response->printf_P(selectPrintfFormatString, string_basicAuthEnabled, string_basicAuthEnabled);
               response->print(selectValueTrue);response->print(basicAuthEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(basicAuthEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
               response->print(endColumn);
-              if(http_user != nullptr)
-              {
-                response->print(startFourColumns);
-                response->print(F("<label for=\"http_user\">Web UI username</label>"));
-                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"http_user\" name=\"http_user\">"), http_user);
-                response->print(endColumn);
-              }
-              else
-              {
-                response->print(startFourColumns);
-                response->print(F("<label for=\"http_user\">Web UI username</label>"));
-                response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"http_user\" name=\"http_user\">"));
-                response->print(endColumn);
-              }
               response->print(startFourColumns);
-              response->print(F("<label for=\"http_password\">Web UI/OTA password</label>"));
+              response->printf_P(labelForPrintfFormatString, string_http_user, PSTR("Web UI username"));
+              response->printf_P(inputTextPrintfFormatString, string_http_user, string_http_user, (http_user != nullptr) ? http_user : string_empty);
+              response->print(endColumn);
+              response->print(startFourColumns);
+              response->printf_P(labelForPrintfFormatString, string_http_password, PSTR("Web UI/OTA password"));
               response->print(F("<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"http_password\" name=\"http_password\">"));
               response->print(endColumn);
               response->print(endRow);
             #endif
             #if defined(SUPPORT_WIFI)
               //Time Server
-              if(timeServer != nullptr)
-              {
-                response->print(startRow);
-                response->print(startSixColumns);
-                response->print(F("<label for=\"timeServer\">NTP host</label>"));
-                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"timeServer\" name=\"timeServer\">"), timeServer);
-                response->print(endColumn);
-              }
-              else
-              {
-                response->print(startRow);
-                response->print(startSixColumns);
-                response->print(F("<label for=\"timeServer\">NTP host</label>"));
-                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"timeServer\" name=\"timeServer\">"));
-                response->print(endColumn);
-              }
-              if(timeZone != nullptr)
-              {
-                response->print(startSixColumns);
-                response->print(F("<label for=\"\">Timezone</label>"));
-                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"timeZone\" name=\"timeZone\">"), timeZone);
-                response->print(endColumn);
-              }
-              else
-              {
-                response->print(startSixColumns);
-                response->print(F("<label for=\"\">Timezone</label>"));
-                response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"timeZone\" name=\"timeZone\">"));
-                response->print(endColumn);
-              }
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_timeServer, PSTR("NTP host"));
+              response->printf_P(inputTextPrintfFormatString, string_timeServer, string_timeServer, (timeServer != nullptr) ? timeServer : string_empty);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_timeZone, PSTR("Timezone"));
+              response->printf_P(inputTextPrintfFormatString, string_timeZone, string_timeZone, (timeZone != nullptr) ? timeZone : string_empty);
+              response->print(endColumn);
               response->print(endRow);
             #endif
             #if defined(ENABLE_OTA_UPDATE)
               response->printf_P(h3printfFormatString, PSTR("Software Update"));
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F(<label for=\"otaEnabled\">OTA enabled</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"otaEnabled\" name=\"otaEnabled\">"));
+              response->printf_P(labelForPrintfFormatString, string_otaEnabled, PSTR("OTA enabled"));
+              response->printf_P(selectPrintfFormatString, string_otaEnabled, string_otaEnabled);
               response->print(selectValueTrue);response->print(otaEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(otaEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
               response->print(endColumn);
               response->print(startSixColumns);
-              response->print(F("<label for=\"otaAuthenticationEnabled\">OTA password enabled</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"otaAuthenticationEnabled\" name=\"otaAuthenticationEnabled\">"));
+              response->printf_P(labelForPrintfFormatString, string_otaAuthenticationEnabled, PSTR("OTA password enabled"));
+              response->printf_P(selectPrintfFormatString, string_otaAuthenticationEnabled, string_otaAuthenticationEnabled);
               response->print(selectValueTrue);response->print(otaAuthenticationEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(otaAuthenticationEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -1061,16 +962,16 @@
             response->printf_P(h3printfFormatString, PSTR("Logging"));
             response->print(startRow);
             response->print(startFourColumns);
-            response->print(F("<label for=\"loggingBufferSize\">Logging buffer size</label>"));
-            response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" value=\"%u\" id=\"loggingBufferSize\" name=\"loggingBufferSize\">"), loggingBufferSize);
+            response->printf_P(labelForPrintfFormatString, string_loggingBufferSize, PSTR("Logging buffer size"));
+            response->printf_P(inputNumberPrintfFormatString, string_loggingBufferSize, string_loggingBufferSize, loggingBufferSize);
             response->print(endColumn);
             response->print(startFourColumns);
-            response->print(F("<label for=\"logFlushThreshold\">Logging buffer flush threshold</label>"));
-            response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"logFlushThreshold\" name=\"logFlushThreshold\">"), logFlushThreshold);
+            response->printf_P(labelForPrintfFormatString, string_logFlushThreshold, PSTR("Logging buffer flush threshold"));
+            response->printf_P(inputNumberPrintfFormatString, string_logFlushThreshold, string_logFlushThreshold, logFlushThreshold);
             response->print(endColumn);
             response->print(startFourColumns);
-            response->print(F("<label for=\"logFlushInterval\">Logging buffer flush frequency</label>"));
-            response->print(F("<select class=\"u-full-width\" id=\"logFlushInterval\" name=\"logFlushInterval\">"));
+            response->printf_P(labelForPrintfFormatString, string_logFlushInterval, PSTR("Logging buffer flush frequency"));
+            response->printf_P(selectPrintfFormatString, string_logFlushInterval, string_logFlushInterval);
             response->print(F("<option value=\"30\""));response->print(logFlushInterval == 30 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
             response->print(F("<option value=\"60\""));response->print(logFlushInterval == 60 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
             response->print(F("<option value=\"90\""));response->print(logFlushInterval == 90 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
@@ -1084,8 +985,8 @@
               response->printf_P(h3printfFormatString, PSTR("Battery monitor"));
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"enableBatteryMonitor\">Enable battery monitor</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"enableBatteryMonitor\" name=\"enableBatteryMonitor\">"));
+              response->printf_P(labelForPrintfFormatString, string_enableBatteryMonitor, PSTR("Enable battery monitor"));
+              response->printf_P(selectPrintfFormatString, string_enableBatteryMonitor, string_enableBatteryMonitor);
               response->print(selectValueTrue);response->print(enableBatteryMonitor == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(enableBatteryMonitor == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -1096,10 +997,11 @@
               response->print(endRow);
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"topLadderResistor\">Top ladder resistor (Kohms)</label>"));
+              response->printf_P(labelForPrintfFormatString, string_topLadderResistor, PSTR("Top ladder resistor (Kohms)"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"topLadderResistor\" name=\"topLadderResistor\">"), topLadderResistor);
               response->print(endColumn);
-              response->print(F("<div class=\"six columns\"><label for=\"bottomLadderResistor\">Bottom ladder resistor (Kohms)</label>"));
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_bottomLadderResistor, PSTR("Bottom ladder resistor (Kohms)"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\">"), bottomLadderResistor);
               response->print(endColumn);
               response->print(endRow);
@@ -1108,8 +1010,8 @@
               response->printf_P(h3printfFormatString, PSTR("Tracking"));
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"maximumEffectiveRange\">Maximum effective range</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"maximumEffectiveRange\" name=\"maximumEffectiveRange\">"));
+              response->printf_P(labelForPrintfFormatString, string_maximumEffectiveRange, PSTR("Maximum effective range"));
+              response->printf_P(selectPrintfFormatString, string_maximumEffectiveRange, string_maximumEffectiveRange);
               response->print(F("<option value=\"50\""));response->print(maximumEffectiveRange == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50m</option>"));
               response->print(F("<option value=\"75\""));response->print(maximumEffectiveRange == 75 ? selectValueSelected:selectValueNotSelected);response->print(F("75m</option>"));
               response->print(F("<option value=\"99\""));response->print(maximumEffectiveRange == 99 ? selectValueSelected:selectValueNotSelected);response->print(F("99m</option>"));
@@ -1131,8 +1033,8 @@
             #endif
             response->print(startRow);
             response->print(startTwelveColumns);
-            response->print(F("<label for=\"trackingSensitivity\">Sensitivity</label>"));
-            response->print(F("<select class=\"u-full-width\" id=\"trackingSensitivity\" name=\"trackingSensitivity\">"));
+            response->printf_P(labelForPrintfFormatString, string_trackingSensitivity, PSTR("Sensitivity"));
+            response->printf_P(selectPrintfFormatString, string_trackingSensitivity, string_trackingSensitivity);
             response->print(F("<option value=\"0\""));response->print(trackingSensitivity == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Low</option>"));
             response->print(F("<option value=\"1\""));response->print(trackingSensitivity == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("Medium</option>"));
             response->print(F("<option value=\"2\""));response->print(trackingSensitivity == 2 ? selectValueSelected:selectValueNotSelected);response->print(F("High</option>"));
@@ -1144,16 +1046,16 @@
                 response->printf_P(h3printfFormatString, PSTR("Beeper"));
                 response->print(startRow);
                 response->print(startSixColumns);
-                response->print(F("<label for=\"beeperEnabled\">Beeper enabled</label>"));
-                response->print(F("<select class=\"u-full-width\" id=\"beeperEnabled\" name=\"beeperEnabled\">"));
+                response->printf_P(labelForPrintfFormatString, string_beeperEnabled, PSTR("Beeper enabled"));
+                response->printf_P(selectPrintfFormatString, string_beeperEnabled, string_beeperEnabled);
                 response->print(selectValueTrue);response->print(beeperEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
                 response->print(selectValueFalse);response->print(beeperEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
                 response->print(endSelect);
                 response->print(endColumn);
                 #if defined(SUPPORT_BUTTON)
                   response->print(startSixColumns);
-                  response->print(F("<label for=\"beepOnPress\">Button beep</label>"));
-                  response->print(F("<select class=\"u-full-width\" id=\"beepOnPress\" name=\"beepOnPress\">"));
+                  response->printf_P(labelForPrintfFormatString, string_beepOnPress, PSTR("Button beep"));
+                  response->printf_P(selectPrintfFormatString, string_beepOnPress, string_beepOnPress);
                   response->print(selectValueTrue);response->print(beepOnPress == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
                   response->print(selectValueFalse);response->print(beepOnPress == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
                   response->print(endSelect);
@@ -1164,8 +1066,8 @@
                 response->printf_P(h3printfFormatString, PSTR("Beeper"));
                 response->print(startRow);
                 response->print(startTwelveColumns);
-                response->print(F("<label for=\"beeperEnabled\">Beeper enabled</label>"));
-                response->print(F("<select class=\"u-full-width\" id=\"beeperEnabled\" name=\"beeperEnabled\">"));
+                response->printf_P(labelForPrintfFormatString, string_beeperEnabled, PSTR("Beeper enabled"));
+                response->printf_P(selectPrintfFormatString, string_beeperEnabled, string_beeperEnabled);
                 response->print(selectValueTrue);response->print(beeperEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
                 response->print(selectValueFalse);response->print(beeperEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
                 response->print(endSelect);
@@ -1177,8 +1079,8 @@
               response->printf_P(h3printfFormatString, PSTR("Vibration motor"));
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"vibrationEnabled\">Haptic feedback enabled</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"vibrationEnabled\" name=\"vibrationEnabled\">"));
+              response->printf_P(labelForPrintfFormatString, string_vibrationEnabled, PSTR("Haptic feedback enabled"));
+              response->printf_P(selectPrintfFormatString, string_vibrationEnabled, string_vibrationEnabled);
               response->print(selectValueTrue);response->print(vibrationEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(vibrationEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -1186,8 +1088,8 @@
               response->print(endRow);
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"vibrationLevel\">Vibration level</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"vibrationLevel\" name=\"vibrationLevel\">"));
+              response->printf_P(labelForPrintfFormatString, string_vibrationLevel, PSTR("Vibration level"));
+              response->printf_P(selectPrintfFormatString, string_vibrationLevel, string_vibrationLevel);
               response->print(F("<option value=\"10\""));response->print(vibrationLevel == 10 ? selectValueSelected:selectValueNotSelected);response->print(F("10%</option>"));
               response->print(F("<option value=\"25\""));response->print(vibrationLevel == 25 ? selectValueSelected:selectValueNotSelected);response->print(F("25%</option>"));
               response->print(F("<option value=\"50\""));response->print(vibrationLevel == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50%</option>"));
@@ -1199,24 +1101,12 @@
             #endif
             //Comment
             response->printf_P(h3printfFormatString, PSTR("Configuration"));
-            if(configurationComment != nullptr)
-            {
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->print(F("<label for=\"configurationComment\">Comment (optional)</label>"));
-              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"configurationComment\" name=\"configurationComment\">"), configurationComment);
-              response->print(endColumn);
-              response->print(endRow);
-            }
-            else
-            {
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->print(F("<label for=\"configurationComment\">Comment (optional)</label>"));
-              response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"configurationComment\" name=\"configurationComment\">"));
-              response->print(endColumn);
-              response->print(endRow);
-            }
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_configurationComment, PSTR("Comment (optional)"));
+            response->printf_P(inputTextPrintfFormatString, string_configurationComment, string_configurationComment, (configurationComment != nullptr) ? configurationComment : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
             //End of form
             response->print(formEnd);
             addPageFooter(response);
@@ -1265,25 +1155,25 @@
               }
             #endif
             //Read the submitted configuration
-            if(request->hasParam("deviceName", true))
+            if(request->hasParam(string_deviceName, true))
             {
               if(device[0].name != nullptr)
               {
                 delete [] device[0].name;
               }
-              device[0].name = new char[request->getParam("deviceName", true)->value().length() + 1];
-              strlcpy(device[0].name,request->getParam("deviceName", true)->value().c_str(),request->getParam("deviceName", true)->value().length() + 1);
+              device[0].name = new char[request->getParam(string_deviceName, true)->value().length() + 1];
+              strlcpy(device[0].name,request->getParam(string_deviceName, true)->value().c_str(),request->getParam(string_deviceName, true)->value().length() + 1);
               //localLog(F("deviceName: "));
               //localLogLn(device[0].name);
             }
-            if(request->hasParam("configurationComment", true))
+            if(request->hasParam(string_configurationComment, true))
             {
               if(configurationComment != nullptr)
               {
                 delete [] configurationComment;
               }
-              configurationComment = new char[request->getParam("configurationComment", true)->value().length() + 1];
-              strlcpy(configurationComment,request->getParam("configurationComment", true)->value().c_str(),request->getParam("configurationComment", true)->value().length() + 1);
+              configurationComment = new char[request->getParam(string_configurationComment, true)->value().length() + 1];
+              strlcpy(configurationComment,request->getParam(string_configurationComment, true)->value().c_str(),request->getParam(string_configurationComment, true)->value().length() + 1);
               //localLog(F("configurationComment: "));
               //localLogLn(configurationComment);
             }
@@ -1297,34 +1187,34 @@
               strlcpy(configurationComment,default_configurationComment,strlen(default_configurationComment) + 1);  //Copy in default
             }
             #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              if(request->hasParam("http_user", true))
+              if(request->hasParam(string_http_user, true))
               {
                 if(http_user != nullptr)
                 {
                   delete [] http_user;
                 }
-                http_user = new char[request->getParam("http_user", true)->value().length() + 1];
-                strlcpy(http_user,request->getParam("http_user", true)->value().c_str(),request->getParam("http_user", true)->value().length() + 1);
+                http_user = new char[request->getParam(string_http_user, true)->value().length() + 1];
+                strlcpy(http_user,request->getParam(string_http_user, true)->value().c_str(),request->getParam(string_http_user, true)->value().length() + 1);
                 //localLog(F("http_user: "));
                 //localLogLn(http_user);
               }
-              if(request->hasParam("http_password", true))
+              if(request->hasParam(string_http_password, true))
               {
-                if(request->getParam("http_password", true)->value().length() > 0)
+                if(request->getParam(string_http_password, true)->value().length() > 0)
                 {
                   if(http_password != nullptr)
                   {
                     delete [] http_password;
                   }
-                  http_password = new char[request->getParam("http_password", true)->value().length() + 1];
-                  strlcpy(http_password,request->getParam("http_password", true)->value().c_str(),request->getParam("http_password", true)->value().length() + 1);
+                  http_password = new char[request->getParam(string_http_password, true)->value().length() + 1];
+                  strlcpy(http_password,request->getParam(string_http_password, true)->value().c_str(),request->getParam(string_http_password, true)->value().length() + 1);
                   //localLogLn(F("http_password: ********"));
                 }
               }
-              if(request->hasParam("basicAuthEnabled", true))
+              if(request->hasParam(string_basicAuthEnabled, true))
               {
                 //localLog(F("basicAuthEnabled: "));
-                if(request->getParam("basicAuthEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_basicAuthEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   basicAuthEnabled = true;
                   //localLogLn(F("enabled"));
@@ -1367,9 +1257,9 @@
               }
             #endif
             #if defined(SUPPORT_BATTERY_METER)
-              if(request->hasParam("enableBatteryMonitor", true))
+              if(request->hasParam(string_enableBatteryMonitor, true))
               {
-                if(request->getParam("enableBatteryMonitor", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_enableBatteryMonitor, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   enableBatteryMonitor = true;
                 }
@@ -1378,20 +1268,20 @@
                   enableBatteryMonitor = false;
                 }
               }
-              if(request->hasParam("topLadderResistor", true))
+              if(request->hasParam(string_topLadderResistor, true))
               {
-                topLadderResistor = request->getParam("topLadderResistor", true)->value().toFloat();
+                topLadderResistor = request->getParam(string_topLadderResistor, true)->value().toFloat();
               }
-              if(request->hasParam("bottomLadderResistor", true))
+              if(request->hasParam(string_bottomLadderResistor, true))
               {
-                bottomLadderResistor = request->getParam("bottomLadderResistor", true)->value().toFloat();
+                bottomLadderResistor = request->getParam(string_bottomLadderResistor, true)->value().toFloat();
               }
             #endif
             #if defined(SUPPORT_BEEPER)
-              if(request->hasParam("beeperEnabled", true))
+              if(request->hasParam(string_beeperEnabled, true))
               {
                 //localLog(F("beeperEnabled: "));
-                if(request->getParam("beeperEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_beeperEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   beeperEnabled = true;
                   //localLogLn(F("enabled"));
@@ -1403,9 +1293,9 @@
                 }
               }
               #if defined(SUPPORT_BUTTON)
-                if(request->hasParam("beepOnPress", true))
+                if(request->hasParam(string_beepOnPress, true))
                 {
-                  if(request->getParam("beepOnPress", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                  if(request->getParam(string_beepOnPress, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                   {
                     beepOnPress = true;
                   }
@@ -1417,9 +1307,9 @@
               #endif
             #endif
             #if defined(SUPPORT_VIBRATION)
-              if(request->hasParam("vibrationEnabled", true))
+              if(request->hasParam(string_vibrationEnabled, true))
               {
-                if(request->getParam("vibrationEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_vibrationEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   vibrationEnabled = true;
                 }
@@ -1428,37 +1318,37 @@
                   vibrationEnabled = false;
                 }
               }
-              if(request->hasParam("vibrationLevel", true))
+              if(request->hasParam(string_vibrationLevel, true))
               {
-                vibrationLevel = request->getParam("vibrationLevel", true)->value().toInt();
+                vibrationLevel = request->getParam(string_vibrationLevel, true)->value().toInt();
               }
             #endif
             #if defined(SUPPORT_WIFI)
-              if(request->hasParam("SSID", true))
+              if(request->hasParam(string_SSID, true))
               {
                 if(SSID != nullptr)
                 {
                   delete [] SSID;
                 }
-                SSID = new char[request->getParam("SSID", true)->value().length() + 1];
-                strlcpy(SSID,request->getParam("SSID", true)->value().c_str(),request->getParam("SSID", true)->value().length() + 1);
+                SSID = new char[request->getParam(string_SSID, true)->value().length() + 1];
+                strlcpy(SSID,request->getParam(string_SSID, true)->value().c_str(),request->getParam(string_SSID, true)->value().length() + 1);
               }
-              if(request->hasParam("PSK", true))
+              if(request->hasParam(string_PSK, true))
               {
-                if(request->getParam("PSK", true)->value().length() > 0)
+                if(request->getParam(string_PSK, true)->value().length() > 0)
                 {
                   if(PSK != nullptr)
                   {
                     delete [] PSK;
                   }
-                  PSK = new char[request->getParam("PSK", true)->value().length() + 1];
-                  strlcpy(PSK,request->getParam("PSK", true)->value().c_str(),request->getParam("PSK", true)->value().length() + 1);
+                  PSK = new char[request->getParam(string_PSK, true)->value().length() + 1];
+                  strlcpy(PSK,request->getParam(string_PSK, true)->value().c_str(),request->getParam(string_PSK, true)->value().length() + 1);
                 }
               }
-              if(request->hasParam("startWiFiClientOnBoot", true))
+              if(request->hasParam(string_startWiFiClientOnBoot, true))
               {
                 //localLog(F("startWiFiClientOnBoot: "));
-                if(request->getParam("startWiFiClientOnBoot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_startWiFiClientOnBoot, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   startWiFiClientOnBoot = true;
                   //localLogLn(F("enabled"));
@@ -1469,58 +1359,58 @@
                   //localLogLn(F("disabled"));
                 }
               }
-              if(request->hasParam("wiFiClientInactivityTimer", true))
+              if(request->hasParam(string_wiFiClientInactivityTimer, true))
               {
-                wiFiClientInactivityTimer = request->getParam("wiFiClientInactivityTimer", true)->value().toInt();
+                wiFiClientInactivityTimer = request->getParam(string_wiFiClientInactivityTimer, true)->value().toInt();
                 //localLog(F("wiFiClientInactivityTimer: "));
                 //localLogLn(wiFiClientInactivityTimer);
               }
-              if(request->hasParam("timeServer", true))
+              if(request->hasParam(string_timeServer, true))
               {
                 if(timeServer != nullptr)
                 {
                   delete [] timeServer;
                 }
-                timeServer = new char[request->getParam("timeServer", true)->value().length() + 1];
-                strlcpy(timeServer,request->getParam("timeServer", true)->value().c_str(),request->getParam("timeServer", true)->value().length() + 1);
+                timeServer = new char[request->getParam(string_timeServer, true)->value().length() + 1];
+                strlcpy(timeServer,request->getParam(string_timeServer, true)->value().c_str(),request->getParam(string_timeServer, true)->value().length() + 1);
                 //localLog(F("timeServer: "));
                 //localLogLn(timeServer);
               }
-              if(request->hasParam("timeZone", true))
+              if(request->hasParam(string_timeZone, true))
               {
                 if(timeZone != nullptr)
                 {
                   delete [] timeZone;
                 }
-                timeZone = new char[request->getParam("timeZone", true)->value().length() + 1];
-                strlcpy(timeZone,request->getParam("timeZone", true)->value().c_str(),request->getParam("timeZone", true)->value().length() + 1);
+                timeZone = new char[request->getParam(string_timeZone, true)->value().length() + 1];
+                strlcpy(timeZone,request->getParam(string_timeZone, true)->value().c_str(),request->getParam(string_timeZone, true)->value().length() + 1);
                 //localLog(F("timeZone: "));
                 //localLogLn(timeZone);
               }
-              if(request->hasParam("APSSID", true))
+              if(request->hasParam(string_APSSID, true))
               {
                 if(APSSID != nullptr)
                 {
                   delete [] APSSID;
                 }
-                APSSID = new char[request->getParam("APSSID", true)->value().length() + 1];
-                strlcpy(APSSID,request->getParam("APSSID", true)->value().c_str(),request->getParam("APSSID", true)->value().length() + 1);
+                APSSID = new char[request->getParam(string_APSSID, true)->value().length() + 1];
+                strlcpy(APSSID,request->getParam(string_APSSID, true)->value().c_str(),request->getParam(string_APSSID, true)->value().length() + 1);
               }
-              if(request->hasParam("APPSK", true))
+              if(request->hasParam(string_APPSK, true))
               {
-                if(request->getParam("APPSK", true)->value().length() > 0)
+                if(request->getParam(string_APPSK, true)->value().length() > 0)
                 {
                   if(APPSK != nullptr)
                   {
                     delete [] APPSK;
                   }
-                  APPSK = new char[request->getParam("APPSK", true)->value().length() + 1];
-                  strlcpy(APPSK,request->getParam("APPSK", true)->value().c_str(),request->getParam("APPSK", true)->value().length() + 1);
+                  APPSK = new char[request->getParam(string_APPSK, true)->value().length() + 1];
+                  strlcpy(APPSK,request->getParam(string_APPSK, true)->value().c_str(),request->getParam(string_APPSK, true)->value().length() + 1);
                 }
               }
-              if(request->hasParam("startWiFiApOnBoot", true))
+              if(request->hasParam(string_startWiFiApOnBoot, true))
               {
-                if(request->getParam("startWiFiApOnBoot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_startWiFiApOnBoot, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   startWiFiApOnBoot = true;
                 }
@@ -1529,9 +1419,9 @@
                   startWiFiApOnBoot = false;
                 }
               }
-              if(request->hasParam("enableCaptivePortal", true))
+              if(request->hasParam(string_enableCaptivePortal, true))
               {
-                if(request->getParam("enableCaptivePortal", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_enableCaptivePortal, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   enableCaptivePortal = true;
                 }
@@ -1540,30 +1430,30 @@
                   enableCaptivePortal = false;
                 }
               }
-              if(request->hasParam("softApChannel", true))
+              if(request->hasParam(string_softApChannel, true))
               {
-                softApChannel = request->getParam("softApChannel", true)->value().toInt();
+                softApChannel = request->getParam(string_softApChannel, true)->value().toInt();
               }
             #endif
             #if defined(ACT_AS_TRACKER)    
-              if(request->hasParam("trackingSensitivity", true))
+              if(request->hasParam(string_trackingSensitivity, true))
               {
-                trackingSensitivity = request->getParam("trackingSensitivity", true)->value().toInt();
+                trackingSensitivity = request->getParam(string_trackingSensitivity, true)->value().toInt();
                 //localLog(F("maximumEffectiveRange: "));
                 //localLogLn(maximumEffectiveRange);
               }
-              if(request->hasParam("maximumEffectiveRange", true))
+              if(request->hasParam(string_maximumEffectiveRange, true))
               {
-                maximumEffectiveRange = request->getParam("maximumEffectiveRange", true)->value().toInt();
+                maximumEffectiveRange = request->getParam(string_maximumEffectiveRange, true)->value().toInt();
                 //localLog(F("maximumEffectiveRange: "));
                 //localLogLn(maximumEffectiveRange);
               }
             #endif
             #if defined(SUPPORT_BEEPER)
-              if(request->hasParam("beeperEnabled", true))
+              if(request->hasParam(string_beeperEnabled, true))
               {
                 //localLog(F("beeperEnabled: "));
-                if(request->getParam("beeperEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_beeperEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   beeperEnabled = true;
                   //localLogLn(F("enabled"));
@@ -1575,29 +1465,29 @@
                 }
               }
             #endif
-            if(request->hasParam("loggingBufferSize", true))
+            if(request->hasParam(string_loggingBufferSize, true))
             {
-              if(loggingBufferSize != request->getParam("loggingBufferSize", true)->value().toInt())
+              if(loggingBufferSize != request->getParam(string_loggingBufferSize, true)->value().toInt())
               {
-                loggingBufferSize = request->getParam("loggingBufferSize", true)->value().toInt();
+                loggingBufferSize = request->getParam(string_loggingBufferSize, true)->value().toInt();
                 //localLog(F("loggingBufferSize: "));
                 //localLogLn(loggingBufferSize);
               }
             }
-            if(request->hasParam("logFlushThreshold", true))
+            if(request->hasParam(string_logFlushThreshold, true))
             {
-              if(logFlushThreshold != request->getParam("logFlushThreshold", true)->value().toInt())
+              if(logFlushThreshold != request->getParam(string_logFlushThreshold, true)->value().toInt())
               {
-                logFlushThreshold = request->getParam("logFlushThreshold", true)->value().toInt();
+                logFlushThreshold = request->getParam(string_logFlushThreshold, true)->value().toInt();
                 //localLog(F("logFlushThreshold: "));
                 //localLogLn(logFlushThreshold);
               }
             }
-            if(request->hasParam("logFlushInterval", true))
+            if(request->hasParam(string_logFlushInterval, true))
             {
-              if(logFlushInterval != request->getParam("logFlushInterval", true)->value().toInt())
+              if(logFlushInterval != request->getParam(string_logFlushInterval, true)->value().toInt())
               {
-                logFlushInterval = request->getParam("logFlushInterval", true)->value().toInt();
+                logFlushInterval = request->getParam(string_logFlushInterval, true)->value().toInt();
                 //localLog(F("logFlushInterval: "));
                 //localLogLn(logFlushInterval);
               }
@@ -1645,48 +1535,26 @@
               response->print(endRow);
               response->printf_P(h2printfFormatString, PSTR("In-game configuration"));
               response->print(startRow);
-              if(device[0].icName != nullptr)
-              {
-                response->print(startTwelveColumns);
-                response->print(F("<label for=\"icName\">IC name</label>"));
-                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"icName\" name=\"icName\">"), device[0].icName);
-                response->print(endColumn);
-              }
-              else
-              {
-                response->print(startTwelveColumns);
-                response->print(F("<label for=\"icName\">IC name</label>"));
-                response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"icName\" name=\"icName\">"));
-                response->print(endColumn);
-              }
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_icName, PSTR("IC name"));
+              response->printf_P(inputTextPrintfFormatString, string_icName, string_icName, (device[0].icName != nullptr) ? device[0].icName : string_empty);
+              response->print(endColumn);
               response->print(endRow);
-              if(device[0].icDescription != nullptr)
-              {
-                response->print(startRow);
-                response->print(startTwelveColumns);
-                response->print(F("<label for=\"icDescription\">IC description</label>"));
-                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"icDescription\" name=\"icDescription\">"), device[0].icDescription);
-                response->print(endColumn);
-                response->print(endRow);
-              }
-              else
-              {
-                response->print(startRow);
-                response->print(startTwelveColumns);
-                response->print(F("<label for=\"icDescription\">IC description</label>"));
-                response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"icDescription\" name=\"icDescription\">"));
-                response->print(endColumn);
-                response->print(endRow);
-              }
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"height\">Diameter(m)</label>"));
-              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"height\" name=\"diameter\">"), device[0].diameter);
+              response->printf_P(labelForPrintfFormatString, string_icDescription, PSTR("IC description"));
+              response->printf_P(inputTextPrintfFormatString, string_icDescription, string_icDescription, (device[0].icDescription != nullptr) ? device[0].icDescription : string_empty);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_diameter, PSTR("Diameter(m)"));
+              response->printf_P(inputNumberPrintfFormatString, string_diameter, string_diameter, device[0].diameter);
               response->print(endColumn);
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(("<label for=\"height\">Height(m)</label>"));
-              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"height\" name=\"height\">"), device[0].height);
+              response->printf_P(labelForPrintfFormatString, string_height, PSTR("Height(m)"));
+              response->printf_P(inputNumberPrintfFormatString, string_height, string_height, device[0].height);
               response->print(endColumn);
               response->print(formEnd);
               addPageFooter(response);
@@ -1735,36 +1603,36 @@
                 }
               #endif
               //Read the submitted configuration
-              if(request->hasParam("icName", true))
+              if(request->hasParam(string_icName, true))
               {
                 if(device[0].icName != nullptr)
                 {
                   delete [] device[0].icName;
                 }
-                device[0].icName = new char[request->getParam("icName", true)->value().length() + 1];
-                strlcpy(device[0].icName,request->getParam("icName", true)->value().c_str(),request->getParam("icName", true)->value().length() + 1);
+                device[0].icName = new char[request->getParam(string_icName, true)->value().length() + 1];
+                strlcpy(device[0].icName,request->getParam(string_icName, true)->value().c_str(),request->getParam(string_icName, true)->value().length() + 1);
               }
-              if(request->hasParam("icName", true))
+              if(request->hasParam(string_icName, true))
               {
                 if(device[0].icDescription != nullptr)
                 {
                   delete [] device[0].icDescription;
                 }
-                device[0].icDescription = new char[request->getParam("icDescription", true)->value().length() + 1];
-                strlcpy(device[0].icDescription,request->getParam("icDescription", true)->value().c_str(),request->getParam("icDescription", true)->value().length() + 1);
+                device[0].icDescription = new char[request->getParam(string_icDescription, true)->value().length() + 1];
+                strlcpy(device[0].icDescription,request->getParam(string_icDescription, true)->value().c_str(),request->getParam(string_icDescription, true)->value().length() + 1);
               }
-              if(request->hasParam("diameter", true))
+              if(request->hasParam(string_diameter, true))
               {
-                if(device[0].diameter != request->getParam("diameter", true)->value().toInt())
+                if(device[0].diameter != request->getParam(string_diameter, true)->value().toInt())
                 {
-                  device[0].diameter = request->getParam("diameter", true)->value().toInt();
+                  device[0].diameter = request->getParam(string_diameter, true)->value().toInt();
                 }
               }
-              if(request->hasParam("height", true))
+              if(request->hasParam(string_height, true))
               {
-                if(device[0].height != request->getParam("height", true)->value().toInt())
+                if(device[0].height != request->getParam(string_height, true)->value().toInt())
                 {
-                  device[0].height = request->getParam("height", true)->value().toInt();
+                  device[0].height = request->getParam(string_height, true)->value().toInt();
                 }
               }
               saveConfigurationSoon = millis();
@@ -1984,9 +1852,9 @@
             #endif
             //Read the submitted configuration
             bool espNowConfigurationChanged = false;
-            if(request->hasParam("espNowEnabled", true))
+            if(request->hasParam(string_espNowEnabled, true))
             {
-              if(request->getParam("espNowEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              if(request->getParam(string_espNowEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
               {
                 if(espNowEnabled != true)
                 {
@@ -2321,9 +2189,9 @@
               #endif
               //Read the submitted configuration
               bool loRaConfigurationChanged = false;
-              if(request->hasParam("loRaEnabled", true))
+              if(request->hasParam(string_loRaEnabled, true))
               {
-                if(request->getParam("loRaEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_loRaEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   if(loRaEnabled == false)
                   {
@@ -2499,10 +2367,21 @@
               response->print(endColumn);
               response->print(endRow);
               response->printf_P(h2printfFormatString, PSTR("Treacle configuration"));
+              //Treacel encryption
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"espNowEnabled\">ESP-Now radio enabled</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"espNowEnabled\" name=\"espNowEnabled\">"));
+              response->printf_P(labelForPrintfFormatString, string_treacleEncryptionEnabled, PSTR("Encryption enabled"));
+              response->printf_P(selectPrintfFormatString, string_treacleEncryptionEnabled, string_treacleEncryptionEnabled);
+              response->print(selectValueTrue);response->print(treacleEncryptionEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(treacleEncryptionEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              //ESP-Now
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_espNowEnabled, PSTR("ESP-Now radio enabled"));
+              response->printf_P(selectPrintfFormatString, string_espNowEnabled, string_espNowEnabled);
               response->print(selectValueTrue);response->print(espNowEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(espNowEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -2511,8 +2390,8 @@
               //ESP-Now tick interval
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"espNowTickInterval\">ESP-Now tick interval</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"espNowTickInterval\" name=\"espNowTickInterval\">"));
+              response->printf_P(labelForPrintfFormatString, string_espNowTickInterval, PSTR("ESP-Now tick interval"));
+              response->printf_P(selectPrintfFormatString, string_espNowTickInterval, string_espNowTickInterval);
               for(uint32_t value = 5000; value <= 55000; value+=5000)
               {
                 response->printf_P(PSTR("<option value=\"%u\""), value);
@@ -2525,8 +2404,8 @@
               response->print(endRow);
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"loRaEnabled\">LoRa radio enabled</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"loRaEnabled\" name=\"loRaEnabled\">"));
+              response->printf_P(labelForPrintfFormatString, string_loRaEnabled, PSTR("LoRa radio enabled"));
+              response->printf_P(selectPrintfFormatString, string_loRaEnabled, string_loRaEnabled);
               response->print(selectValueTrue);response->print(loRaEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(loRaEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -2535,8 +2414,8 @@
               //ESP-Now tick interval
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"loRaTickInterval\">LoRa tick interval</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"loRaTickInterval\" name=\"loRaTickInterval\">"));
+              response->printf_P(labelForPrintfFormatString, string_loRaTickInterval, PSTR("LoRa tick interval"));
+              response->printf_P(selectPrintfFormatString, string_loRaTickInterval, string_loRaTickInterval);
               for(uint32_t value = 5000; value <= 55000; value+=5000)
               {
                 response->printf_P(PSTR("<option value=\"%u\""), value);
@@ -2550,8 +2429,8 @@
               //TX power
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"loRaTxPower\">LoRa Tx power</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"loRaTxPower\" name=\"loRaTxPower\">"));
+              response->printf_P(labelForPrintfFormatString, string_loRaTxPower, PSTR("LoRa Tx power"));
+              response->printf_P(selectPrintfFormatString, string_loRaTxPower, string_loRaTxPower);
               for(uint8_t value = 2; value <= 20; value++)
               {
                 response->printf_P(PSTR("<option value=\"%u\""), value);
@@ -2565,8 +2444,8 @@
               //RX gain
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"loRaRxGain\">LoRa Rx gain</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"loRaRxGain\" name=\"loRaRxGain\">"));
+              response->printf_P(labelForPrintfFormatString, string_loRaRxGain, PSTR("LoRa Rx gain"));
+              response->printf_P(selectPrintfFormatString, string_loRaRxGain, string_loRaRxGain);
               response->printf_P(PSTR("<option value=\"%u\""), 0);
               response->print(loRaRxGain == 0 ? selectValueSelected:selectValueNotSelected);
               response->print(F("Auto</option>"));
@@ -2583,8 +2462,8 @@
               //Spreading factor
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"loRaSpreadingFactor\">LoRa spreading factor</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"loRaSpreadingFactor\" name=\"loRaSpreadingFactor\">"));
+              response->printf_P(labelForPrintfFormatString, string_loRaSpreadingFactor, PSTR("LoRa spreading factor"));
+              response->printf_P(selectPrintfFormatString, string_loRaSpreadingFactor, string_loRaSpreadingFactor);
               for(uint8_t value = 7; value <= 12; value++)
               {
                 response->printf_P(PSTR("<option value=\"%u\""), value);
@@ -2598,8 +2477,8 @@
               //Signal bandwidth
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"loRaSignalBandwidth\">LoRa signal bandwidth</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"loRaSignalBandwidth\" name=\"loRaSignalBandwidth\">"));
+              response->printf_P(labelForPrintfFormatString, string_loRaSignalBandwidth, PSTR("LoRa signal bandwidth"));
+              response->printf_P(selectPrintfFormatString, string_loRaSignalBandwidth, string_loRaSignalBandwidth);
               for(uint8_t index = 0; index < 10; index++)
               {
                 response->printf_P(PSTR("<option value=\"%u\""), validLoRaSignalBandwidth[index]);
@@ -2659,9 +2538,9 @@
             #endif
             //Read the submitted configuration
             bool treacleConfigurationChanged = false;
-            if(request->hasParam("espNowEnabled", true))
+            if(request->hasParam(string_espNowEnabled, true))
             {
-              if(request->getParam("espNowEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              if(request->getParam(string_espNowEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
               {
                 if(espNowEnabled == false)
                 {
@@ -2678,18 +2557,18 @@
                 }
               }
             }
-            if(request->hasParam("espNowTickInterval", true))
+            if(request->hasParam(string_espNowTickInterval, true))
             {
-              if(espNowTickInterval != request->getParam("espNowTickInterval", true)->value().toInt())
+              if(espNowTickInterval != request->getParam(string_espNowTickInterval, true)->value().toInt())
               {
-                espNowTickInterval = request->getParam("espNowTickInterval", true)->value().toInt();
+                espNowTickInterval = request->getParam(string_espNowTickInterval, true)->value().toInt();
                 treacle.setEspNowTickInterval(espNowTickInterval);
                 treacleConfigurationChanged = true;
               }
             }
-            if(request->hasParam("loRaEnabled", true))
+            if(request->hasParam(string_loRaEnabled, true))
             {
-              if(request->getParam("loRaEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              if(request->getParam(string_loRaEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
               {
                 if(loRaEnabled == false)
                 {
@@ -2706,44 +2585,44 @@
                 }
               }
             }
-            if(request->hasParam("loRaTickInterval", true))
+            if(request->hasParam(string_loRaTickInterval, true))
             {
-              if(loRaTickInterval != request->getParam("loRaTickInterval", true)->value().toInt())
+              if(loRaTickInterval != request->getParam(string_loRaTickInterval, true)->value().toInt())
               {
-                loRaTickInterval = request->getParam("loRaTickInterval", true)->value().toInt();
+                loRaTickInterval = request->getParam(string_loRaTickInterval, true)->value().toInt();
                 treacle.setLoRaTickInterval(loRaTickInterval);
                 treacleConfigurationChanged = true;
               }
             }
-            if(request->hasParam("loRaTxPower", true))
+            if(request->hasParam(string_loRaTxPower, true))
             {
-              if(loRaTxPower != request->getParam("loRaTxPower", true)->value().toInt())
+              if(loRaTxPower != request->getParam(string_loRaTxPower, true)->value().toInt())
               {
-                loRaTxPower = request->getParam("loRaTxPower", true)->value().toInt();
+                loRaTxPower = request->getParam(string_loRaTxPower, true)->value().toInt();
                 treacleConfigurationChanged = true;
               }
             }
-            if(request->hasParam("loRaRxGain", true))
+            if(request->hasParam(string_loRaRxGain, true))
             {
-              if(loRaRxGain != request->getParam("loRaRxGain", true)->value().toInt())
+              if(loRaRxGain != request->getParam(string_loRaRxGain, true)->value().toInt())
               {
-                loRaRxGain = request->getParam("loRaRxGain", true)->value().toInt();
+                loRaRxGain = request->getParam(string_loRaRxGain, true)->value().toInt();
                 treacleConfigurationChanged = true;
               }
             }
-            if(request->hasParam("loRaSpreadingFactor", true))
+            if(request->hasParam(string_loRaSpreadingFactor, true))
             {
-              if(loRaSpreadingFactor != request->getParam("loRaSpreadingFactor", true)->value().toInt())
+              if(loRaSpreadingFactor != request->getParam(string_loRaSpreadingFactor, true)->value().toInt())
               {
-                loRaSpreadingFactor = request->getParam("loRaSpreadingFactor", true)->value().toInt();
+                loRaSpreadingFactor = request->getParam(string_loRaSpreadingFactor, true)->value().toInt();
                 treacleConfigurationChanged = true;
               }
             }
-            if(request->hasParam("loRaSignalBandwidth", true))
+            if(request->hasParam(string_loRaSignalBandwidth, true))
             {
-              if(loRaSignalBandwidth != request->getParam("loRaSignalBandwidth", true)->value().toInt())
+              if(loRaSignalBandwidth != request->getParam(string_loRaSignalBandwidth, true)->value().toInt())
               {
-                loRaSignalBandwidth = request->getParam("loRaSignalBandwidth", true)->value().toInt();
+                loRaSignalBandwidth = request->getParam(string_loRaSignalBandwidth, true)->value().toInt();
                 treacleConfigurationChanged = true;
               }
             }
@@ -2795,8 +2674,8 @@
               response->printf_P(h2printfFormatString, PSTR("Treacle configuration"));
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"enableHomeTab\">Home tab</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"enableHomeTab\" name=\"enableHomeTab\">"));
+              response->printf_P(labelForPrintfFormatString, string_enableHomeTab, PSTR("Home tab"));
+              response->printf_P(selectPrintfFormatString, string_enableHomeTab, string_enableHomeTab);
               response->print(selectValueTrue);response->print(enableHomeTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(enableHomeTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -2804,8 +2683,8 @@
               response->print(endRow);
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"enableInfoTab\">Info tab</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"enableInfoTab\" name=\"enableInfoTab\">"));
+              response->printf_P(labelForPrintfFormatString, string_enableInfoTab, PSTR("Info tab"));
+              response->printf_P(selectPrintfFormatString, string_enableInfoTab, string_enableInfoTab);
               response->print(selectValueTrue);response->print(enableInfoTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(enableInfoTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -2813,8 +2692,8 @@
               response->print(endRow);
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"enableGpsTab\">GPS tab</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"enableGpsTab\" name=\"enableGpsTab\">"));
+              response->printf_P(labelForPrintfFormatString, string_enableGpsTab, PSTR("GPS tab"));
+              response->printf_P(selectPrintfFormatString, string_enableGpsTab, string_enableGpsTab);
               response->print(selectValueTrue);response->print(enableGpsTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(enableGpsTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -2822,8 +2701,8 @@
               response->print(endRow);
               response->print(startRow);
               response->print(startTwelveColumns);
-              response->print(F("<label for=\"enableSettingsTab\">Settings tab</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"enableSettingsTab\" name=\"enableSettingsTab\">"));
+              response->printf_P(labelForPrintfFormatString, string_enableSettingsTab, PSTR("Settings tab"));
+              response->printf_P(selectPrintfFormatString, string_enableSettingsTab, string_enableSettingsTab);
               response->print(selectValueTrue);response->print(enableSettingsTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(enableSettingsTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -2878,9 +2757,9 @@
             #endif
             //Read the submitted configuration
             bool lvglConfigurationChanged = false;
-            if(request->hasParam("enableHomeTab", true))
+            if(request->hasParam(string_enableHomeTab, true))
             {
-              if(request->getParam("enableHomeTab", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              if(request->getParam(string_enableHomeTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
               {
                 if(enableHomeTab == false)
                 {
@@ -2897,9 +2776,9 @@
                 }
               }
             }
-            if(request->hasParam("enableInfoTab", true))
+            if(request->hasParam(string_enableInfoTab, true))
             {
-              if(request->getParam("enableInfoTab", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              if(request->getParam(string_enableInfoTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
               {
                 if(enableInfoTab == false)
                 {
@@ -2916,9 +2795,9 @@
                 }
               }
             }
-            if(request->hasParam("enableGpsTab", true))
+            if(request->hasParam(string_enableGpsTab, true))
             {
-              if(request->getParam("enableGpsTab", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              if(request->getParam(string_enableGpsTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
               {
                 if(enableGpsTab == false)
                 {
@@ -2935,9 +2814,9 @@
                 }
               }
             }
-            if(request->hasParam("enableSettingsTab", true))
+            if(request->hasParam(string_enableSettingsTab, true))
             {
-              if(request->getParam("enableSettingsTab", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              if(request->getParam(string_enableSettingsTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
               {
                 if(enableSettingsTab == false)
                 {
@@ -3253,11 +3132,9 @@
               response->printf_P(h2printfFormatString, PSTR("GPS configuration"));
               #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
                 response->print(startRow);
-                response->print(startSixColumns);
-                response->print(F("Switch off GPS when stationary after"));
-                response->print(endColumn);
-                response->print(startSixColumns);
-                response->print(F("<select class=\"u-full-width\" id=\"gpsStationaryTimeout\" name=\"gpsStationaryTimeout\">"));
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_gpsStationaryTimeout, PSTR("Switch off GPS when stationary after"));
+                response->printf_P(selectPrintfFormatString, string_gpsStationaryTimeout, string_gpsStationaryTimeout);
                 response->print(F("<option value=\"0\""));response->print(gpsStationaryTimeout == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Never</option>"));
                 response->print(F("<option value=\"60000\""));response->print(gpsStationaryTimeout == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("1m</option>"));
                 response->print(F("<option value=\"90000\""));response->print(gpsStationaryTimeout == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
@@ -3269,11 +3146,9 @@
                 response->print(endColumn);
                 response->print(endRow);
                 response->print(startRow);
-                response->print(startSixColumns);
-                response->print(F("Check for movement after"));
-                response->print(endColumn);
-                response->print(startSixColumns);
-                response->print(F("<select class=\"u-full-width\" id=\"gpsCheckInterval\" name=\"gpsCheckInterval\">"));
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_gpsCheckInterval, PSTR("Check for movement after"));
+                response->printf_P(selectPrintfFormatString, string_gpsCheckInterval, string_gpsCheckInterval);
                 response->print(F("<option value=\"0\""));response->print(gpsCheckInterval == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Never (dangerous)</option>"));
                 response->print(F("<option value=\"180000\""));response->print(gpsCheckInterval == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
                 response->print(F("<option value=\"120000\""));response->print(gpsCheckInterval == 300000 ? selectValueSelected:selectValueNotSelected);response->print(F("5m</option>"));
@@ -3285,11 +3160,9 @@
                 response->print(endRow);
               #endif
               response->print(startRow);
-              response->print(startSixColumns);
-              response->print(F("Sync time with GPS"));
-              response->print(endColumn);
-              response->print(startSixColumns);
-              response->print(F("<select class=\"u-full-width\" id=\"useGpsForTimeSync\" name=\"useGpsForTimeSync\">"));
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_useGpsForTimeSync, PSTR("Sync time with GPS"));
+              response->printf_P(selectPrintfFormatString, string_useGpsForTimeSync, string_useGpsForTimeSync);
               response->print(selectValueTrue);response->print(useGpsForTimeSync == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(useGpsForTimeSync == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3344,9 +3217,9 @@
               #endif
               //Read the submitted configuration
               bool gpsConfigurationChanged = false;
-              if(request->hasParam("useGpsForTimeSync", true))
+              if(request->hasParam(string_useGpsForTimeSync, true))
               {
-                if(request->getParam("useGpsForTimeSync", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_useGpsForTimeSync, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   if(useGpsForTimeSync != true)
                   {
@@ -3378,11 +3251,11 @@
                     gpsConfigurationChanged = true;
                   }
                 }
-                if(request->hasParam("gpsCheckInterval", true))
+                if(request->hasParam(string_gpsCheckInterval, true))
                 {
-                  if(gpsCheckInterval != request->getParam("gpsCheckInterval", true)->value().toInt())
+                  if(gpsCheckInterval != request->getParam(string_gpsCheckInterval, true)->value().toInt())
                   {
-                    gpsCheckInterval = request->getParam("gpsCheckInterval", true)->value().toInt();
+                    gpsCheckInterval = request->getParam(string_gpsCheckInterval, true)->value().toInt();
                     localLog(F("gpsCheckInterval: "));
                     localLogLn(gpsCheckInterval);
                     gpsConfigurationChanged = true;
@@ -3648,19 +3521,19 @@
               //Starting hits
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"numberOfStartingHits\">Starting hits</label>"));
+              response->printf_P(labelForPrintfFormatString, string_numberOfStartingHits, PSTR("Starting hits"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingHits\" name=\"numberOfStartingHits\">"), device[0].numberOfStartingHits);
               response->print(endColumn);
               response->print(endRow);
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(("<label for=\"numberOfStartingStunHits\">Starting stun hits</label>"));
+              response->printf_P(labelForPrintfFormatString, string_numberOfStartingStunHits, PSTR("Starting stun hits"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingStunHits\" name=\"numberOfStartingStunHits\">"), device[0].numberOfStartingStunHits);
               response->print(endColumn);
               response->print(endRow);
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"armourValue\">Armour value</label>"));
+              response->printf_P(labelForPrintfFormatString, string_armourValue, PSTR("Armour value"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"99\" step=\"1\" value=\"%u\" id=\"armourValue\" name=\"armourValue\">"), armourValue);
               response->print(endColumn);
               response->print(endRow);
@@ -3669,8 +3542,8 @@
               //Require EP
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"EP_flag\">Require EP to hit</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"EP_flag\" name=\"EP_flag\">"));
+              response->printf_P(labelForPrintfFormatString, string_EP_flag, PSTR("Require EP to hit"));
+              response->printf_P(selectPrintfFormatString, string_EP_flag, string_EP_flag);
               response->print(selectValueTrue);response->print(EP_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(EP_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3679,8 +3552,8 @@
               //Ignore healing
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"ig_healing_flag\">Ignore healing</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"ig_healing_flag\" name=\"ig_healing_flag\">"));
+              response->printf_P(labelForPrintfFormatString, string_ig_healing_flag, PSTR("Ignore healing"));
+              response->printf_P(selectPrintfFormatString, string_ig_healing_flag, string_ig_healing_flag);
               response->print(selectValueTrue);response->print(ig_healing_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ig_healing_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3689,8 +3562,8 @@
               //Ignore stun
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"ig_stun_flag\">Ignore stun</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"ig_stun_flag\" name=\"ig_stun_flag\">"));
+              response->printf_P(labelForPrintfFormatString, string_ig_stun_flag, PSTR("Ignore stun"));
+              response->printf_P(selectPrintfFormatString, string_ig_stun_flag, string_ig_stun_flag);
               response->print(selectValueTrue);response->print(ig_stun_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ig_stun_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3699,8 +3572,8 @@
               //Ignore ongoing
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"ig_ongoing_flag\">Ignore ongoing</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"ig_ongoing_flag\" name=\"ig_ongoing_flag\">"));
+              response->printf_P(labelForPrintfFormatString, string_ig_ongoing_flag, PSTR("Ignore ongoing"));
+              response->printf_P(selectPrintfFormatString, string_ig_ongoing_flag, string_ig_ongoing_flag);
               response->print(selectValueTrue);response->print(ig_ongoing_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ig_ongoing_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3709,8 +3582,8 @@
               //Regen while zero
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"regen_while_zero\">Regen while zero</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"regen_while_zero\" name=\"regen_while_zero\">"));
+              response->printf_P(labelForPrintfFormatString, string_regen_while_zero, PSTR("Regen while zero"));
+              response->printf_P(selectPrintfFormatString, string_regen_while_zero, string_regen_while_zero);
               response->print(selectValueTrue);response->print(regen_while_zero == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(regen_while_zero == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3719,8 +3592,8 @@
               //Treat damage as one
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"treat_as_one\">Treat damage as one hit</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"treat_as_one\" name=\"treat_as_one\">"));
+              response->printf_P(labelForPrintfFormatString, string_treat_as_one, PSTR("Treat damage as one hit"));
+              response->printf_P(selectPrintfFormatString, string_treat_as_one, string_treat_as_one);
               response->print(selectValueTrue);response->print(treat_as_one == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(treat_as_one == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3729,8 +3602,8 @@
               //Treat stun damage as one
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"treat_stun_as_one\">Treat stun as one hit</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"treat_stun_as_one\" name=\"treat_stun_as_one\">"));
+              response->printf_P(labelForPrintfFormatString, string_treat_stun_as_one, PSTR("Treat stun as one hit"));
+              response->printf_P(selectPrintfFormatString, string_treat_stun_as_one, string_treat_stun_as_one);
               response->print(selectValueTrue);response->print(treat_stun_as_one == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(treat_stun_as_one == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3739,8 +3612,8 @@
               //Ongoing is cumulative
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"ongoing_is_cumulative\">Ongoing is cumulative</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"ongoing_is_cumulative\" name=\"ongoing_is_cumulative\">"));
+              response->printf_P(labelForPrintfFormatString, string_ongoing_is_cumulative, PSTR("Ongoing is cumulative"));
+              response->printf_P(selectPrintfFormatString, string_ongoing_is_cumulative, string_ongoing_is_cumulative);
               response->print(selectValueTrue);response->print(ongoing_is_cumulative == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ongoing_is_cumulative == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3749,8 +3622,8 @@
               //Ignore non-DOT
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"ig_non_dot\">Ignore non-DOT signals</label>"));
-              response->print(F("<select class=\"u-full-width\" id=\"ig_non_dot\" name=\"ig_non_dot\">"));
+              response->printf_P(labelForPrintfFormatString, string_ig_non_dot, PSTR("Ignore non-DOT signals"));
+              response->printf_P(selectPrintfFormatString, string_ig_non_dot, string_ig_non_dot);
               response->print(selectValueTrue);response->print(ig_non_dot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ig_non_dot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -4539,19 +4412,19 @@
               //Starting hits
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"gameLength\">Game length/win threshold</label>"));
+              response->printf_P(labelForPrintfFormatString, string_gameLength, PSTR("Game length/win threshold"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"gameLength\" name=\"gameLength\">"), gameLength);
               response->print(endColumn);
               response->print(endRow);
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"gameRetries\">Game retries</label>"));
+              response->printf_P(labelForPrintfFormatString, string_gameRetries, PSTR("Game retries"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"99\" step=\"1\" value=\"%u\" id=\"gameRetries\" name=\"gameRetries\">"), gameRetries);
               response->print(endColumn);
               response->print(endRow);
               response->print(startRow);
               response->print(startSixColumns);
-              response->print(F("<label for=\"gameSpeedup\">Game speedup(ms)</label>"));
+              response->printf_P(labelForPrintfFormatString, string_gameSpeedup, PSTR("Game speedup(ms)"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"100\" max=\"2000\" step=\"1\" value=\"%u\" id=\"gameSpeedup\" name=\"gameSpeedup\">"), gameSpeedup);
               response->print(endColumn);
               response->print(endRow);
@@ -4604,17 +4477,17 @@
               }
             #endif
             //Read the submitted configuration
-            if(request->hasParam("gameLength", true))
+            if(request->hasParam(string_gameLength, true))
             {
-              gameLength = request->getParam("gameLength", true)->value().toInt();
+              gameLength = request->getParam(string_gameLength, true)->value().toInt();
             }
-            if(request->hasParam("gameRetries", true))
+            if(request->hasParam(string_gameRetries, true))
             {
-              gameRetries = request->getParam("gameRetries", true)->value().toInt();
+              gameRetries = request->getParam(string_gameRetries, true)->value().toInt();
             }
-            if(request->hasParam("gameSpeedup", true))
+            if(request->hasParam(string_gameSpeedup, true))
             {
-              gameSpeedup = request->getParam("gameSpeedup", true)->value().toInt();
+              gameSpeedup = request->getParam(string_gameSpeedup, true)->value().toInt();
             }
             if(configurationChanged())
             {
