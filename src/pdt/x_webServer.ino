@@ -4304,7 +4304,7 @@
               #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>--</td><td>--</td><td>----</td><td>This device"),
               #elif defined(SUPPORT_TREACLE)
-                response->printf_P(PSTR("<tr><td>%s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>%.1f</td><td>----</td><td></td><td></td><td>This device"),
+                response->printf_P(PSTR("<tr><td>%s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>--</td><td>--</td><td>%s</td><td>----</td><td></td><td></td><td>This device"),
               #endif
               (device[index].name == nullptr) ? "n/a" : device[index].name,
               #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
@@ -4319,7 +4319,7 @@
               (device[index].hasGpsFix == true) ? PSTR("Yes") : PSTR("No"),
               device[index].latitude,
               device[index].longitude,
-              device[index].speed
+              ((device[index].moving == true) ? String(device[index].smoothedSpeed).c_str() : PSTR("Stationary"))
               );
             }
               #if defined(ACT_AS_TRACKER)

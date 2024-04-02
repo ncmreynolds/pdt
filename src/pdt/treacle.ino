@@ -522,6 +522,25 @@
             findableDevicesChanged = true;
           #endif
         }
+        if(storeReceivedIcName == true || storeReceivedIcDescription == true)
+        {
+          localLog(F("Device ID: "));
+          localLogLn(device[deviceIndex].id);
+          if(device[deviceIndex].icName != nullptr)
+          {
+            localLog(F("Device IC name: "));
+            localLogLn(device[deviceIndex].icName);
+          }
+          if(device[deviceIndex].icDescription != nullptr)
+          {
+            localLog(F("Device IC description: "));
+            localLogLn(device[deviceIndex].icDescription);
+          }
+          localLog(F("Device IC diameter: "));
+          localLog(device[deviceIndex].diameter);
+          localLog(F(" device IC height: "));
+          localLogLn(device[deviceIndex].height);
+        }
         #if defined(SERIAL_DEBUG) && defined(DEBUG_TREACLE)
           if(waitForBufferSpace(60))
           {

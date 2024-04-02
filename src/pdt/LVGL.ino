@@ -28,6 +28,7 @@
     disp_drv.flush_cb = flushDisplay; //Assign callback to update the display itself
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register( &disp_drv );
+    localLogLn(F("OK"));
 
     #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
       if(touchscreenInitialised == true)
@@ -42,7 +43,6 @@
     #endif
   
     //Create the tabs
-    localLogLn(F("OK"));
     createLVGLtabs();
   }
   void createLVGLtabs(void)
