@@ -57,11 +57,9 @@
   #define DEBUG_BEEPER
   #define USE_SSD1331
   #define SUPPORT_GPS
-  //#define DEBUG_GPS
-  //#define SUPPORT_ESPNOW
-  //#define SUPPORT_LORA
-  //#define DEBUG_LORA
   #define SUPPORT_WIFI
+  #define SUPPORT_TREACLE
+  //#define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3PDTasBeacon
@@ -82,9 +80,8 @@
   #define SUPPORT_GPS
   #define DEBUG_GPS
   #define SUPPORT_WIFI
-  //#define SUPPORT_ESPNOW
-  //#define SUPPORT_LORA
-  //#define DEBUG_LORA
+  #define SUPPORT_TREACLE
+  //#define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
   //#define SUPPORT_HACKING
   #define ENABLE_LOCAL_WEBSERVER
@@ -93,10 +90,6 @@
   #define SUPPORT_GPS
   #define DEBUG_GPS
   #define SUPPORT_WIFI
-  //#define SUPPORT_ESPNOW
-  //#define DEBUG_ESPNOW
-  //#define SUPPORT_LORA
-  //#define DEBUG_LORA
   #define SUPPORT_TREACLE
   //#define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
@@ -110,10 +103,6 @@
   #define SUPPORT_LED
   #define SUPPORT_GPS
   #define DEBUG_GPS
-  //#define SUPPORT_ESPNOW
-  //#define DEBUG_ESPNOW
-  //#define SUPPORT_LORA
-  //#define DEBUG_LORA
   #define SUPPORT_TREACLE
   #define DEBUG_TREACLE
   //#define SUPPORT_BATTERY_METER
@@ -138,6 +127,7 @@
   #define LVGL_SUPPORT_HOME_TAB
   #define LVGL_SUPPORT_GPS_TAB
   #define LVGL_SUPPORT_SCAN_INFO_TAB
+  #define LVGL_SUPPORT_MAP_TAB
   #define LVGL_SUPPORT_SETTINGS_TAB
   #define SUPPORT_TOUCHSCREEN
   #define SUPPORT_TOUCHSCREEN_BITBANG //Use bitbang code
@@ -325,7 +315,6 @@
   #define ENABLE_LOCAL_WEBSERVER_SEMAPHORE
   #define SERVE_CONFIG_FILE
   #define DEBUG_LOCAL_WEBSERVER
-  //#define DEBUG_FORM_SUBMISSION
   #define ENABLE_REMOTE_RESTART
   #define ENABLE_LOG_DELETION
   //#define ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE
@@ -919,7 +908,7 @@ static const uint16_t loggingYieldTime = 100;
     #endif
     char* name = nullptr;
     bool hasGpsFix = false;
-    uint8_t typeOfDevice = 0; // bitmask 0 = beacon, 1 = tracker, 2 = sensor, 4 = emitter, 8 = FTM beacon
+    uint8_t typeOfDevice = 0; // bitmask 0x00 = beacon, 0x01 = tracker, 0x02 = sensor, 0x04 = emitter, 0x08 = FTM beacon, 0x80 = mostly stationary
     float supplyVoltage = 0;  // Battery health can be guesstimated from this
     uint32_t uptime = 0;  // Check for reboots
     uint8_t majorVersion = 0; //Software version
@@ -967,7 +956,12 @@ static const uint16_t loggingYieldTime = 100;
   const char string_configurationComment[] PROGMEM = "configurationComment";
   static const uint8_t maximumNumberOfDevices = 16;
   deviceInfo device[maximumNumberOfDevices];
-  uint8_t stationaryThreshold = 0.25;
+  float movementThreshold = 0.2;
+  const char string_movementThreshold[] PROGMEM = "movementThreshold";
+  float smoothingFactor = 0.75;
+  const char string_smoothingFactor[] PROGMEM = "smoothingFactor";
+  bool deviceUsuallyStatic = false;
+  const char string_deviceUsuallyStatic[] PROGMEM = "deviceUsuallyStatic";
   uint8_t numberOfDevices = 0;
   double effectivelyUnreachable = 1E10;
   #if defined(ACT_AS_TRACKER)
@@ -978,7 +972,7 @@ static const uint16_t loggingYieldTime = 100;
   const char string_trackingSensitivity[] PROGMEM = "trackingSensitivity";
   uint16_t sensitivityValues[4] = {0x0FFF, 0x00FF, 0x000F, 0x0007};
   #if defined(ACT_AS_TRACKER)
-    double maximumEffectiveRange = 250;
+    uint32_t maximumEffectiveRange = 250;
     const char string_maximumEffectiveRange[] PROGMEM = "maximumEffectiveRange";
     uint8_t trackerPriority = 0;
     const char string_trackerPriority[] PROGMEM = "trackerPriority";
@@ -1172,6 +1166,13 @@ static const uint16_t loggingYieldTime = 100;
     uint8_t numberOfDevicesInDeviceDropdown = 0;
     uint8_t selectDeviceDropdownIndices[maximumNumberOfDevices];
     bool findableDevicesChanged = true;
+  #endif
+  #if defined(LVGL_SUPPORT_MAP_TAB)
+    bool enableMapTab = true;
+    const char string_enableMapTab[] PROGMEM = "enableMapTab";
+    static const char mapTabLabel[] = "Map";
+    lv_obj_t * mapTab = nullptr;
+    uint32_t lastMapTabUpdate = 0;
   #endif
   //Settings/preferences tab
   #if defined(LVGL_SUPPORT_SETTINGS_TAB)

@@ -209,37 +209,32 @@
         }
         gpsSentences = gps.passedChecksum();
         gpsErrors = gps.failedChecksum();
-        #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
-          if(peripheralsEnabled == true)
+        if(device[0].hdop < normalHdopThreshold)
+        {
+          device[0].smoothedSpeed = (device[0].smoothedSpeed * smoothingFactor) + (device[0].speed * (1-smoothingFactor));
+          if(device[0].smoothedSpeed < movementThreshold)
           {
-            if(device[0].hdop < normalHdopThreshold)
+            if(device[0].moving == true)
             {
-              device[0].smoothedSpeed = (device[0].smoothedSpeed * 0.75) + (device[0].speed *0.25);
-              if(device[0].smoothedSpeed < stationaryThreshold)
-              {
-                if(device[0].moving == true)
-                {
-                  device[0].moving = false;
-                  lastGPSstateChange = millis();
-                  #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-                    SERIAL_DEBUG_PORT.println(F("Device stationary"));
-                  #endif
-                }
-              }
-              else
-              {
-                if(device[0].moving == false)
-                {
-                  device[0].moving = true;
-                  lastGPSstateChange = millis();
-                  #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-                    SERIAL_DEBUG_PORT.println(F("Device moving"));
-                  #endif
-                }
-              }
+              device[0].moving = false;
+              lastGPSstateChange = millis();
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+                SERIAL_DEBUG_PORT.println(F("Device stationary"));
+              #endif
             }
           }
-        #endif
+          else
+          {
+            if(device[0].moving == false)
+            {
+              device[0].moving = true;
+              lastGPSstateChange = millis();
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+                SERIAL_DEBUG_PORT.println(F("Device moving"));
+              #endif
+            }
+          }
+        }
         return updateOccured;
       }
       else if(device[0].hasGpsFix == true)

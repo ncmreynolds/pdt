@@ -11,7 +11,7 @@
     if(loRaEnabled == true)
     {
       treacle.setLoRaPins(loRaCsPin, loRaResetPin);         //Set the LoRa reset and CS pins, assuming other default SPI pins
-      treacle.setLoRaFrequency(loRaFrequency);              //Set the LoRa frequency. Valid value are 433/868/915Mhz depending on region
+      treacle.setLoRaFrequency(loRaFrequency);              //Set the LoRa frequency. Valid value are 433/868/915MHz depending on region
       treacle.setLoRaTxPower(loRaTxPower);                  //Supported values are 2-20
       treacle.setLoRaRxGain(loRaRxGain);                    //Supported values are 0-6
       treacle.setLoRaSpreadingFactor(loRaSpreadingFactor);  //Supported values are 7-12
@@ -317,8 +317,8 @@
         unpacker.unpack(device[deviceIndex].hdop);
         if(device[deviceIndex].hdop < normalHdopThreshold)
         {
-          device[deviceIndex].smoothedSpeed = (device[deviceIndex].smoothedSpeed * 0.75) + (device[deviceIndex].speed *0.25);
-          if(device[deviceIndex].smoothedSpeed < stationaryThreshold)
+          device[deviceIndex].smoothedSpeed = (device[deviceIndex].smoothedSpeed * smoothingFactor) + (device[deviceIndex].speed * (1-smoothingFactor));
+          if(device[deviceIndex].smoothedSpeed < movementThreshold)
           {
             if(device[deviceIndex].moving == true)
             {

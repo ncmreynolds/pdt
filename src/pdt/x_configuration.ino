@@ -17,6 +17,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   localLog(F("\": "));
   DynamicJsonDocument configuration(2048);
   configuration[string_deviceName] = device[0].name;
+  configuration[string_deviceUsuallyStatic] = deviceUsuallyStatic;
   configuration[string_configurationComment] = configurationComment;
   #if defined(SUPPORT_WIFI)
     configuration[string_SSID] = SSID;
@@ -50,8 +51,10 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   configuration[string_timeZone] = timeZone;
   #if defined(SUPPORT_GPS)
     configuration[string_useGpsForTimeSync] = useGpsForTimeSync;
+    configuration[string_movementThreshold] = movementThreshold;
+    configuration[string_smoothingFactor] = smoothingFactor;
     #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
-      configuration[string_useGpsForTimeSync] = gpsStationaryTimeout;
+      configuration[string_gpsStationaryTimeout] = gpsStationaryTimeout;
       configuration[string_gpsCheckInterval] = gpsCheckInterval;
     #endif
   #endif
@@ -74,12 +77,11 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration[string_maximumEffectiveRange] = maximumEffectiveRange;
     configuration[string_trackingSensitivity] = trackingSensitivity;
     configuration[string_trackerPriority] = trackerPriority;
-  #elif defined(ACT_AS_BEACON)
-    configuration[string_icName] = device[0].icName;
-    configuration[string_icDescription] = device[0].icDescription;
-    configuration[string_diameter] = device[0].diameter;
-    configuration[string_diameter] = device[0].height;
   #endif
+  configuration[string_icName] = device[0].icName;
+  configuration[string_icDescription] = device[0].icDescription;
+  configuration[string_diameter] = device[0].diameter;
+  configuration[string_diameter] = device[0].height;
   #if defined(SUPPORT_ESPNOW)
     configuration[string_espNowEnabled] = espNowEnabled;
     configuration["espNowPreferredChannel"] = espNowPreferredChannel;
@@ -135,6 +137,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration[string_maximumBrightnessLevel] = maximumBrightnessLevel;
     configuration[string_screenRotation] = screenRotation;
     configuration[string_enableHomeTab] = enableHomeTab;
+    configuration[string_enableMapTab] = enableMapTab;
     configuration[string_enableInfoTab] = enableInfoTab;
     configuration[string_enableGpsTab] = enableGpsTab;
     configuration[string_enableSettingsTab] = enableSettingsTab;
@@ -198,11 +201,6 @@ void backupConfiguration(const char* filename)  //Keeps backups of the configura
   }
 }
 
-bool configurationChanged() //Compares the current configuration with the previously loaded values
-{
-  return true;
-}
-
 bool loadConfiguration(const char* filename)  //Loads configuration from the default file
 {
   localLog(F("Loading configuration from \""));
@@ -226,8 +224,10 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     //Simple values
     #if defined(SUPPORT_GPS)
       useGpsForTimeSync = configuration[string_useGpsForTimeSync] | true;
+      movementThreshold = configuration[string_movementThreshold] | 0.5;
+      smoothingFactor = configuration[string_smoothingFactor] | 0.75;
       #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
-        gpsStationaryTimeout = configuration[string_useGpsForTimeSync"] | 300E6;
+        gpsStationaryTimeout = configuration[string_gpsStationaryTimeout] | 300E6;
         gpsCheckInterval = configuration[string_gpsCheckInterval] | 300E6;
       #endif
     #endif
@@ -235,20 +235,19 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       maximumEffectiveRange = configuration[string_maximumEffectiveRange] | 99;
       trackingSensitivity = configuration[string_trackingSensitivity] | 1;
       trackerPriority = configuration[string_trackerPriority];
-    #elif defined(ACT_AS_BEACON)
-      if(configuration[string_icName])
-      {
-        device[0].icName = new char[strlen(configuration[string_icName]) + 1];
-        strlcpy(device[0].icName,configuration[string_icName],strlen(configuration[string_icName]) + 1);
-      }
-      if(configuration[string_icDescription])
-      {
-        device[0].icDescription = new char[strlen(configuration[string_icDescription]) + 1];
-        strlcpy(device[0].icDescription,configuration[string_icDescription],strlen(configuration[string_icDescription]) + 1);
-      }
-      device[0].diameter = configuration[string_diameter] | 1;
-      device[0].height = configuration[string_height] | 2;
     #endif
+    if(configuration[string_icName])
+    {
+      device[0].icName = new char[strlen(configuration[string_icName]) + 1];
+      strlcpy(device[0].icName,configuration[string_icName],strlen(configuration[string_icName]) + 1);
+    }
+    if(configuration[string_icDescription])
+    {
+      device[0].icDescription = new char[strlen(configuration[string_icDescription]) + 1];
+      strlcpy(device[0].icDescription,configuration[string_icDescription],strlen(configuration[string_icDescription]) + 1);
+    }
+    device[0].diameter = configuration[string_diameter] | 1;
+    device[0].height = configuration[string_height] | 2;
     #if defined(SUPPORT_FTM)
       ftmEnabled = configuration["ftmEnabled"] | true;
       if(configuration["ftmSSID"])
@@ -336,6 +335,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
       #endif
     }
+    deviceUsuallyStatic = configuration[string_deviceUsuallyStatic] | false;
     if(configuration[string_configurationComment])
     {
       configurationComment = new char[strlen(configuration[string_configurationComment]) + 1];
@@ -470,6 +470,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       maximumBrightnessLevel = configuration[string_maximumBrightnessLevel] | absoluteMaximumBrightnessLevel;
       screenRotation = configuration[string_screenRotation];
       enableHomeTab = configuration[string_enableHomeTab] | true;
+      enableMapTab = configuration[string_enableMapTab] | true;
       enableInfoTab = configuration[string_enableInfoTab] | true;
       enableGpsTab = configuration[string_enableGpsTab] | true;
       enableSettingsTab = configuration[string_enableSettingsTab] | true;
@@ -540,6 +541,7 @@ void printConfiguration()
   {
     localLogLn(F(string_ltNoneGt));
   }
+  localLog(string_deviceUsuallyStatic); localLog(string_colonSpace); localLog(deviceUsuallyStatic);
   localLog(string_configurationComment); localLog(string_colonSpace);
   if(configurationComment != nullptr)
   {
@@ -684,6 +686,8 @@ void printConfiguration()
     {
       localLogLn(string_disabled);
     }
+    localLog(string_movementThreshold); localLog(string_colonSpace); localLogLn(movementThreshold);
+    localLog(string_smoothingFactor); localLog(string_colonSpace); localLogLn(smoothingFactor);
     #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
       localLog(string_useGpsForTimeSync); localLog(string_colonSpace); localLogLn(gpsStationaryTimeout);
       localLog(string_gpsCheckInterval); localLog(string_colonSpace); localLogLn(gpsCheckInterval);
@@ -693,12 +697,11 @@ void printConfiguration()
     localLog(string_maximumEffectiveRange); localLog(string_colonSpace); localLogLn(maximumEffectiveRange);
     localLog(string_trackingSensitivity); localLog(string_colonSpace); localLogLn(sensitivityValues[trackingSensitivity]);
     localLog(string_trackerPriority); localLog(string_colonSpace); localLogLn(trackerPriority);
-  #elif defined(ACT_AS_BEACON)
-    localLog(string_icName); localLog(string_colonSpace); localLogLn(device[0].icName);
-    localLog(string_icDescription); localLog(string_colonSpace); localLogLn(device[0].icDescription);
-    localLog(string_diameter); localLog(string_colonSpace); localLogLn(device[0].diameter);
-    localLog(string_height); localLog(string_colonSpace); localLogLn(device[0].height);
   #endif
+  localLog(string_icName); localLog(string_colonSpace); localLogLn(device[0].icName);
+  localLog(string_icDescription); localLog(string_colonSpace); localLogLn(device[0].icDescription);
+  localLog(string_diameter); localLog(string_colonSpace); localLogLn(device[0].diameter);
+  localLog(string_height); localLog(string_colonSpace); localLogLn(device[0].height);
   #if defined(SUPPORT_FTM)
     localLog(string_ftmEnabled); localLog(string_colonSpace); localLogLn(ftmEnabled);
     if(ftmSSID != nullptr)
@@ -781,6 +784,7 @@ void printConfiguration()
     localLog(string_maximumBrightnessLevel); localLog(string_colonSpace); localLogLn(maximumBrightnessLevel);
     localLog(string_screenRotation); localLog(string_colonSpace); localLogLn(screenRotation);
     localLog(string_enableHomeTab); localLog(string_colonSpace); localLogLn(enableHomeTab);
+    localLog(string_enableMapTab); localLog(string_colonSpace); localLogLn(enableMapTab);
     localLog(string_enableInfoTab); localLog(string_colonSpace); localLogLn(enableInfoTab);
     localLog(string_enableGpsTab); localLog(string_colonSpace); localLogLn(enableGpsTab);
     localLog(string_enableSettingsTab); localLog(string_colonSpace); localLogLn(enableSettingsTab);
@@ -813,17 +817,21 @@ String deviceFeatures(uint8_t featureFlags)
   {
     features = "Tracker";
   }
-  if((featureFlags & 0x02) == 2)
+  if((featureFlags & 0x02) == 0x02)
   {
     features += " Lasertag sensor";
   }
-  if((featureFlags & 0x04) == 4)
+  if((featureFlags & 0x04) == 0x04)
   {
     features += " Lasertag emitter";
   }
-  if((featureFlags & 0x08) == 8)
+  if((featureFlags & 0x08) == 0x08)
   {
     features += " Time-of-flight beacon";
+  }
+  if((featureFlags & 0x80) == 0x80)
+  {
+    features += " Usually static";
   }
   return features;
 }

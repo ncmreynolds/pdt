@@ -5,27 +5,32 @@
  */
 #if defined(ENABLE_LOCAL_WEBSERVER)
   const char h2printfFormatString[] PROGMEM =                 "<div class=\"row\"><div class=\"twelve columns\"><h2>%s</h2></div></div>";
+  const char h2printfEightColumnsFormatString[] PROGMEM =     "<div class=\"row\"><div class=\"eight columns\"><h2>%s</h2></div>";
   const char h3printfFormatString[] PROGMEM =                 "<div class=\"row\"><div class=\"twelve columns\"><h3>%s</h3></div></div>";
+  const char hr[] PROGMEM =                                   "<hr style=\"width:100%;text-align:left;margin-left:0\">";
   const char startRow[] PROGMEM =                             "<div class=\"row\">";
-  const char ulStart[] PROGMEM =                              "<div class=\"row\"><div class=\"twelve columns\"><ul>";
-  const char ulEnd[] PROGMEM =                                "</ul></div></div>";
+  const char ulStart[] PROGMEM =                              "<div class=\"row\"><div class=\"eight columns\"><ul>";
+  const char ulEnd[] PROGMEM =                                "</ul></div>";
+  const char ulEndRow[] PROGMEM =                             "</ul></div></div>";
   const char liIntegerPrintfFormatString[] PROGMEM =          "<li>%s: <b>%u</b></li>";
   const char liIntegerWithUnitsPrintfFormatString[] PROGMEM = "<li>%s: <b>%u%s</b></li>";
-  const char liFloatPrintfFormatString[] PROGMEM =            "<li>%s: <b>%.1f</b></li>";
-  const char liFloatWithUnitsPrintfFormatString[] PROGMEM =   "<li>%s: <b>%.1f%s</b></li>";
+  const char liFloatPrintfFormatString[] PROGMEM =            "<li>%s: <b>%.2f</b></li>";
+  const char liFloatWithUnitsPrintfFormatString[] PROGMEM =   "<li>%s: <b>%.2f%s</b></li>";
   const char liStringPrintfFormatString[] PROGMEM =           "<li>%s: <b>%s</b></li>";
   const char formStart[] PROGMEM =                            "<form method=\"POST\">";
   const char formEnd[] PROGMEM =                              "</form>";
   const char labelForPrintfFormatString[] PROGMEM =           "<label for=\"%s\">%s</label>";
   const char selectPrintfFormatString[] PROGMEM =             "<select class=\"u-full-width\" id=\"%s\" name=\"%s\">";
   const char inputTextPrintfFormatString[] PROGMEM =          "<input class=\"u-full-width\" type=\"text\" id=\"%s\" name=\"%s\" value=\"%s\">";
+  const char inputPasswordPrintfFormatString[] PROGMEM =      "<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"%s\" name=\"%s\">";
   const char inputNumberPrintfFormatString[] PROGMEM =        "<input class=\"u-full-width\" type=\"number\" id=\"%s\" name=\"%s\" value=\"%u\">";
   const char string_empty[] PROGMEM =                         "";
   const char divEnd[] PROGMEM =                               "</div>";
   const char* endRow = divEnd;
-  const char buttonPrintfFormatString[] PROGMEM =             "<a href =\"/%s\"><input class=\"button-primary\" type=\"button\" value=\"%s\" style=\"width: 100%;\"></a>";
-  const char saveButton[] PROGMEM =                           "<input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\">";
+  const char buttonPrintfFormatString[] PROGMEM =             "<a href =\"/%s\"><input class=\"button-primary\" type=\"button\" value=\"%s\"></a>";
+  const char saveButton[] PROGMEM =                           "<input class=\"button-primary\" type=\"submit\" value=\"Save\">";
   const char startTwelveColumns[] PROGMEM =                   "<div class=\"twelve columns\">";
+  const char startEightColumns[] PROGMEM =                    "<div class=\"eight columns\">";
   const char startSixColumns[] PROGMEM =                      "<div class=\"six columns\">";
   const char startFourColumns[] PROGMEM =                     "<div class=\"four columns\">";
   const char startThreeColumns[] PROGMEM =                    "<div class=\"three columns\">";
@@ -40,6 +45,8 @@
   const char labelNotSet[] PROGMEM =                          "Not set";
   const char labelOn[] PROGMEM =                              "On";
   const char labelOff[] PROGMEM =                             "Off";
+  const char labelConfigure[] PROGMEM =                       "Configure";
+  const char labelBack[] PROGMEM =                            "Back";
 
   void addPageHeader(AsyncResponseStream *response, uint8_t refresh, const char* refreshTo)
   {
@@ -70,7 +77,8 @@
     response->print(F("</head><body><div class=\"container\">"));
     if(device[0].name != nullptr)
     {
-      response->printf_P(PSTR("<h1>%s</h1><hr>"),device[0].name);
+      response->printf_P(PSTR("<h1>%s</h1>"),device[0].name);
+      response->print(hr);
     }
   }
   void addPageFooter(AsyncResponseStream *response)
@@ -131,9 +139,13 @@
               response->printf_P(buttonPrintfFormatString, PSTR("update"), PSTR("Software Update"));
               response->print(endColumn);
             #endif
-            response->print(divEnd);
+            response->print(endRow);
             //Status information
-            response->printf_P(h2printfFormatString, PSTR("General"));
+            response->print(hr);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Hardware"));
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("hardware"), labelConfigure);
+            response->print(endColumn);
             response->print(ulStart);
             #if defined(ACT_AS_TRACKER)
               response->printf_P(PSTR("<li>PDT tracker firmware: <b>v%u.%u.%u</b>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
@@ -166,56 +178,52 @@
             response->print(F("</b></li>"));
             #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
               response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), device[0].id[0], device[0].id[1], device[0].id[2], device[0].id[3], device[0].id[4], device[0].id[5]);
+            #elif defined(SUPPORT_TREACLE)
+              response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), localMacAddress[0], localMacAddress[1], localMacAddress[2], localMacAddress[3], localMacAddress[4], localMacAddress[5]);            
             #endif
+            response->print(F("<li>Filesystem: <b>"));
             if(filesystemMounted == true)
             {
               #if defined(USE_SPIFFS)
                 FSInfo fsInfo;
                 SPIFFS.info(fsInfo);
-                response->printf_P(PSTR("<li>Filesystem: <b>SPIFFS %u/%uKB used"), fsInfo.usedBytes/1024, fsInfo.totalBytes/1024);
+                response->printf_P(PSTR("SPIFFS %u/%uKB used"), fsInfo.usedBytes/1024, fsInfo.totalBytes/1024);
                 if(fsInfo.usedBytes > 0 && fsInfo.totalBytes > 0)
                 {
                   response->printf_P(PSTR(" %.1f%% "),float(fsInfo.usedBytes) * 100/float(fsInfo.totalBytes));
                 }
-                else
-                {
-                  response->print(F("</b> "));
-                }
               #elif defined(USE_LITTLEFS)
                 #if defined(ESP32)
-                  response->printf_P(PSTR("<li>Filesystem: <b>LittleFS %u/%uKB used"), LittleFS.usedBytes()/1024, LittleFS.totalBytes()/1024);
+                  response->printf_P(PSTR("LittleFS %u/%uKB used"), LittleFS.usedBytes()/1024, LittleFS.totalBytes()/1024);
                   if(LittleFS.usedBytes() > 0 && LittleFS.totalBytes() > 0)
                   {
-                    response->printf_P(PSTR(" %.1f%%</b> "),float(LittleFS.usedBytes()) * 100/float(LittleFS.totalBytes()));
-                  }
-                  else
-                  {
-                    response->print(F("</b> "));
+                    response->printf_P(PSTR(" %.1f%%"),float(LittleFS.usedBytes()) * 100/float(LittleFS.totalBytes()));
                   }
                 #endif
               #endif
             }
             else
             {
-              response->print(F("<li>Filesystem: <b>not mounted</b> "));
+              response->print(F("not mounted"));
             }
             response->print(F("</b></li>"));
             #if defined(ESP32)
               response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Free heap"), ESP.getFreeHeap()/1024, PSTR("KB"));
             #endif
-            response->print(F("<li>USB serial logging: "));
+            response->print(F("<li>USB serial logging: <b>"));
             #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
               if(debugPortAvailable)
               {
-                response->print(F("<b>enabled - connected</b></li>"));
+                response->print(F("enabled - connected"));
               }
               else
               {
-                response->print(F("<b>enabled - disconnected</b></li>"));
+                response->print(F("enabled - disconnected"));
               }
             #else
-              response->print(F("<b>disabled</b></li>"));
+              response->print(F("disabled"));
             #endif
+            response->print(F("</b></li>"));
             #if defined(ENABLE_OTA_UPDATE)
               response->print(F("<li>Over-the-air software update (Arduino IDE): <b>enabled</b></li>"));
             #endif
@@ -242,12 +250,15 @@
                   response->print(es32ResetReason(0));
                   response->print(F("</li><li></b>Restart reason core 1: <b>"));
                   response->print(es32ResetReason(1));
+                  response->print(F("</b></li>"));
                 #elif CONFIG_IDF_TARGET_ESP32S2
                   response->print(F("<li>Restart reason: <b>"));
                   response->print(es32ResetReason(0));
+                  response->print(F("</b></li>"));
                 #elif CONFIG_IDF_TARGET_ESP32C3
                   response->print(F("<li>Restart reason: <b>"));
                   response->print(es32ResetReason(0));
+                  response->print(F("</b></li>"));
                 #else 
                   #error Target CONFIG_IDF_TARGET is not supported
                 #endif
@@ -256,38 +267,17 @@
                 response->print(es32ResetReason(0));
                 response->print(F("</b> Restart reason core 1: <b>"));
                 response->print(es32ResetReason(1));
+                response->print(F("</b></li>"));
               #endif
             #endif
-            response->print(F("</b></li>"));
             #if defined(SUPPORT_BATTERY_METER)
               if(enableBatteryMonitor == true)
               {
                 response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Battery voltage"), device[0].supplyVoltage, PSTR("v"));
-                //response->print(batteryPercentage);
-                //response->print(F("% charge)</b></li>"));
               }
               else
               {
                 response->print(F("<li>Battery monitoring: <b>disabled</b>"));
-              }
-            #endif
-            #if defined(SUPPORT_WIFI)
-              if(wiFiClientInactivityTimer > 0)
-              {
-                response->print(F("<li>WiFi disconnecting after : "));
-                if(wiFiClientInactivityTimer == 60000)
-                {
-                  response->print(F("1 minute"));
-                }
-                else if(wiFiClientInactivityTimer == 180000)
-                {
-                  response->print(F("3 minutes"));
-                }
-                else if(wiFiClientInactivityTimer == 300000)
-                {
-                  response->print(F("f minutes"));
-                }
-                response->print(F(" inactivity</li>"));
               }
             #endif
             if(configurationComment != nullptr)
@@ -298,50 +288,142 @@
               }
             }
             response->print(ulEnd);
-            response->print(startRow);
-            response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("configuration"), PSTR("Config"));
-            response->print(endColumn);
             response->print(startFourColumns);
             response->printf_P(buttonPrintfFormatString, PSTR("wipe"), PSTR("Wipe"));
             response->print(endColumn);
             response->print(endRow);
+            //General
+            response->print(hr);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("General"));
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("general"), labelConfigure);
+            response->print(endColumn);
+            response->print(ulStart);
+            response->printf_P(liStringPrintfFormatString, PSTR("Name"), (device[0].name != nullptr) ? device[0].name : labelNotSet);
+            if(device[0].icName != nullptr)
+            {
+              response->printf_P(liStringPrintfFormatString, PSTR("IC Name"), device[0].icName);
+            }
+            else
+            {
+              response->printf_P(liStringPrintfFormatString, PSTR("IC Name"), labelNotSet);
+            }
             #if defined(ACT_AS_BEACON)
-              response->printf_P(h2printfFormatString, PSTR("In-game info"));
-              if(device[0].icName != nullptr)
-              {
-                response->printf_P(liStringPrintfFormatString, PSTR("Name"), device[0].icName);
-              }
-              else
-              {
-                response->printf_P(liStringPrintfFormatString, PSTR("Name"), labelNotSet);
-              }
-              if(device[0].icDescription != nullptr)
-              {
-                response->printf_P(liStringPrintfFormatString, PSTR("Description"), device[0].icDescription);
-              }
-              else
-              {
-                response->printf_P(liStringPrintfFormatString, PSTR("Description"), labelNotSet);
-              }
-              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR(string_diameter), device[0].diameter, PSTR("m"));
-              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Height"), device[0].height, PSTR("m"));
-              response->print(startRow);
+              response->printf_P(liStringPrintfFormatString, PSTR("Usually static"), (deviceUsuallyStatic) ? labelOn : labelOff);
+            #endif
+            if(device[0].icDescription != nullptr)
+            {
+              response->printf_P(liStringPrintfFormatString, PSTR("IC Description"), device[0].icDescription);
+            }
+            else
+            {
+              response->printf_P(liStringPrintfFormatString, PSTR("IC Description"), labelNotSet);
+            }
+            response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("IC Diameter"), device[0].diameter, PSTR("m"));
+            response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("IC Height"), device[0].height, PSTR("m"));
+            response->print(ulEndRow);
+            #if defined(SUPPORT_WIFI)
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("WiFi"));
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("icconfiguration"), PSTR("IC config"));
+              response->printf_P(buttonPrintfFormatString, PSTR("wifi"), labelConfigure);
+              response->print(endColumn);
+              response->print(ulStart);
+              response->printf_P(liStringPrintfFormatString, PSTR("WiFi client"), (startWiFiClientOnBoot) ? labelOn : labelOff);
+              if(startWiFiClientOnBoot)
+              {
+                response->print(F("<ul>"));
+                response->printf_P(liStringPrintfFormatString, PSTR("WiFi SSID"), (SSID != nullptr) ? SSID : labelNotSet);
+                if(wiFiClientInactivityTimer > 0)
+                {
+                  response->print(F("<li>WiFi disconnecting after: <b>"));
+                  if(wiFiClientInactivityTimer == 60000)
+                  {
+                    response->print(F("1 minute"));
+                  }
+                  else if(wiFiClientInactivityTimer == 180000)
+                  {
+                    response->print(F("3 minutes"));
+                  }
+                  else if(wiFiClientInactivityTimer == 300000)
+                  {
+                    response->print(F("5 minutes"));
+                  }
+                  response->print(F(" inactivity</b></li>"));
+                }
+                response->print(F("</ul>"));
+              }
+              response->printf_P(liStringPrintfFormatString, PSTR("WiFi AP"), (startWiFiApOnBoot) ? labelOn : labelOff);
+              if(startWiFiApOnBoot)
+              {
+                response->print(F("<ul>"));
+                response->printf_P(liStringPrintfFormatString, PSTR("SSID"), (APSSID != nullptr) ? APSSID : labelNotSet);
+                response->printf_P(liStringPrintfFormatString, PSTR("PSK"), (APPSK != nullptr) ? APPSK : labelNotSet);
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Preferred Channel"), softApChannel);
+                #if defined(ENABLE_LOCAL_WEBSERVER)
+                  response->printf_P(liStringPrintfFormatString, PSTR("Captive portal"), (enableCaptivePortal) ? labelOn : labelOff);
+                #endif
+                response->print(F("</ul>"));
+              }
+              response->print(ulEndRow);
+            #endif
+            #if defined(ACT_AS_TRACKER)
+              //Status information
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Tracking"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("tracking"), labelConfigure);
+              response->print(endColumn);
+              response->print(ulStart);
+              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Effective range"), maximumEffectiveRange, PSTR("m"));
+            #endif
+            response->print(F("<li>Sensitivity: <b>"));
+            if(trackingSensitivity == 2)
+            {
+              response->print(F("High"));
+            }
+            else if(trackingSensitivity == 1)
+            {
+              response->print(F("Medium"));
+            }
+            else
+            {
+              response->print(F("Low"));
+            }
+            response->print(F("</b></li>"));
+            response->print(ulEndRow);
+            #if defined(SUPPORT_LVGL)
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("GUI"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("gui"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
-            #endif
-            #if defined(SUPPORT_LVGL)
-            response->printf_P(h2printfFormatString, PSTR("GUI"));
-            response->print(startRow);
-            response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("guiconfiguration"), PSTR("GUI config"));
-            response->print(endColumn);
-            response->print(endRow);
+              response->print(ulStart);
+              #if defined(LVGL_SUPPORT_HOME_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("Home tab"), (enableHomeTab) ? labelOn : labelOff);
+              #endif
+              #if defined(LVGL_SUPPORT_MAP_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("Map tab"), (enableMapTab) ? labelOn : labelOff);
+              #endif
+              #if defined(LVGL_SUPPORT_GPS_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("GPS info tab"), (enableGpsTab) ? labelOn : labelOff);
+              #endif
+              #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("Scan Info tab"), (enableInfoTab) ? labelOn : labelOff);
+              #endif
+              #if defined(LVGL_SUPPORT_SETTINGS_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("Settings tab"), (enableSettingsTab) ? labelOn : labelOff);
+              #endif
+              response->print(ulEndRow);
             #endif
             #if defined(SUPPORT_TREACLE)
-              response->printf_P(h2printfFormatString, PSTR("Treacle"));
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Treacle"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("treacleconfiguration"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
               if(treacleIntialised == true)
               {
                 response->print(ulStart);
@@ -354,82 +436,55 @@
                 {
                   if(treacle.espNowInitialised() == true)
                   {
-                    response->print(F("<ul><li>Channel: <b>"));
-                    response->print(treacle.getEspNowChannel());
-                    response->print(F("</b></li>"));
-                    response->print(F("<li>Packets: <b>"));
-                    response->print(treacle.getEspNowRxPackets());
-                    response->print(F(" RX / "));
-                    response->print(treacle.getEspNowTxPackets());
-                    response->print(F(" TX"));
-                    response->printf_P(PSTR(" Duty cycle: %.02f%% exceptions:%u"),treacle.getEspNowDutyCycle(), treacle.getEspNowDutyCycleExceptions());
-                    response->print(F(""));
-                    response->print(F("</b></li><li>Dropped: <b>"));
-                    response->print(treacle.getEspNowRxPacketsDropped());
-                    response->print(F(" RX / "));
-                    response->print(treacle.getEspNowTxPacketsDropped());
-                    response->print(F(" TX</b></li>"));
-                    response->print(F("<li>update interval: <b>"));
-                    response->print(treacle.getEspNowTickInterval()/1000);
-                    response->print(F("s</b></li></ul>"));
+                    response->print(F("<ul>"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Current channel"), treacle.getEspNowChannel());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Rx"), treacle.getEspNowRxPackets());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Tx"), treacle.getEspNowTxPackets());
+                    response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Duty cycle"), treacle.getEspNowDutyCycle(), PSTR("%"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Duty cycle exceptions"), treacle.getEspNowDutyCycleExceptions());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Rx dropped"), treacle.getEspNowRxPacketsDropped());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Tx dropped"), treacle.getEspNowTxPacketsDropped());
+                    response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Update interval"), treacle.getEspNowTickInterval()/1000, PSTR("s"));
+                    response->print(F("</ul>"));
                   }
                   else
                   {
                     response->print(F("<li><b>Not initialised</b></li>"));
                   }
                 }
-                response->print(ulEnd);
+                response->print(ulEndRow);
                 if(treacle.loRaEnabled() == true)
                 {
                   response->print(ulStart);
                   response->printf_P(liStringPrintfFormatString, PSTR("LoRa radio"), (treacle.loRaEnabled()) ? labelOn : labelOff);
                   if(treacle.loRaInitialised() == true)
                   {
-                    response->print(F("<ul><li>Frequency: <b>"));
-                    response->print(loRaFrequency/1E6);
-                    response->print(F("Mhz</b></li>"));
-                    response->print(F("<li>Transmit power: <b>"));
-                    response->print(treacle.getLoRaTxPower());
-                    response->print(F("dBm</b></li>"));
-                    response->print(F("<li>Spreading factor: <b>"));
-                    response->print(treacle.getLoRaSpreadingFactor());
-                    response->print(F("</b></li>"));
-                    response->print(F("<li>Signal bandwidth: <b>"));
-                    response->print(treacle.getLoRaSignalBandwidth()/1000.0);
-                    response->print(F("kBaud</b></li>"));
-                    response->print(F("<li>Packets: <b>"));
-                    response->print(treacle.getLoRaRxPackets());
-                    response->print(F(" RX / "));
-                    response->print(treacle.getLoRaTxPackets());
-                    response->print(F(" TX"));
-                    response->printf_P(PSTR(" Duty cycle: %.02f%% exceptions:%u"),treacle.getLoRaDutyCycle(), treacle.getLoRaDutyCycleExceptions());
-                    response->print(F(""));
-                    response->print(F("</b></li><li>Dropped: <b>"));
-                    response->print(treacle.getLoRaRxPacketsDropped());
-                    response->print(F(" RX / "));
-                    response->print(treacle.getLoRaTxPacketsDropped());
-                    response->print(F(" TX</b></li>"));
-                    response->print(F("<li>update interval: <b>"));
-                    response->print(treacle.getLoRaTickInterval()/1000);
-                    response->print(F("s</b></li></ul>"));
+                    response->print(F("<ul>"));
+                    response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Frequency"), uint16_t(loRaFrequency/1E6), PSTR("MHz"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Spreading factor"), treacle.getLoRaSpreadingFactor());
+                    response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Signal bandwidth"), float(treacle.getLoRaSignalBandwidth())/1000.0, PSTR("kBaud"));
+                    response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Transmit power"), treacle.getLoRaTxPower(), PSTR("dBm"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Rx"), treacle.getLoRaRxPackets());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Tx"), treacle.getLoRaTxPackets());
+                    response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Duty cycle"), treacle.getLoRaDutyCycle(), PSTR("%"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Duty cycle exceptions"), treacle.getLoRaDutyCycleExceptions());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Rx dropped"), treacle.getLoRaRxPacketsDropped());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Tx dropped"), treacle.getLoRaTxPacketsDropped());
+                    response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Update interval"), treacle.getLoRaTickInterval()/1000, PSTR("s"));
+                    response->print(F("</ul>"));
                   }
                   else
                   {
                     response->print(F("<li><b>Not initialised</b></li>"));
                   }
                 }
-                response->print(ulEnd);
+                response->print(ulEndRow);
               }
               else
               {
                 response->print(startRow);
                 response->printf_P(h3printfFormatString, PSTR("Initialisation failed!"));
               }
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("treacleconfiguration"), PSTR("Treacle config"));
-              response->print(endColumn);
-              response->print(endRow);
             #endif
             #if defined(SUPPORT_ESPNOW)
               response->printf_P(h2printfFormatString, PSTR("ESP-Now"));
@@ -463,10 +518,10 @@
                   response->print(F("<li><b>Not initialised</b></li>"));
                 }
               }
-              response->print(ulEnd);
+              response->print(ulEndRow);
               response->print(startRow);
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("espnowconfiguration"), PSTR("ESP-Now config"));
+              response->printf_P(buttonPrintfFormatString, PSTR("espnowconfiguration"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
             #endif
@@ -498,10 +553,10 @@
                   response->print(F("Not initialised</b></li>"));
                 }
               }
-              response->print(ulEnd);
+              response->print(ulEndRow);
               response->print(startRow);
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("loraconfiguration"), PSTR("LoRa config"));
+              response->printf_P(buttonPrintfFormatString, PSTR("loraconfiguration"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
             #endif
@@ -509,15 +564,20 @@
               response->printf_P(h2printfFormatString, PSTR("FTM (time-of-flight) measurements"));
               response->print(ulStart);
               response->printf_P(liStringPrintfFormatString, PSTR("FTM beacon"), (ftmEnabled) ? labelOn : labelOff);
-              response->print(ulEnd);
+              response->print(ulEndRow);
               response->print(startRow);
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("ftmconfiguration"), PSTR("FTM configuration"));
+              response->printf_P(buttonPrintfFormatString, PSTR("ftm"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
             #endif
             #if defined(SUPPORT_GPS)
-              response->printf_P(h2printfFormatString, PSTR("GPS"));
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("GPS"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("gps"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
               response->print(ulStart);
               #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
                 response->printf_P(liStringPrintfFormatString, PSTR("Power"), (peripheralsEnabled) ? labelOn : labelOff);
@@ -537,6 +597,7 @@
                 response->printf_P(liFloatPrintfFormatString, PSTR("Longitude"), device[0].longitude);
                 response->printf_P(liFloatPrintfFormatString, PSTR("Speed"), device[0].speed);
                 response->printf_P(liFloatPrintfFormatString, PSTR("Speed(smoothed)"), device[0].smoothedSpeed);
+                response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Movement threshold"), movementThreshold, PSTR("m/s"));
                 response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("HDOP"), device[0].hdop, hdopDescription(device[0].hdop));
                 response->printf_P(liIntegerPrintfFormatString, PSTR("Chars"), gpsChars);
                 response->printf_P(liIntegerPrintfFormatString, PSTR("Sentences"), gpsSentences);
@@ -562,20 +623,16 @@
                   }
                 #endif
               }
-              response->print(ulEnd);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("gpsconfiguration"), PSTR("GPS config"));
-              response->print(endColumn);
-              response->print(endRow);
+              response->print(ulEndRow);
             #endif
             //response->print(F("</b>"));
             #if defined(ACT_AS_SENSOR)
-              response->printf_P(h2printfFormatString, PSTR("Sensor"));
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("sensorConfiguration"), PSTR("Sensor config"));
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Sensor"));
+              response->printf_P(buttonPrintfFormatString, PSTR("sensorConfiguration"), labelConfigure);
               response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
               response->print(startFourColumns);
               response->printf_P(buttonPrintfFormatString, PSTR("sensorReset"), PSTR("Reset sensor"));
               response->print(endColumn);
@@ -622,18 +679,29 @@
                 response->print(F("<li>Ignore non-DOT: <b>true</b></li>"));
               }
             #endif
-            response->print(ulEnd);
+            response->print(ulEndRow);
             #if defined(SUPPORT_HACKING)
               response->printf_P(h2printfFormatString, PSTR("Game"));
               response->print(startRow);
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("gameConfiguration"), PSTR("Configure hacking game"));
+              response->printf_P(buttonPrintfFormatString, PSTR("gameConfiguration"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
               response->print(ulStart);
               response->printf_P(PSTR("<li>Game length: <b>%u</b></li><li>Game retries: <b>%u</b> (0=infinite)</li><li>Game speedup: <b>%u</b>(ms)</li>"), gameLength, gameRetries, gameSpeedup);
-              response->print(ulEnd);
+              response->print(ulEndRow);
             #endif
+            //Logging
+            response->print(hr);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Logging"));
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("logging"), labelConfigure);
+            response->print(endColumn);
+            response->print(ulStart);
+            response->printf_P(liIntegerPrintfFormatString, PSTR("Buffer size"), loggingBufferSize);
+            response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Flush interval"), logFlushInterval, PSTR("s"));
+            response->printf_P(liIntegerPrintfFormatString, PSTR("Flush threshold"), logFlushThreshold);
+            response->print(ulEndRow);
             addPageFooter(response);
             //Send response
             request->send(response);
@@ -668,7 +736,7 @@
             addPageHeader(response, 0, nullptr);
             response->print(startRow);
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
+            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
             response->print(endColumn);
             response->print(endRow);
             response->printf_P(h2printfFormatString, PSTR("Log files"));
@@ -812,7 +880,7 @@
         #endif
         });
       #endif
-      adminWebServer->on("/configuration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      adminWebServer->on("/hardware", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -827,119 +895,11 @@
             addPageHeader(response, 0, nullptr);
             //Start of form
             response->print(formStart);
-            response->print(startRow);
-            response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-            response->print(endColumn);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Hardware configuration"));
             response->print(startFourColumns);
             response->print(saveButton);
             response->print(endColumn);
             response->print(endRow);
-            response->printf_P(h2printfFormatString, PSTR("Configuration"));
-            response->print(startRow);
-            response->print(startTwelveColumns);
-            response->printf_P(labelForPrintfFormatString, string_deviceName, PSTR("Node name"));
-            response->printf_P(inputTextPrintfFormatString, string_deviceName, string_deviceName, (device[0].name != nullptr) ? device[0].name : string_empty);
-            response->print(endColumn);
-            response->print(endRow);
-            response->printf_P(h3printfFormatString, PSTR("Networking"));
-            #if defined(SUPPORT_WIFI)
-              response->printf_P(h3printfFormatString, PSTR("WiFi"));
-              //WiFi client
-              response->print(startRow);
-              response->print(startThreeColumns);
-              response->printf_P(labelForPrintfFormatString, string_startWiFiClientOnBoot, PSTR("Enable WiFi client on boot"));
-              response->printf_P(selectPrintfFormatString, string_startWiFiClientOnBoot, string_startWiFiClientOnBoot);
-              response->print(selectValueTrue);response->print(startWiFiClientOnBoot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(startWiFiClientOnBoot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(startThreeColumns);
-              response->printf_P(labelForPrintfFormatString, string_wiFiClientInactivityTimer, PSTR("WiFi inactivity timer"));
-              response->printf_P(selectPrintfFormatString, string_wiFiClientInactivityTimer, string_wiFiClientInactivityTimer);
-              response->print(F("<option value=\"0\""));response->print(wiFiClientInactivityTimer == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Never</option>"));
-              response->print(F("<option value=\"60000\""));response->print(wiFiClientInactivityTimer == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("1m</option>"));
-              response->print(F("<option value=\"180000\""));response->print(wiFiClientInactivityTimer == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
-              response->print(F("<option value=\"300000\""));response->print(wiFiClientInactivityTimer == 300000 ? selectValueSelected:selectValueNotSelected);response->print(F("5m</option>"));
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(startThreeColumns);
-              response->printf_P(labelForPrintfFormatString, string_SSID, PSTR("WiFi SSID"));
-              response->printf_P(inputTextPrintfFormatString, string_SSID, string_SSID, (SSID != nullptr) ? SSID : string_empty);
-              response->print(endColumn);
-              response->print(startThreeColumns);
-              response->printf_P(labelForPrintfFormatString, string_PSK, PSTR("WiFi PSK"));
-              response->print(F("<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"PSK\" name=\"PSK\">"));
-              response->print(endColumn);
-              response->print(endRow);
-              //WiFi AP        
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(labelForPrintfFormatString, string_startWiFiApOnBoot, PSTR("Enable WiFi AP on boot"));
-              response->printf_P(selectPrintfFormatString, string_startWiFiApOnBoot, string_startWiFiApOnBoot);
-              response->print(selectValueTrue);response->print(startWiFiApOnBoot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(startWiFiApOnBoot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(startFourColumns);
-              response->printf_P(labelForPrintfFormatString, string_enableCaptivePortal, PSTR("Enable captive portal"));
-              response->printf_P(selectPrintfFormatString, string_enableCaptivePortal, string_enableCaptivePortal);
-              response->print(selectValueTrue);response->print(enableCaptivePortal == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(enableCaptivePortal == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(startFourColumns);
-              response->printf_P(labelForPrintfFormatString, string_softApChannel, PSTR("Preferred channel"));
-              response->printf_P(selectPrintfFormatString, string_softApChannel, string_softApChannel);
-              response->print(F("<option value=\"1\""));response->print(softApChannel == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("1</option>"));
-              response->print(F("<option value=\"6\""));response->print(softApChannel == 6 ? selectValueSelected:selectValueNotSelected);response->print(F("6</option>"));
-              response->print(F("<option value=\"11\""));response->print(softApChannel == 11 ? selectValueSelected:selectValueNotSelected);response->print(F("11</option>"));
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(endRow);
-              response->print(startRow);
-              response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_APSSID, PSTR("AP SSID"));
-              response->printf_P(inputTextPrintfFormatString, string_APSSID, string_APSSID, (APSSID != nullptr) ? APSSID : string_empty);
-              response->print(endColumn);
-              response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_APPSK, PSTR("AP PSK"));
-              response->print(F("<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"APPSK\" name=\"APPSK\">"));
-              response->print(endColumn);
-              response->print(endRow);
-            #endif
-            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(labelForPrintfFormatString, string_basicAuthEnabled, PSTR("Web UI login"));
-              response->printf_P(selectPrintfFormatString, string_basicAuthEnabled, string_basicAuthEnabled);
-              response->print(selectValueTrue);response->print(basicAuthEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(basicAuthEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(startFourColumns);
-              response->printf_P(labelForPrintfFormatString, string_http_user, PSTR("Web UI username"));
-              response->printf_P(inputTextPrintfFormatString, string_http_user, string_http_user, (http_user != nullptr) ? http_user : string_empty);
-              response->print(endColumn);
-              response->print(startFourColumns);
-              response->printf_P(labelForPrintfFormatString, string_http_password, PSTR("Web UI/OTA password"));
-              response->print(F("<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"http_password\" name=\"http_password\">"));
-              response->print(endColumn);
-              response->print(endRow);
-            #endif
-            #if defined(SUPPORT_WIFI)
-              //Time Server
-              response->print(startRow);
-              response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_timeServer, PSTR("NTP host"));
-              response->printf_P(inputTextPrintfFormatString, string_timeServer, string_timeServer, (timeServer != nullptr) ? timeServer : string_empty);
-              response->print(endColumn);
-              response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_timeZone, PSTR("Timezone"));
-              response->printf_P(inputTextPrintfFormatString, string_timeZone, string_timeZone, (timeZone != nullptr) ? timeZone : string_empty);
-              response->print(endColumn);
-              response->print(endRow);
-            #endif
             #if defined(ENABLE_OTA_UPDATE)
               response->printf_P(h3printfFormatString, PSTR("Software Update"));
               response->print(startRow);
@@ -958,28 +918,6 @@
               response->print(endSelect);
               response->print(endColumn);
             #endif
-            //Logging
-            response->printf_P(h3printfFormatString, PSTR("Logging"));
-            response->print(startRow);
-            response->print(startFourColumns);
-            response->printf_P(labelForPrintfFormatString, string_loggingBufferSize, PSTR("Logging buffer size"));
-            response->printf_P(inputNumberPrintfFormatString, string_loggingBufferSize, string_loggingBufferSize, loggingBufferSize);
-            response->print(endColumn);
-            response->print(startFourColumns);
-            response->printf_P(labelForPrintfFormatString, string_logFlushThreshold, PSTR("Logging buffer flush threshold"));
-            response->printf_P(inputNumberPrintfFormatString, string_logFlushThreshold, string_logFlushThreshold, logFlushThreshold);
-            response->print(endColumn);
-            response->print(startFourColumns);
-            response->printf_P(labelForPrintfFormatString, string_logFlushInterval, PSTR("Logging buffer flush frequency"));
-            response->printf_P(selectPrintfFormatString, string_logFlushInterval, string_logFlushInterval);
-            response->print(F("<option value=\"30\""));response->print(logFlushInterval == 30 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
-            response->print(F("<option value=\"60\""));response->print(logFlushInterval == 60 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
-            response->print(F("<option value=\"90\""));response->print(logFlushInterval == 90 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
-            response->print(F("<option value=\"180\""));response->print(logFlushInterval == 180 ? selectValueSelected:selectValueNotSelected);response->print(F("3 minutes</option>"));
-            response->print(F("<option value=\"300\""));response->print(logFlushInterval == 300 ? selectValueSelected:selectValueNotSelected);response->print(F("5 minutes</option>"));
-            response->print(endSelect);
-            response->print(endColumn);
-            response->print(endRow);
             //Battery
             #if defined(SUPPORT_BATTERY_METER)
               response->printf_P(h3printfFormatString, PSTR("Battery monitor"));
@@ -1006,41 +944,6 @@
               response->print(endColumn);
               response->print(endRow);
             #endif
-            #if defined(ACT_AS_TRACKER)
-              response->printf_P(h3printfFormatString, PSTR("Tracking"));
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_maximumEffectiveRange, PSTR("Maximum effective range"));
-              response->printf_P(selectPrintfFormatString, string_maximumEffectiveRange, string_maximumEffectiveRange);
-              response->print(F("<option value=\"50\""));response->print(maximumEffectiveRange == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50m</option>"));
-              response->print(F("<option value=\"75\""));response->print(maximumEffectiveRange == 75 ? selectValueSelected:selectValueNotSelected);response->print(F("75m</option>"));
-              response->print(F("<option value=\"99\""));response->print(maximumEffectiveRange == 99 ? selectValueSelected:selectValueNotSelected);response->print(F("99m</option>"));
-              response->print(F("<option value=\"100\""));response->print(maximumEffectiveRange == 100 ? selectValueSelected:selectValueNotSelected);response->print(F("100m</option>"));
-              response->print(F("<option value=\"150\""));response->print(maximumEffectiveRange == 150 ? selectValueSelected:selectValueNotSelected);response->print(F("150m</option>"));
-              response->print(F("<option value=\"250\""));response->print(maximumEffectiveRange == 250 ? selectValueSelected:selectValueNotSelected);response->print(F("250m</option>"));
-              response->print(F("<option value=\"500\""));response->print(maximumEffectiveRange == 500 ? selectValueSelected:selectValueNotSelected);response->print(F("500m</option>"));
-              response->print(F("<option value=\"750\""));response->print(maximumEffectiveRange == 750 ? selectValueSelected:selectValueNotSelected);response->print(F("750m</option>"));
-              response->print(F("<option value=\"1000\""));response->print(maximumEffectiveRange == 1000 ? selectValueSelected:selectValueNotSelected);response->print(F("1000m</option>"));
-              response->print(F("<option value=\"9999\""));response->print(maximumEffectiveRange == 9999 ? selectValueSelected:selectValueNotSelected);response->print(F("9999m</option>"));
-              response->print(F("<option value=\"10000\""));response->print(maximumEffectiveRange == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10000m</option>"));
-              response->print(F("<option value=\""));response->print(effectivelyUnreachable);response->print('"');response->print(maximumEffectiveRange == effectivelyUnreachable ? selectValueSelected:selectValueNotSelected);response->print(F("Unlimited</option>"));
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(endRow);
-            #endif
-            #if defined(ACT_AS_BEACON)
-              response->printf_P(h3printfFormatString, PSTR("Location tracking"));
-            #endif
-            response->print(startRow);
-            response->print(startTwelveColumns);
-            response->printf_P(labelForPrintfFormatString, string_trackingSensitivity, PSTR("Sensitivity"));
-            response->printf_P(selectPrintfFormatString, string_trackingSensitivity, string_trackingSensitivity);
-            response->print(F("<option value=\"0\""));response->print(trackingSensitivity == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Low</option>"));
-            response->print(F("<option value=\"1\""));response->print(trackingSensitivity == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("Medium</option>"));
-            response->print(F("<option value=\"2\""));response->print(trackingSensitivity == 2 ? selectValueSelected:selectValueNotSelected);response->print(F("High</option>"));
-            response->print(endSelect);
-            response->print(endColumn);
-            response->print(endRow);
             #if defined(SUPPORT_BEEPER)
               #if defined(ACT_AS_TRACKER)
                 response->printf_P(h3printfFormatString, PSTR("Beeper"));
@@ -1099,14 +1002,6 @@
               response->print(endColumn);
               response->print(endRow);
             #endif
-            //Comment
-            response->printf_P(h3printfFormatString, PSTR("Configuration"));
-            response->print(startRow);
-            response->print(startTwelveColumns);
-            response->printf_P(labelForPrintfFormatString, string_configurationComment, PSTR("Comment (optional)"));
-            response->printf_P(inputTextPrintfFormatString, string_configurationComment, string_configurationComment, (configurationComment != nullptr) ? configurationComment : string_empty);
-            response->print(endColumn);
-            response->print(endRow);
             //End of form
             response->print(formEnd);
             addPageFooter(response);
@@ -1124,7 +1019,7 @@
           }
         #endif
         });
-        adminWebServer->on("/configuration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on("/hardware", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -1135,124 +1030,28 @@
                   return request->requestAuthentication();  //Force basic authentication
               }
             #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
-              }
-            #endif
             //Read the submitted configuration
-            if(request->hasParam(string_deviceName, true))
-            {
-              if(device[0].name != nullptr)
-              {
-                delete [] device[0].name;
-              }
-              device[0].name = new char[request->getParam(string_deviceName, true)->value().length() + 1];
-              strlcpy(device[0].name,request->getParam(string_deviceName, true)->value().c_str(),request->getParam(string_deviceName, true)->value().length() + 1);
-              //localLog(F("deviceName: "));
-              //localLogLn(device[0].name);
-            }
-            if(request->hasParam(string_configurationComment, true))
-            {
-              if(configurationComment != nullptr)
-              {
-                delete [] configurationComment;
-              }
-              configurationComment = new char[request->getParam(string_configurationComment, true)->value().length() + 1];
-              strlcpy(configurationComment,request->getParam(string_configurationComment, true)->value().c_str(),request->getParam(string_configurationComment, true)->value().length() + 1);
-              //localLog(F("configurationComment: "));
-              //localLogLn(configurationComment);
-            }
-            else
-            {
-              if(configurationComment != nullptr)
-              {
-                delete [] configurationComment;
-              }
-              configurationComment = new char[strlen(default_configurationComment) + 1];  //Assign space on heap
-              strlcpy(configurationComment,default_configurationComment,strlen(default_configurationComment) + 1);  //Copy in default
-            }
-            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              if(request->hasParam(string_http_user, true))
-              {
-                if(http_user != nullptr)
-                {
-                  delete [] http_user;
-                }
-                http_user = new char[request->getParam(string_http_user, true)->value().length() + 1];
-                strlcpy(http_user,request->getParam(string_http_user, true)->value().c_str(),request->getParam(string_http_user, true)->value().length() + 1);
-                //localLog(F("http_user: "));
-                //localLogLn(http_user);
-              }
-              if(request->hasParam(string_http_password, true))
-              {
-                if(request->getParam(string_http_password, true)->value().length() > 0)
-                {
-                  if(http_password != nullptr)
-                  {
-                    delete [] http_password;
-                  }
-                  http_password = new char[request->getParam(string_http_password, true)->value().length() + 1];
-                  strlcpy(http_password,request->getParam(string_http_password, true)->value().c_str(),request->getParam(string_http_password, true)->value().length() + 1);
-                  //localLogLn(F("http_password: ********"));
-                }
-              }
-              if(request->hasParam(string_basicAuthEnabled, true))
-              {
-                //localLog(F("basicAuthEnabled: "));
-                if(request->getParam(string_basicAuthEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  basicAuthEnabled = true;
-                  //localLogLn(F("enabled"));
-                }
-                else
-                {
-                  basicAuthEnabled = false;
-                  //localLogLn(F("disabled"));
-                }
-              }
-            #endif
             #if defined(ENABLE_OTA_UPDATE)
               if(request->hasParam("otaEnabled", true))
               {
-                //localLog(F("otaEnabled: "));
                 if(request->getParam("otaEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   otaEnabled = true;
-                  //localLogLn(F("enabled"));
                 }
                 else
                 {
                   otaEnabled = false;
-                  //localLogLn(F("disabled"));
                 }
               }
               if(request->hasParam("otaAuthenticationEnabled", true))
               {
-                //localLog(F("otaAuthenticationEnabled: "));
                 if(request->getParam("otaAuthenticationEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   otaAuthenticationEnabled = true;
-                  //localLogLn(F("enabled"));
                 }
                 else
                 {
                   otaAuthenticationEnabled = false;
-                  //localLogLn(F("disabled"));
                 }
               }
             #endif
@@ -1280,16 +1079,13 @@
             #if defined(SUPPORT_BEEPER)
               if(request->hasParam(string_beeperEnabled, true))
               {
-                //localLog(F("beeperEnabled: "));
                 if(request->getParam(string_beeperEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   beeperEnabled = true;
-                  //localLogLn(F("enabled"));
                 }
                 else
                 {
                   beeperEnabled = false;
-                  //localLogLn(F("disabled"));
                 }
               }
               #if defined(SUPPORT_BUTTON)
@@ -1323,145 +1119,16 @@
                 vibrationLevel = request->getParam(string_vibrationLevel, true)->value().toInt();
               }
             #endif
-            #if defined(SUPPORT_WIFI)
-              if(request->hasParam(string_SSID, true))
-              {
-                if(SSID != nullptr)
-                {
-                  delete [] SSID;
-                }
-                SSID = new char[request->getParam(string_SSID, true)->value().length() + 1];
-                strlcpy(SSID,request->getParam(string_SSID, true)->value().c_str(),request->getParam(string_SSID, true)->value().length() + 1);
-              }
-              if(request->hasParam(string_PSK, true))
-              {
-                if(request->getParam(string_PSK, true)->value().length() > 0)
-                {
-                  if(PSK != nullptr)
-                  {
-                    delete [] PSK;
-                  }
-                  PSK = new char[request->getParam(string_PSK, true)->value().length() + 1];
-                  strlcpy(PSK,request->getParam(string_PSK, true)->value().c_str(),request->getParam(string_PSK, true)->value().length() + 1);
-                }
-              }
-              if(request->hasParam(string_startWiFiClientOnBoot, true))
-              {
-                //localLog(F("startWiFiClientOnBoot: "));
-                if(request->getParam(string_startWiFiClientOnBoot, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  startWiFiClientOnBoot = true;
-                  //localLogLn(F("enabled"));
-                }
-                else
-                {
-                  startWiFiClientOnBoot = false;
-                  //localLogLn(F("disabled"));
-                }
-              }
-              if(request->hasParam(string_wiFiClientInactivityTimer, true))
-              {
-                wiFiClientInactivityTimer = request->getParam(string_wiFiClientInactivityTimer, true)->value().toInt();
-                //localLog(F("wiFiClientInactivityTimer: "));
-                //localLogLn(wiFiClientInactivityTimer);
-              }
-              if(request->hasParam(string_timeServer, true))
-              {
-                if(timeServer != nullptr)
-                {
-                  delete [] timeServer;
-                }
-                timeServer = new char[request->getParam(string_timeServer, true)->value().length() + 1];
-                strlcpy(timeServer,request->getParam(string_timeServer, true)->value().c_str(),request->getParam(string_timeServer, true)->value().length() + 1);
-                //localLog(F("timeServer: "));
-                //localLogLn(timeServer);
-              }
-              if(request->hasParam(string_timeZone, true))
-              {
-                if(timeZone != nullptr)
-                {
-                  delete [] timeZone;
-                }
-                timeZone = new char[request->getParam(string_timeZone, true)->value().length() + 1];
-                strlcpy(timeZone,request->getParam(string_timeZone, true)->value().c_str(),request->getParam(string_timeZone, true)->value().length() + 1);
-                //localLog(F("timeZone: "));
-                //localLogLn(timeZone);
-              }
-              if(request->hasParam(string_APSSID, true))
-              {
-                if(APSSID != nullptr)
-                {
-                  delete [] APSSID;
-                }
-                APSSID = new char[request->getParam(string_APSSID, true)->value().length() + 1];
-                strlcpy(APSSID,request->getParam(string_APSSID, true)->value().c_str(),request->getParam(string_APSSID, true)->value().length() + 1);
-              }
-              if(request->hasParam(string_APPSK, true))
-              {
-                if(request->getParam(string_APPSK, true)->value().length() > 0)
-                {
-                  if(APPSK != nullptr)
-                  {
-                    delete [] APPSK;
-                  }
-                  APPSK = new char[request->getParam(string_APPSK, true)->value().length() + 1];
-                  strlcpy(APPSK,request->getParam(string_APPSK, true)->value().c_str(),request->getParam(string_APPSK, true)->value().length() + 1);
-                }
-              }
-              if(request->hasParam(string_startWiFiApOnBoot, true))
-              {
-                if(request->getParam(string_startWiFiApOnBoot, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  startWiFiApOnBoot = true;
-                }
-                else
-                {
-                  startWiFiApOnBoot = false;
-                }
-              }
-              if(request->hasParam(string_enableCaptivePortal, true))
-              {
-                if(request->getParam(string_enableCaptivePortal, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  enableCaptivePortal = true;
-                }
-                else
-                {
-                  enableCaptivePortal = false;
-                }
-              }
-              if(request->hasParam(string_softApChannel, true))
-              {
-                softApChannel = request->getParam(string_softApChannel, true)->value().toInt();
-              }
-            #endif
-            #if defined(ACT_AS_TRACKER)    
-              if(request->hasParam(string_trackingSensitivity, true))
-              {
-                trackingSensitivity = request->getParam(string_trackingSensitivity, true)->value().toInt();
-                //localLog(F("maximumEffectiveRange: "));
-                //localLogLn(maximumEffectiveRange);
-              }
-              if(request->hasParam(string_maximumEffectiveRange, true))
-              {
-                maximumEffectiveRange = request->getParam(string_maximumEffectiveRange, true)->value().toInt();
-                //localLog(F("maximumEffectiveRange: "));
-                //localLogLn(maximumEffectiveRange);
-              }
-            #endif
             #if defined(SUPPORT_BEEPER)
               if(request->hasParam(string_beeperEnabled, true))
               {
-                //localLog(F("beeperEnabled: "));
                 if(request->getParam(string_beeperEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   beeperEnabled = true;
-                  //localLogLn(F("enabled"));
                 }
                 else
                 {
                   beeperEnabled = false;
-                  //localLogLn(F("disabled"));
                 }
               }
             #endif
@@ -1470,8 +1137,6 @@
               if(loggingBufferSize != request->getParam(string_loggingBufferSize, true)->value().toInt())
               {
                 loggingBufferSize = request->getParam(string_loggingBufferSize, true)->value().toInt();
-                //localLog(F("loggingBufferSize: "));
-                //localLogLn(loggingBufferSize);
               }
             }
             if(request->hasParam(string_logFlushThreshold, true))
@@ -1479,8 +1144,6 @@
               if(logFlushThreshold != request->getParam(string_logFlushThreshold, true)->value().toInt())
               {
                 logFlushThreshold = request->getParam(string_logFlushThreshold, true)->value().toInt();
-                //localLog(F("logFlushThreshold: "));
-                //localLogLn(logFlushThreshold);
               }
             }
             if(request->hasParam(string_logFlushInterval, true))
@@ -1488,14 +1151,9 @@
               if(logFlushInterval != request->getParam(string_logFlushInterval, true)->value().toInt())
               {
                 logFlushInterval = request->getParam(string_logFlushInterval, true)->value().toInt();
-                //localLog(F("logFlushInterval: "));
-                //localLogLn(logFlushInterval);
               }
             }
-            if(configurationChanged())
-            {
-              saveConfigurationSoon = millis();
-            }
+            saveConfigurationSoon = millis();
             request->redirect("/admin");
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
@@ -1509,147 +1167,595 @@
           }
         #endif
       });
-      #if defined(ACT_AS_BEACON)
-        adminWebServer->on("/icconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      //WiFi configuration
+      #if defined(SUPPORT_WIFI)
+        adminWebServer->on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request){
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
-              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-                {
-                    return request->requestAuthentication();  //Force basic authentication
-                }
-              #endif
-              AsyncResponseStream *response = request->beginResponseStream("text/html");
-              addPageHeader(response, 0, nullptr);
-              //Start of form
-              response->print(formStart);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-              response->print(endColumn);
-              response->print(startFourColumns);
-              response->print(saveButton);
-              response->print(endColumn);
-              response->print(endRow);
-              response->printf_P(h2printfFormatString, PSTR("In-game configuration"));
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_icName, PSTR("IC name"));
-              response->printf_P(inputTextPrintfFormatString, string_icName, string_icName, (device[0].icName != nullptr) ? device[0].icName : string_empty);
-              response->print(endColumn);
-              response->print(endRow);
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_icDescription, PSTR("IC description"));
-              response->printf_P(inputTextPrintfFormatString, string_icDescription, string_icDescription, (device[0].icDescription != nullptr) ? device[0].icDescription : string_empty);
-              response->print(endColumn);
-              response->print(endRow);
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_diameter, PSTR("Diameter(m)"));
-              response->printf_P(inputNumberPrintfFormatString, string_diameter, string_diameter, device[0].diameter);
-              response->print(endColumn);
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_height, PSTR("Height(m)"));
-              response->printf_P(inputNumberPrintfFormatString, string_height, string_height, device[0].height);
-              response->print(endColumn);
-              response->print(formEnd);
-              addPageFooter(response);
-              //Send response
-              request->send(response);
-          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-              xSemaphoreGive(webserverSemaphore);
-            }
-            else
-            {
-              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-              response->addHeader("Retry-After","5"); //Ask it to wait 5s
-              //Send response
-              request->send(response);
-            }
-          #endif
-          });
-          adminWebServer->on("/icconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-              if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
               {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
             #endif
-              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-                {
-                    return request->requestAuthentication();  //Force basic authentication
-                }
-              #endif
-              #ifdef DEBUG_FORM_SUBMISSION
-                int params = request->params();
-                localLog(F("Submitted Configuration parameters: "));
-                localLogLn(params);
-                for(int i=0;i<params;i++){
-                  AsyncWebParameter* p = request->getParam(i);
-                  if(p->isFile()){ //p->isPost() is also true
-                    //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                  } else if(p->isPost()){
-                    //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                    localLog(F("POST["));
-                    localLog(p->name().c_str());
-                    localLog(F("]: "));
-                    localLogLn(p->value().c_str());
-                  } else {
-                    //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  }
-                }
-              #endif
-              //Read the submitted configuration
-              if(request->hasParam(string_icName, true))
-              {
-                if(device[0].icName != nullptr)
-                {
-                  delete [] device[0].icName;
-                }
-                device[0].icName = new char[request->getParam(string_icName, true)->value().length() + 1];
-                strlcpy(device[0].icName,request->getParam(string_icName, true)->value().c_str(),request->getParam(string_icName, true)->value().length() + 1);
-              }
-              if(request->hasParam(string_icName, true))
-              {
-                if(device[0].icDescription != nullptr)
-                {
-                  delete [] device[0].icDescription;
-                }
-                device[0].icDescription = new char[request->getParam(string_icDescription, true)->value().length() + 1];
-                strlcpy(device[0].icDescription,request->getParam(string_icDescription, true)->value().c_str(),request->getParam(string_icDescription, true)->value().length() + 1);
-              }
-              if(request->hasParam(string_diameter, true))
-              {
-                if(device[0].diameter != request->getParam(string_diameter, true)->value().toInt())
-                {
-                  device[0].diameter = request->getParam(string_diameter, true)->value().toInt();
-                }
-              }
-              if(request->hasParam(string_height, true))
-              {
-                if(device[0].height != request->getParam(string_height, true)->value().toInt())
-                {
-                  device[0].height = request->getParam(string_height, true)->value().toInt();
-                }
-              }
-              saveConfigurationSoon = millis();
-              request->redirect("/admin");
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 0, nullptr);
+            //Start of form
+            response->print(formStart);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Wi-Fi configuration"));
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
+            response->print(endRow);
+            //WiFi client
+            response->print(startRow);
+            response->print(startThreeColumns);
+            response->printf_P(labelForPrintfFormatString, string_startWiFiClientOnBoot, PSTR("Enable Wi-Fi client on boot"));
+            response->printf_P(selectPrintfFormatString, string_startWiFiClientOnBoot, string_startWiFiClientOnBoot);
+            response->print(selectValueTrue);response->print(startWiFiClientOnBoot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+            response->print(selectValueFalse);response->print(startWiFiClientOnBoot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(startThreeColumns);
+            response->printf_P(labelForPrintfFormatString, string_wiFiClientInactivityTimer, PSTR("Wi-Fi inactivity timer"));
+            response->printf_P(selectPrintfFormatString, string_wiFiClientInactivityTimer, string_wiFiClientInactivityTimer);
+            response->print(F("<option value=\"0\""));response->print(wiFiClientInactivityTimer == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Never</option>"));
+            response->print(F("<option value=\"60000\""));response->print(wiFiClientInactivityTimer == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("1m</option>"));
+            response->print(F("<option value=\"180000\""));response->print(wiFiClientInactivityTimer == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
+            response->print(F("<option value=\"300000\""));response->print(wiFiClientInactivityTimer == 300000 ? selectValueSelected:selectValueNotSelected);response->print(F("5m</option>"));
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(startThreeColumns);
+            response->printf_P(labelForPrintfFormatString, string_SSID, PSTR("Wi-Fi SSID"));
+            response->printf_P(inputTextPrintfFormatString, string_SSID, string_SSID, (SSID != nullptr) ? SSID : string_empty);
+            response->print(endColumn);
+            response->print(startThreeColumns);
+            response->printf_P(labelForPrintfFormatString, string_PSK, PSTR("Wi-Fi PSK"));
+            response->printf_P(inputPasswordPrintfFormatString, string_PSK, string_PSK);
+            response->print(endColumn);
+            response->print(endRow);
+            //WiFi AP        
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_startWiFiApOnBoot, PSTR("Enable Wi-Fi AP on boot"));
+            response->printf_P(selectPrintfFormatString, string_startWiFiApOnBoot, string_startWiFiApOnBoot);
+            response->print(selectValueTrue);response->print(startWiFiApOnBoot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+            response->print(selectValueFalse);response->print(startWiFiApOnBoot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_enableCaptivePortal, PSTR("Enable captive portal"));
+            response->printf_P(selectPrintfFormatString, string_enableCaptivePortal, string_enableCaptivePortal);
+            response->print(selectValueTrue);response->print(enableCaptivePortal == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+            response->print(selectValueFalse);response->print(enableCaptivePortal == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_softApChannel, PSTR("Preferred channel"));
+            response->printf_P(selectPrintfFormatString, string_softApChannel, string_softApChannel);
+            response->print(F("<option value=\"1\""));response->print(softApChannel == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("1</option>"));
+            response->print(F("<option value=\"6\""));response->print(softApChannel == 6 ? selectValueSelected:selectValueNotSelected);response->print(F("6</option>"));
+            response->print(F("<option value=\"11\""));response->print(softApChannel == 11 ? selectValueSelected:selectValueNotSelected);response->print(F("11</option>"));
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(startRow);
+            response->print(startSixColumns);
+            response->printf_P(labelForPrintfFormatString, string_APSSID, PSTR("AP SSID"));
+            response->printf_P(inputTextPrintfFormatString, string_APSSID, string_APSSID, (APSSID != nullptr) ? APSSID : string_empty);
+            response->print(endColumn);
+            response->print(startSixColumns);
+            response->printf_P(labelForPrintfFormatString, string_APPSK, PSTR("AP PSK"));
+            response->printf_P(inputPasswordPrintfFormatString, string_APPSK, string_APPSK);
+            response->print(endColumn);
+            response->print(endRow);
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              response->print(startRow);
+              response->print(startFourColumns);
+              response->printf_P(labelForPrintfFormatString, string_basicAuthEnabled, PSTR("Web UI login"));
+              response->printf_P(selectPrintfFormatString, string_basicAuthEnabled, string_basicAuthEnabled);
+              response->print(selectValueTrue);response->print(basicAuthEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(basicAuthEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startFourColumns);
+              response->printf_P(labelForPrintfFormatString, string_http_user, PSTR("Web UI username"));
+              response->printf_P(inputTextPrintfFormatString, string_http_user, string_http_user, (http_user != nullptr) ? http_user : string_empty);
+              response->print(endColumn);
+              response->print(startFourColumns);
+              response->printf_P(labelForPrintfFormatString, string_http_password, PSTR("Web UI/OTA password"));
+              response->printf_P(inputPasswordPrintfFormatString, string_http_password, string_http_password);
+              response->print(endColumn);
+              response->print(endRow);
+            #endif
+            //Time Server
+            response->print(startRow);
+            response->print(startSixColumns);
+            response->printf_P(labelForPrintfFormatString, string_timeServer, PSTR("NTP host"));
+            response->printf_P(inputTextPrintfFormatString, string_timeServer, string_timeServer, (timeServer != nullptr) ? timeServer : string_empty);
+            response->print(endColumn);
+            response->print(startSixColumns);
+            response->printf_P(labelForPrintfFormatString, string_timeZone, PSTR("Timezone"));
+            response->printf_P(inputTextPrintfFormatString, string_timeZone, string_timeZone, (timeZone != nullptr) ? timeZone : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            //End of form
+            response->print(formEnd);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+        });
+        adminWebServer->on("/wifi", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-              xSemaphoreGive(webserverSemaphore);
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            if(request->hasParam(string_SSID, true))
+            {
+              if(SSID != nullptr)
+              {
+                delete [] SSID;
+              }
+              SSID = new char[request->getParam(string_SSID, true)->value().length() + 1];
+              strlcpy(SSID,request->getParam(string_SSID, true)->value().c_str(),request->getParam(string_SSID, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_PSK, true))
+            {
+              if(request->getParam(string_PSK, true)->value().length() > 0)
+              {
+                if(PSK != nullptr)
+                {
+                  delete [] PSK;
+                }
+                PSK = new char[request->getParam(string_PSK, true)->value().length() + 1];
+                strlcpy(PSK,request->getParam(string_PSK, true)->value().c_str(),request->getParam(string_PSK, true)->value().length() + 1);
+              }
+            }
+            if(request->hasParam(string_startWiFiClientOnBoot, true))
+            {
+              if(request->getParam(string_startWiFiClientOnBoot, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                startWiFiClientOnBoot = true;
+              }
+              else
+              {
+                startWiFiClientOnBoot = false;
+              }
+            }
+            if(request->hasParam(string_wiFiClientInactivityTimer, true))
+            {
+              wiFiClientInactivityTimer = request->getParam(string_wiFiClientInactivityTimer, true)->value().toInt();
+            }
+            if(request->hasParam(string_timeServer, true))
+            {
+              if(timeServer != nullptr)
+              {
+                delete [] timeServer;
+              }
+              timeServer = new char[request->getParam(string_timeServer, true)->value().length() + 1];
+              strlcpy(timeServer,request->getParam(string_timeServer, true)->value().c_str(),request->getParam(string_timeServer, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_timeZone, true))
+            {
+              if(timeZone != nullptr)
+              {
+                delete [] timeZone;
+              }
+              timeZone = new char[request->getParam(string_timeZone, true)->value().length() + 1];
+              strlcpy(timeZone,request->getParam(string_timeZone, true)->value().c_str(),request->getParam(string_timeZone, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_APSSID, true))
+            {
+              if(APSSID != nullptr)
+              {
+                delete [] APSSID;
+              }
+              APSSID = new char[request->getParam(string_APSSID, true)->value().length() + 1];
+              strlcpy(APSSID,request->getParam(string_APSSID, true)->value().c_str(),request->getParam(string_APSSID, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_APPSK, true))
+            {
+              if(request->getParam(string_APPSK, true)->value().length() > 0)
+              {
+                if(APPSK != nullptr)
+                {
+                  delete [] APPSK;
+                }
+                APPSK = new char[request->getParam(string_APPSK, true)->value().length() + 1];
+                strlcpy(APPSK,request->getParam(string_APPSK, true)->value().c_str(),request->getParam(string_APPSK, true)->value().length() + 1);
+              }
+            }
+            if(request->hasParam(string_startWiFiApOnBoot, true))
+            {
+              if(request->getParam(string_startWiFiApOnBoot, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                startWiFiApOnBoot = true;
+              }
+              else
+              {
+                startWiFiApOnBoot = false;
+              }
+            }
+            if(request->hasParam(string_enableCaptivePortal, true))
+            {
+              if(request->getParam(string_enableCaptivePortal, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                enableCaptivePortal = true;
+              }
+              else
+              {
+                enableCaptivePortal = false;
+              }
+            }
+            if(request->hasParam(string_softApChannel, true))
+            {
+              softApChannel = request->getParam(string_softApChannel, true)->value().toInt();
+            }
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(request->hasParam(string_http_user, true))
+              {
+                if(http_user != nullptr)
+                {
+                  delete [] http_user;
+                }
+                http_user = new char[request->getParam(string_http_user, true)->value().length() + 1];
+                strlcpy(http_user,request->getParam(string_http_user, true)->value().c_str(),request->getParam(string_http_user, true)->value().length() + 1);
+              }
+              if(request->hasParam(string_http_password, true))
+              {
+                if(request->getParam(string_http_password, true)->value().length() > 0)
+                {
+                  if(http_password != nullptr)
+                  {
+                    delete [] http_password;
+                  }
+                  http_password = new char[request->getParam(string_http_password, true)->value().length() + 1];
+                  strlcpy(http_password,request->getParam(string_http_password, true)->value().c_str(),request->getParam(string_http_password, true)->value().length() + 1);
+                }
+              }
+              if(request->hasParam(string_basicAuthEnabled, true))
+              {
+                if(request->getParam(string_basicAuthEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                {
+                  basicAuthEnabled = true;
+                }
+                else
+                {
+                  basicAuthEnabled = false;
+                }
+              }
+            #endif
+            saveConfigurationSoon = millis();
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      #endif      
+      adminWebServer->on("/general", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 0, nullptr);
+            //Start of form
+            response->print(formStart);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("General configuration"));
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
+            response->print(endRow);
+            //Name
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_deviceName, PSTR("Node name"));
+            response->printf_P(inputTextPrintfFormatString, string_deviceName, string_deviceName, (device[0].name != nullptr) ? device[0].name : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            #if defined(ACT_AS_BEACON)
+              //Static
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_deviceUsuallyStatic, PSTR("Usually static"));
+              response->printf_P(selectPrintfFormatString, string_deviceUsuallyStatic, string_deviceUsuallyStatic);
+              response->print(selectValueTrue);response->print(deviceUsuallyStatic == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(deviceUsuallyStatic == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+            #endif
+            //IC Name
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_icName, PSTR("IC name"));
+            response->printf_P(inputTextPrintfFormatString, string_icName, string_icName, (device[0].icName != nullptr) ? device[0].icName : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            //IC Description
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_icDescription, PSTR("IC description"));
+            response->printf_P(inputTextPrintfFormatString, string_icDescription, string_icDescription, (device[0].icDescription != nullptr) ? device[0].icDescription : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            //Diameter
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_diameter, PSTR("Diameter(m)"));
+            response->printf_P(inputNumberPrintfFormatString, string_diameter, string_diameter, device[0].diameter);
+            response->print(endColumn);
+            //Height
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_height, PSTR("Height(m)"));
+            response->printf_P(inputNumberPrintfFormatString, string_height, string_height, device[0].height);
+            response->print(endColumn);
+            //Comment
+            response->printf_P(h3printfFormatString, PSTR("Configuration"));
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_configurationComment, PSTR("Comment (optional)"));
+            response->printf_P(inputTextPrintfFormatString, string_configurationComment, string_configurationComment, (configurationComment != nullptr) ? configurationComment : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(formEnd);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+        });
+        adminWebServer->on("/general", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            if(request->hasParam(string_deviceName, true))
+            {
+              if(device[0].name != nullptr)
+              {
+                delete [] device[0].name;
+              }
+              device[0].name = new char[request->getParam(string_deviceName, true)->value().length() + 1];
+              strlcpy(device[0].name,request->getParam(string_deviceName, true)->value().c_str(),request->getParam(string_deviceName, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_deviceUsuallyStatic, true))
+            {
+              if(request->getParam(string_deviceUsuallyStatic, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(deviceUsuallyStatic != true)
+                {
+                  deviceUsuallyStatic = true;
+                }
+              }
+              else
+              {
+                if(deviceUsuallyStatic != false)
+                {
+                  deviceUsuallyStatic = false;
+                }
+              }
+            }
+            if(request->hasParam(string_configurationComment, true))
+            {
+              if(configurationComment != nullptr)
+              {
+                delete [] configurationComment;
+              }
+              configurationComment = new char[request->getParam(string_configurationComment, true)->value().length() + 1];
+              strlcpy(configurationComment,request->getParam(string_configurationComment, true)->value().c_str(),request->getParam(string_configurationComment, true)->value().length() + 1);
             }
             else
             {
-              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-              response->addHeader("Retry-After","5"); //Ask it to wait 5s
-              //Send response
-              request->send(response);
+              if(configurationComment != nullptr)
+              {
+                delete [] configurationComment;
+              }
+              configurationComment = new char[strlen(default_configurationComment) + 1];  //Assign space on heap
+              strlcpy(configurationComment,default_configurationComment,strlen(default_configurationComment) + 1);  //Copy in default
             }
-          #endif
+            if(request->hasParam(string_icName, true))
+            {
+              if(device[0].icName != nullptr)
+              {
+                delete [] device[0].icName;
+              }
+              device[0].icName = new char[request->getParam(string_icName, true)->value().length() + 1];
+              strlcpy(device[0].icName,request->getParam(string_icName, true)->value().c_str(),request->getParam(string_icName, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_icName, true))
+            {
+              if(device[0].icDescription != nullptr)
+              {
+                delete [] device[0].icDescription;
+              }
+              device[0].icDescription = new char[request->getParam(string_icDescription, true)->value().length() + 1];
+              strlcpy(device[0].icDescription,request->getParam(string_icDescription, true)->value().c_str(),request->getParam(string_icDescription, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_diameter, true))
+            {
+              if(device[0].diameter != request->getParam(string_diameter, true)->value().toInt())
+              {
+                device[0].diameter = request->getParam(string_diameter, true)->value().toInt();
+              }
+            }
+            if(request->hasParam(string_height, true))
+            {
+              if(device[0].height != request->getParam(string_height, true)->value().toInt())
+              {
+                device[0].height = request->getParam(string_height, true)->value().toInt();
+              }
+            }
+            saveConfigurationSoon = millis();
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      adminWebServer->on("/tracking", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 0, nullptr);
+            //Start of form
+            response->print(formStart);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("General configuration"));
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
+            response->print(endRow);
+            //Name
+            #if defined(ACT_AS_TRACKER)
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_maximumEffectiveRange, PSTR("Maximum effective range"));
+              response->printf_P(selectPrintfFormatString, string_maximumEffectiveRange, string_maximumEffectiveRange);
+              response->print(F("<option value=\"50\""));response->print(maximumEffectiveRange == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50m</option>"));
+              response->print(F("<option value=\"75\""));response->print(maximumEffectiveRange == 75 ? selectValueSelected:selectValueNotSelected);response->print(F("75m</option>"));
+              response->print(F("<option value=\"99\""));response->print(maximumEffectiveRange == 99 ? selectValueSelected:selectValueNotSelected);response->print(F("99m</option>"));
+              response->print(F("<option value=\"100\""));response->print(maximumEffectiveRange == 100 ? selectValueSelected:selectValueNotSelected);response->print(F("100m</option>"));
+              response->print(F("<option value=\"150\""));response->print(maximumEffectiveRange == 150 ? selectValueSelected:selectValueNotSelected);response->print(F("150m</option>"));
+              response->print(F("<option value=\"250\""));response->print(maximumEffectiveRange == 250 ? selectValueSelected:selectValueNotSelected);response->print(F("250m</option>"));
+              response->print(F("<option value=\"500\""));response->print(maximumEffectiveRange == 500 ? selectValueSelected:selectValueNotSelected);response->print(F("500m</option>"));
+              response->print(F("<option value=\"750\""));response->print(maximumEffectiveRange == 750 ? selectValueSelected:selectValueNotSelected);response->print(F("750m</option>"));
+              response->print(F("<option value=\"1000\""));response->print(maximumEffectiveRange == 1000 ? selectValueSelected:selectValueNotSelected);response->print(F("1000m</option>"));
+              response->print(F("<option value=\"9999\""));response->print(maximumEffectiveRange == 9999 ? selectValueSelected:selectValueNotSelected);response->print(F("9999m</option>"));
+              response->print(F("<option value=\"10000\""));response->print(maximumEffectiveRange == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10000m</option>"));
+              response->print(F("<option value=\""));response->print(effectivelyUnreachable);response->print('"');response->print(maximumEffectiveRange == effectivelyUnreachable ? selectValueSelected:selectValueNotSelected);response->print(F("Unlimited</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+            #endif
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_trackingSensitivity, PSTR("Sensitivity"));
+            response->printf_P(selectPrintfFormatString, string_trackingSensitivity, string_trackingSensitivity);
+            response->print(F("<option value=\"0\""));response->print(trackingSensitivity == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Low</option>"));
+            response->print(F("<option value=\"1\""));response->print(trackingSensitivity == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("Medium</option>"));
+            response->print(F("<option value=\"2\""));response->print(trackingSensitivity == 2 ? selectValueSelected:selectValueNotSelected);response->print(F("High</option>"));
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(formEnd);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
         });
-      #endif
+        adminWebServer->on("/tracking", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            if(request->hasParam(string_trackingSensitivity, true))
+            {
+              trackingSensitivity = request->getParam(string_trackingSensitivity, true)->value().toInt();
+            }
+            #if defined(ACT_AS_TRACKER)    
+              if(request->hasParam(string_maximumEffectiveRange, true))
+              {
+                maximumEffectiveRange = request->getParam(string_maximumEffectiveRange, true)->value().toInt();
+              }
+            #endif
+            saveConfigurationSoon = millis();
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      //ESP-Now
       #if defined(SUPPORT_ESPNOW)
           adminWebServer->on("/espnowconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
@@ -1666,15 +1772,11 @@
               addPageHeader(response, 0, nullptr);
               //Start of form
               response->print(formStart);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-              response->print(endColumn);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("ESP-Now configuration"));
               response->print(startFourColumns);
               response->print(saveButton);
               response->print(endColumn);
               response->print(endRow);
-              response->printf_P(h2printfFormatString, PSTR("ESP-Now configuration"));
               //ESP-Now
               response->print(startRow);
               response->print(startTwelveColumns);
@@ -1831,25 +1933,6 @@
                   return request->requestAuthentication();  //Force basic authentication
               }
             #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
-              }
-            #endif
             //Read the submitted configuration
             bool espNowConfigurationChanged = false;
             if(request->hasParam(string_espNowEnabled, true))
@@ -1999,15 +2082,11 @@
               addPageHeader(response, 0, nullptr);
               //Start of form
               response->print(formStart);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-              response->print(endColumn);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("LoRa configuration"));
               response->print(startFourColumns);
               response->print(saveButton);
               response->print(endColumn);
               response->print(endRow);
-              response->printf_P(h2printfFormatString, PSTR("LoRa configuration"));
               response->print(startRow);
               response->print(startTwelveColumns);
               response->print(F("<label for=\"loRaEnabled\">LoRa radio enabled</label>"));
@@ -2166,25 +2245,6 @@
                 if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
                 {
                     return request->requestAuthentication();  //Force basic authentication
-                }
-              #endif
-              #ifdef DEBUG_FORM_SUBMISSION
-                int params = request->params();
-                localLog(F("Submitted Configuration parameters: "));
-                localLogLn(params);
-                for(int i=0;i<params;i++){
-                  AsyncWebParameter* p = request->getParam(i);
-                  if(p->isFile()){ //p->isPost() is also true
-                    //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                  } else if(p->isPost()){
-                    //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                    localLog(F("POST["));
-                    localLog(p->name().c_str());
-                    localLog(F("]: "));
-                    localLogLn(p->value().c_str());
-                  } else {
-                    //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  }
                 }
               #endif
               //Read the submitted configuration
@@ -2358,16 +2418,12 @@
               addPageHeader(response, 0, nullptr);
               //Start of form
               response->print(formStart);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-              response->print(endColumn);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Treacle configuration"));
               response->print(startFourColumns);
               response->print(saveButton);
               response->print(endColumn);
               response->print(endRow);
-              response->printf_P(h2printfFormatString, PSTR("Treacle configuration"));
-              //Treacel encryption
+              //Treacle encryption
               response->print(startRow);
               response->print(startTwelveColumns);
               response->printf_P(labelForPrintfFormatString, string_treacleEncryptionEnabled, PSTR("Encryption enabled"));
@@ -2517,25 +2573,6 @@
                   return request->requestAuthentication();  //Force basic authentication
               }
             #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
-              }
-            #endif
             //Read the submitted configuration
             bool treacleConfigurationChanged = false;
             if(request->hasParam(string_espNowEnabled, true))
@@ -2645,7 +2682,7 @@
       });
       #endif
       #if defined(SUPPORT_LVGL)
-        adminWebServer->on("/guiconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on("/gui", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -2660,24 +2697,34 @@
               addPageHeader(response, 0, nullptr);
               //Start of form
               response->print(formStart);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-              response->print(endColumn);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("GUI configuration"));
               response->print(startFourColumns);
               response->print(saveButton);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startEightColumns);
+              response->print(F("&nbsp;"));
               response->print(endColumn);
               response->print(startFourColumns);
               response->printf_P(buttonPrintfFormatString, PSTR("touchscreen"), PSTR("Reset touchscreen"));
               response->print(endColumn);
               response->print(endRow);
-              response->printf_P(h2printfFormatString, PSTR("Treacle configuration"));
               response->print(startRow);
               response->print(startTwelveColumns);
               response->printf_P(labelForPrintfFormatString, string_enableHomeTab, PSTR("Home tab"));
               response->printf_P(selectPrintfFormatString, string_enableHomeTab, string_enableHomeTab);
               response->print(selectValueTrue);response->print(enableHomeTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(enableHomeTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_enableMapTab, PSTR("Map tab"));
+              response->printf_P(selectPrintfFormatString, string_enableMapTab, string_enableMapTab);
+              response->print(selectValueTrue);response->print(enableMapTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(enableMapTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
               response->print(endColumn);
               response->print(endRow);
@@ -2725,7 +2772,7 @@
             }
           #endif
           });
-        adminWebServer->on("/guiconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on("/gui", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -2734,25 +2781,6 @@
               if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
               {
                   return request->requestAuthentication();  //Force basic authentication
-              }
-            #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
               }
             #endif
             //Read the submitted configuration
@@ -2772,6 +2800,25 @@
                 if(enableHomeTab == true)
                 {
                   enableHomeTab = false;
+                  lvglConfigurationChanged = true;
+                }
+              }
+            }
+            if(request->hasParam(string_enableMapTab, true))
+            {
+              if(request->getParam(string_enableMapTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(enableMapTab == false)
+                {
+                  enableMapTab = true;
+                  lvglConfigurationChanged = true;
+                }
+              }
+              else
+              {
+                if(enableMapTab == true)
+                {
+                  enableMapTab = false;
                   lvglConfigurationChanged = true;
                 }
               }
@@ -2852,7 +2899,7 @@
       });
       #endif
       #if defined(SUPPORT_FTM)
-        adminWebServer->on("/ftmconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on("/ftm", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -2867,15 +2914,11 @@
               addPageHeader(response, 0, nullptr);
               //Start of form
               response->print(formStart);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-              response->print(endColumn);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("FTM configuration"));
               response->print(startFourColumns);
               response->print(saveButton);
               response->print(endColumn);
               response->print(endRow);
-              response->printf_P(h2printfFormatString, PSTR("FTM configuration"));
               //FTM
               #if defined(ACT_AS_TRACKER)
                 //State
@@ -2912,7 +2955,7 @@
                 response->print(F("Pre-shared key to try"));
                 response->print(endColumn);
                 response->print(startSixColumns);
-                response->print(F("<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"ftmPSK\" name=\"ftmPSK\">"));
+                response->printf_P(inputPasswordPrintfFormatString, string_ftmPSK, string_ftmPSK);
                 response->print(endColumn);
                 response->print(endRow);
               #elif defined(ACT_AS_BEACON)
@@ -2960,7 +3003,7 @@
                 response->print(F("Pre-shared key (if not otherwise set)"));
                 response->print(endColumn);
                 response->print(startSixColumns);
-                response->print(F("<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"ftmPSK\" name=\"ftmPSK\">"));
+                response->printf_P(inputPasswordPrintfFormatString, string_ftmPSK, string_ftmPSK);
                 response->print(endColumn);
                 response->print(endRow);
               #endif
@@ -2981,7 +3024,7 @@
             }
           #endif
           });
-          adminWebServer->on("/ftmconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          adminWebServer->on("/ftm", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
             #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
@@ -2990,25 +3033,6 @@
                 if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
                 {
                     return request->requestAuthentication();  //Force basic authentication
-                }
-              #endif
-              #ifdef DEBUG_FORM_SUBMISSION
-                int params = request->params();
-                localLog(F("Submitted Configuration parameters: "));
-                localLogLn(params);
-                for(int i=0;i<params;i++){
-                  AsyncWebParameter* p = request->getParam(i);
-                  if(p->isFile()){ //p->isPost() is also true
-                    //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                  } else if(p->isPost()){
-                    //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                    localLog(F("POST["));
-                    localLog(p->name().c_str());
-                    localLog(F("]: "));
-                    localLogLn(p->value().c_str());
-                  } else {
-                    //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  }
                 }
               #endif
               bool ftmConfigurationChanged = false;
@@ -3107,7 +3131,7 @@
         });
       #endif
       #if defined(SUPPORT_GPS)
-        adminWebServer->on("/gpsconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on("/gps", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -3122,14 +3146,27 @@
               addPageHeader(response, 0, nullptr);
               //Start of form
               response->print(formStart);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-              response->print(endColumn);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("GPS configuration"));
               response->print(startFourColumns);
               response->print(saveButton);
               response->print(endRow);
-              response->printf_P(h2printfFormatString, PSTR("GPS configuration"));
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_useGpsForTimeSync, PSTR("Sync time with GPS"));
+              response->printf_P(selectPrintfFormatString, string_useGpsForTimeSync, string_useGpsForTimeSync);
+              response->print(selectValueTrue);response->print(useGpsForTimeSync == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(useGpsForTimeSync == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_movementThreshold, PSTR("Movement threshold(m/s)"));
+              response->printf_P(PSTR("<input type=\"number\" id=\"movementThreshold\" name=\"movementThreshold\" class=\"u-full-width\" min=\"0.1\" max=\"5.0\" step=\"0.1\" value=\"%.1f\">"), movementThreshold);
+              response->printf_P(labelForPrintfFormatString, string_smoothingFactor, PSTR("Movement smoothing factor"));
+              response->printf_P(PSTR("<input type=\"number\" id=\"smoothingFactor\" name=\"smoothingFactor\" class=\"u-full-width\" min=\"0.05\" max=\"0.95\" step=\"0.05\" value=\"%.2f\">"), smoothingFactor);
+              response->print(endColumn);
+              response->print(endRow);
               #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
                 response->print(startRow);
                 response->print(startTwelveColumns);
@@ -3159,15 +3196,6 @@
                 response->print(endColumn);
                 response->print(endRow);
               #endif
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_useGpsForTimeSync, PSTR("Sync time with GPS"));
-              response->printf_P(selectPrintfFormatString, string_useGpsForTimeSync, string_useGpsForTimeSync);
-              response->print(selectValueTrue);response->print(useGpsForTimeSync == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(useGpsForTimeSync == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(endRow);
               //End of form
               response->print(formEnd);
               addPageFooter(response);
@@ -3185,7 +3213,7 @@
             }
           #endif
           });
-          adminWebServer->on("/gpsconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          adminWebServer->on("/gps", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
             #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
@@ -3194,25 +3222,6 @@
                 if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
                 {
                     return request->requestAuthentication();  //Force basic authentication
-                }
-              #endif
-              #ifdef DEBUG_FORM_SUBMISSION
-                int params = request->params();
-                localLog(F("Submitted Configuration parameters: "));
-                localLogLn(params);
-                for(int i=0;i<params;i++){
-                  AsyncWebParameter* p = request->getParam(i);
-                  if(p->isFile()){ //p->isPost() is also true
-                    //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                  } else if(p->isPost()){
-                    //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                    localLog(F("POST["));
-                    localLog(p->name().c_str());
-                    localLog(F("]: "));
-                    localLogLn(p->value().c_str());
-                  } else {
-                    //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  }
                 }
               #endif
               //Read the submitted configuration
@@ -3238,6 +3247,26 @@
                     localLogLn(useGpsForTimeSync);
                     gpsConfigurationChanged = true;
                   }
+                }
+              }
+              if(request->hasParam(string_movementThreshold, true))
+              {
+                if(movementThreshold != request->getParam(string_movementThreshold, true)->value().toFloat())
+                {
+                  movementThreshold = request->getParam(string_movementThreshold, true)->value().toFloat();
+                  localLog(F("movementThreshold: "));
+                  localLogLn(movementThreshold);
+                  gpsConfigurationChanged = true;
+                }
+              }
+              if(request->hasParam(string_smoothingFactor, true))
+              {
+                if(smoothingFactor != request->getParam(string_smoothingFactor, true)->value().toFloat())
+                {
+                  smoothingFactor = request->getParam(string_smoothingFactor, true)->value().toFloat();
+                  localLog(F("smoothingFactor: "));
+                  localLogLn(smoothingFactor);
+                  gpsConfigurationChanged = true;
                 }
               }
               #if defined(SUPPORT_SOFT_POWER_OFF)
@@ -3310,13 +3339,13 @@
                   response->print(ESP_IDF_VERSION_MAJOR);
                 #endif
               #endif
-              response->print(ulEnd);
+              response->print(ulEndRow);
               response->print(F("<p>Before uploading any pre-compiled binary software, please check it is the version you want and for the right board after checking the information above.</p>"));
               response->print(F("<form method=\"POST\" action=\"/update\" enctype=\"multipart/form-data\">"));
               response->print(F("<input class=\"button-primary\" type=\"file\" name=\"update\"><br />"));
               response->print(startRow);
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
+              response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
               response->print(endColumn);
               response->print(startFourColumns);
               repsonse->print(F("<input class=\"button-primary\" type=\"submit\" value=\"Update\" style=\"width: 100%;\">"));
@@ -3373,7 +3402,7 @@
                   response->print(endRow);
                   response->print(startRow);
                   response->print(startFourColumns);
-                  response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
+                  response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
                   response->print(endColumn);
                   response->print(endRow);
                   addPageFooter(response);
@@ -3472,7 +3501,7 @@
             response->print(F("<p>The software update was successful and this node will restart in roughly 10 seconds.</p>"));
             response->print(startRow);
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
+            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
             response->print(endColumn);
             response->print(endRow);
             addPageFooter(response);
@@ -3492,6 +3521,111 @@
         #endif
         });
       #endif
+      adminWebServer->on("/logging", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 0, nullptr);
+            response->print(formStart);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Logging configuration"));
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
+            response->print(endRow);
+            //Start of form
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_loggingBufferSize, PSTR("Buffer size"));
+            response->printf_P(inputNumberPrintfFormatString, string_loggingBufferSize, string_loggingBufferSize, loggingBufferSize);
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_logFlushThreshold, PSTR("Buffer flush threshold"));
+            response->printf_P(inputNumberPrintfFormatString, string_logFlushThreshold, string_logFlushThreshold, logFlushThreshold);
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_logFlushInterval, PSTR("Buffer flush frequency"));
+            response->printf_P(selectPrintfFormatString, string_logFlushInterval, string_logFlushInterval);
+            response->print(F("<option value=\"30\""));response->print(logFlushInterval == 30 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+            response->print(F("<option value=\"60\""));response->print(logFlushInterval == 60 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+            response->print(F("<option value=\"90\""));response->print(logFlushInterval == 90 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+            response->print(F("<option value=\"180\""));response->print(logFlushInterval == 180 ? selectValueSelected:selectValueNotSelected);response->print(F("3 minutes</option>"));
+            response->print(F("<option value=\"300\""));response->print(logFlushInterval == 300 ? selectValueSelected:selectValueNotSelected);response->print(F("5 minutes</option>"));
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(endRow);
+            //End of form
+            response->print(formEnd);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+        });
+        adminWebServer->on("/logging", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            if(request->hasParam(string_loggingBufferSize, true))
+            {
+              if(loggingBufferSize != request->getParam(string_loggingBufferSize, true)->value().toInt())
+              {
+                loggingBufferSize = request->getParam(string_loggingBufferSize, true)->value().toInt();
+              }
+            }
+            if(request->hasParam(string_logFlushThreshold, true))
+            {
+              if(logFlushThreshold != request->getParam(string_logFlushThreshold, true)->value().toInt())
+              {
+                logFlushThreshold = request->getParam(string_logFlushThreshold, true)->value().toInt();
+              }
+            }
+            if(request->hasParam(string_logFlushInterval, true))
+            {
+              if(logFlushInterval != request->getParam(string_logFlushInterval, true)->value().toInt())
+              {
+                logFlushInterval = request->getParam(string_logFlushInterval, true)->value().toInt();
+              }
+            }
+            saveConfigurationSoon = millis();
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+        
       #if defined(ACT_AS_SENSOR)
         adminWebServer->on("/sensorConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
@@ -3506,13 +3640,9 @@
               #endif
               AsyncResponseStream *response = request->beginResponseStream("text/html");
               addPageHeader(response, 0, nullptr);
-              response->printf_P(h2printfFormatString, PSTR("Sensor configuration"));
               //Start of form
               response->print(formStart);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-              response->print(endColumn);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Sensor configuration"));
               response->print(startFourColumns);
               response->print(saveButton);
               response->print(endColumn);
@@ -3658,27 +3788,7 @@
                   return request->requestAuthentication();  //Force basic authentication
               }
             #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
-              }
-            #endif
             //Read the submitted configuration
-            //Starting values
             if(request->hasParam("numberOfStartingHits", true))
             {
               device[0].numberOfStartingHits = request->getParam("numberOfStartingHits", true)->value().toInt();
@@ -3852,7 +3962,7 @@
             //Top of page buttons
             response->print(startRow);
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
+            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
             response->print(endColumn);
             response->print(endRow);
             response->print(startRow);
@@ -3949,7 +4059,7 @@
             //Top of page buttons
             response->print(startRow);
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
+            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
             response->print(endColumn);
             response->print(endRow);
             response->print(startRow);
@@ -4040,7 +4150,7 @@
           //Top of page buttons
           response->print(startRow);
           response->print(startTwelveColumns);
-          response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
+          response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
           response->print(endColumn);
           response->print(endRow);
           response->print(startRow);
@@ -4079,7 +4189,7 @@
           //Top of page buttons
           response->print(startRow);
           response->print(startFourColumns);
-          response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
+          response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
           response->print(endColumn);
           #if defined(ACT_AS_TRACKER)
             response->print(startFourColumns);
@@ -4400,15 +4510,11 @@
               response->printf_P(h2printfFormatString, PSTR("Game configuration"));
               //Start of form
               response->print(formStart);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), PSTR("Back"));
-              response->print(endColumn);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Starting values"));
               response->print(startFourColumns);
               response->print(saveButton);
               response->print(endColumn);
               response->print(endRow);
-              response->printf_P(h3printfFormatString, PSTR("Starting values"));
               //Starting hits
               response->print(startRow);
               response->print(startSixColumns);
@@ -4457,25 +4563,6 @@
                   return request->requestAuthentication();  //Force basic authentication
               }
             #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
-              }
-            #endif
             //Read the submitted configuration
             if(request->hasParam(string_gameLength, true))
             {
@@ -4489,10 +4576,7 @@
             {
               gameSpeedup = request->getParam(string_gameSpeedup, true)->value().toInt();
             }
-            if(configurationChanged())
-            {
-              saveConfigurationSoon = millis();
-            }
+            saveConfigurationSoon = millis();
             request->redirect("/admin");
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);

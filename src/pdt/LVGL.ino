@@ -61,6 +61,12 @@
     {
       createHomeTab();
     }
+    #if defined(LVGL_SUPPORT_MAP_TAB)
+      if(enableMapTab)
+      {
+        createMapTab();
+      }
+    #endif
     #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
       if(enableInfoTab)
       {
@@ -807,6 +813,13 @@
       #endif
     }
   }
+  #if defined(LVGL_SUPPORT_MAP_TAB)
+    void createMapTab()
+    {
+      //Create the tab
+      mapTab = lv_tabview_add_tab(tabview, mapTabLabel);
+    }
+  #endif
   #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
     void createScanInfoTab(void)
     {

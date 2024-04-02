@@ -483,7 +483,7 @@ void showStartupInfo()
       #endif
       localLog(F("Processor clock: "));
       localLog(getCpuFrequencyMhz());
-      localLogLn(F("Mhz"));
+      localLogLn(F("MHz"));
     #else // ESP32 Before IDF 4.0
       localLogLn(F("ESP32"));
     #endif

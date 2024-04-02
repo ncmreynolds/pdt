@@ -39,15 +39,15 @@ void setup() {
     WiFi.macAddress(localMacAddress); //Copy in local MAC address
   #endif
   #if defined(ACT_AS_TRACKER)
-    device[0].typeOfDevice = device[0].typeOfDevice | 1;  //Mark it as a tracker
+    device[0].typeOfDevice = device[0].typeOfDevice | 0x01;  //Mark it as a tracker
   #endif
   #if defined(ACT_AS_SENSOR)
-    device[0].typeOfDevice = device[0].typeOfDevice | 2; //Mark it as a sensor
+    device[0].typeOfDevice = device[0].typeOfDevice | 0x02; //Mark it as a sensor
   #endif
   #if defined(SUPPORT_FTM)
     if(ftmEnabled == true)
     {
-      device[0].typeOfDevice = device[0].typeOfDevice | 8;  //Mark it as an FTM device
+      device[0].typeOfDevice = device[0].typeOfDevice | 0x08;  //Mark it as an FTM device
     }
   #endif
   device[0].majorVersion = PDT_MAJOR_VERSION;
@@ -72,6 +72,12 @@ void setup() {
       }
     #endif
     showSensorConfiguration();
+  #endif
+  #if defined(ACT_AS_BEACON)
+    if(deviceUsuallyStatic)
+    {
+      device[0].typeOfDevice = device[0].typeOfDevice | 0x80; //Mark it as usually static
+    }
   #endif
   #if defined(SUPPORT_WIFI)
     setupNetwork();
