@@ -33,13 +33,7 @@ void setup() {
       }
     #endif
   #endif
-  /*
-  #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
-    WiFi.macAddress(device[0].id); //Copy in local MAC address as 'device 0'
-  */
-  #if defined(SUPPORT_TREACLE)
-    WiFi.macAddress(localMacAddress); //Copy in local MAC address
-  #endif
+  WiFi.macAddress(localMacAddress); //Copy in local MAC address
   #if defined(ACT_AS_TRACKER)
     device[0].typeOfDevice = device[0].typeOfDevice | 0x01;  //Mark it as a tracker
   #endif
@@ -84,31 +78,13 @@ void setup() {
   #if defined(SUPPORT_WIFI)
     setupNetwork();
   #endif
-  /*
-  #if defined(SUPPORT_ESPNOW)
-    setupEspNow();
-  #endif
-  */
-  #if defined(SUPPORT_DISPLAY) && defined(SUPPORT_LORA)
-    setupLoRa();  //Needs to be before SPI display!
-  #endif
-  #if defined(SUPPORT_DISPLAY) && defined(SUPPORT_TREACLE)
-    setupTreacle();
-  #endif
   #if defined(SUPPORT_DISPLAY)
-    setupDisplay();  //Needs to be after LoRa
-  #endif
-  #if defined(SUPPORT_LVGL)
-    setupLvgl();
-  #endif
-  #if defined(SUPPORT_LVGL) && defined(SUPPORT_LORA)
-    setupLoRa();  //Needs to be after LVGL and touchscreen!
-  #elif defined(SUPPORT_LORA)
-    setupLoRa();  //Here's as good a place as any to start LoRa with no other worries about which library starts SPI
-  #endif
-  #if defined(SUPPORT_LVGL) && defined(SUPPORT_TREACLE)
     setupTreacle();
-  #elif defined(SUPPORT_TREACLE)
+    setupDisplay();  //Needs to be after Treacle!
+  #elif defined(SUPPORT_LVGL)
+    setupLvgl();    //Need to be before Treacle!
+    setupTreacle();
+  #else
     setupTreacle();
   #endif
   #if defined(SUPPORT_GPS)
@@ -116,6 +92,10 @@ void setup() {
   #endif
   #if defined(SUPPORT_BATTERY_METER)
     setupBattery();
+    if(enableBatteryMonitor == true)
+    {
+      device[0].typeOfDevice = device[0].typeOfDevice | 0x40;  //Mark it as monitoring the battery
+    }
   #endif
   #if defined(ACT_AS_SENSOR)
     setupLasertag();

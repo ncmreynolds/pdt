@@ -79,11 +79,6 @@
   #endif
   void killAllTasks()
   {
-    /*
-    #if defined(SUPPORT_LORA)
-      LoRa.end();
-    #endif
-    */
     if(loggingManagementTask)
     {
       vTaskDelete(loggingManagementTask);
@@ -136,10 +131,5 @@
         xTaskCreate(manageLed, "manageLed", 512, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
       }
     #endif
-    /*
-    #if defined(SUPPORT_LORA)
-      //LoRa.sleep();
-    #endif
-    */
   }
 #endif

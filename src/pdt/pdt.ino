@@ -58,7 +58,6 @@
   #define USE_SSD1331
   #define SUPPORT_GPS
   #define SUPPORT_WIFI
-  #define SUPPORT_TREACLE
   //#define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
@@ -67,7 +66,6 @@
   #define SUPPORT_GPS
   #define DEBUG_GPS
   #define SUPPORT_WIFI
-  #define SUPPORT_TREACLE
   //#define DEBUG_TREACLE
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3TrackedSensor
@@ -80,7 +78,6 @@
   #define SUPPORT_GPS
   #define DEBUG_GPS
   #define SUPPORT_WIFI
-  #define SUPPORT_TREACLE
   //#define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
   //#define SUPPORT_HACKING
@@ -90,7 +87,6 @@
   #define SUPPORT_GPS
   #define DEBUG_GPS
   #define SUPPORT_WIFI
-  #define SUPPORT_TREACLE
   //#define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
@@ -103,7 +99,6 @@
   #define SUPPORT_LED
   #define SUPPORT_GPS
   #define DEBUG_GPS
-  #define SUPPORT_TREACLE
   #define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
   //#define SUPPORT_FTM
@@ -116,11 +111,6 @@
   //#define DEBUG_GPS
   //#define DEBUG_BEACON_SELECTION
   #define SUPPORT_WIFI
-  //#define SUPPORT_ESPNOW
-  //#define DEBUG_ESPNOW
-  //#define SUPPORT_LORA
-  //#define DEBUG_LORA
-  #define SUPPORT_TREACLE
   //#define DEBUG_TREACLE
   #define SUPPORT_LVGL
   //#define DEBUG_LVGL
@@ -223,29 +213,27 @@
  * LoRa support
  * 
  */
-#if defined(SUPPORT_TREACLE)
-  #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
-    static const int8_t loRaCsPin = 7;          // LoRa radio chip select
-    static const int8_t loRaResetPin = 8;       // LoRa radio reset
-    static const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
-  #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
-    static const int8_t loRaCsPin = 7;          // LoRa radio chip select
-    static const int8_t loRaResetPin = 8;       // LoRa radio reset
-    static const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
-  #elif HARDWARE_VARIANT == C3LoRaBeacon
-    static const int8_t loRaCsPin = 7;          // LoRa radio chip select
-    static const int8_t loRaResetPin = 2;       // LoRa radio reset
-    static const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
-  #elif HARDWARE_VARIANT == CYDTracker
-    //Sd card adaptor attachment
-    //static const int8_t loRaCsPin = 5;        // LoRa radio chip select
-    //static const int8_t loRaResetPin = 22;    // LoRa radio reset
-    //static const int8_t loRaIrqPin = 27;      // change for your board; must be a hardware interrupt pin
-    //Hand soldered attachment
-    static const int8_t loRaCsPin = 17;         // LoRa radio chip select
-    static const int8_t loRaResetPin = 16;      // LoRa radio reset
-    static const int8_t loRaIrqPin = 4;         // change for your board; must be a hardware interrupt pin
-  #endif
+#if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
+  static const int8_t loRaCsPin = 7;          // LoRa radio chip select
+  static const int8_t loRaResetPin = 8;       // LoRa radio reset
+  static const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+#elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
+  static const int8_t loRaCsPin = 7;          // LoRa radio chip select
+  static const int8_t loRaResetPin = 8;       // LoRa radio reset
+  static const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+#elif HARDWARE_VARIANT == C3LoRaBeacon
+  static const int8_t loRaCsPin = 7;          // LoRa radio chip select
+  static const int8_t loRaResetPin = 2;       // LoRa radio reset
+  static const int8_t loRaIrqPin = 10;        // change for your board; must be a hardware interrupt pin
+#elif HARDWARE_VARIANT == CYDTracker
+  //Sd card adaptor attachment
+  //static const int8_t loRaCsPin = 5;        // LoRa radio chip select
+  //static const int8_t loRaResetPin = 22;    // LoRa radio reset
+  //static const int8_t loRaIrqPin = 27;      // change for your board; must be a hardware interrupt pin
+  //Hand soldered attachment
+  static const int8_t loRaCsPin = 17;         // LoRa radio chip select
+  static const int8_t loRaResetPin = 16;      // LoRa radio reset
+  static const int8_t loRaIrqPin = 4;         // change for your board; must be a hardware interrupt pin
 #endif
 #if defined(SUPPORT_BEEPER)
   static const uint8_t beeperChannel = 2;
@@ -499,184 +487,54 @@
  * Needed to encode the data in packets
  * 
  */
-#if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA) || defined(SUPPORT_TREACLE)
-  #include <MsgPack.h>  //MsgPack is used to transmit data
-  #include "CRC16.h" //A CRC16 is used to check the packet is LIKELY to be sent in a known format
-  #include "CRC.h"
-  #define LORA_CRC_POLYNOME 0xac9a  //Taken from https://users.ece.cmu.edu/~koopman/crc/
+#include <MsgPack.h>  //MsgPack is used to transmit data
+#include "CRC16.h" //A CRC16 is used to check the packet is LIKELY to be sent in a known format
+#include "CRC.h"
+#define LORA_CRC_POLYNOME 0xac9a  //Taken from https://users.ece.cmu.edu/~koopman/crc/
 
-  //These are message packing IDs
-  static const uint8_t locationUpdateId = 0x00;           //LoRa packet contains location info from a beacon
-  static const uint8_t deviceStatusUpdateId = 0x10;       //LoRa packet contains device info, shared infrequently
-  static const uint8_t deviceIcInfoId = 0x11;             //LoRa packet contains IC game info, shared very infrequently
-
-  /*
-  #if defined(SUPPORT_LORA)
-    uint8_t typeOfLastLoRaUpdate = deviceIcInfoId;      //Use to cycle through update types
-  #endif
-  */
-  #if defined(SUPPORT_ESPNOW)
-    /*
-    uint8_t typeOfLastEspNowUpdate = deviceIcInfoId;      //Use to cycle through update types
-    */
-  #endif
-  #if defined(SUPPORT_TREACLE)
-    uint32_t lastTreacleDeviceInfoSendTime = 0;       //Track the last time of updates
-    uint32_t lastTreacleLocationSendTime = 0;
-    uint32_t treacleDeviceInfoInterval = 60E3;        //Send device info every 60s
-    uint32_t treacleLocationInterval = 10E3;          //Send device location every 60s
-    uint8_t typeOfLastTreacleUpdate = deviceIcInfoId; //Use to cycle through update types
-  #endif
-#endif
-/*
- * 
- * ESP-Now
- * 
- */
-#if defined(SUPPORT_ESPNOW)
-  /*
-  extern "C" {
-    #include <esp_now.h>
-    //#include <esp_wifi.h> // only for esp_wifi_set_channel()
-  }
-  bool espNowEnabled = true;
-  const char string_espNowEnabled[] PROGMEM = "espNowEnabled";
-  bool espNowInitialised = false;
-  uint8_t espNowPreferredChannel = 1;
-  uint8_t espNowChannel = 1;
-  static const uint8_t maxEspNowBufferSize = 255;
-  uint8_t espNowReceiveBuffer[maxEspNowBufferSize];
-  volatile uint8_t espNowReceiveBufferSize = 0;
-  uint8_t espNowSendBuffer[maxEspNowBufferSize];
-  volatile uint8_t espNowSendBufferSize = 0;
-  volatile uint32_t espNowRxPackets = 0;
-  volatile uint32_t espNowRxPacketsDropped = 0;
-  volatile uint32_t espNowTxPackets = 0;
-  volatile uint32_t espNowTxPacketsDropped = 0;
-  volatile uint32_t espNowPacketSent = 0;
-  uint32_t espNowTxTime = 0; //Time in ms spent transmitting
-  float maximumEspNowDutyCycle = 1.0;
-  float calculatedEspNowDutyCycle = 0.0;  //Calculated from loRaTxTime and millis()
-  uint32_t defaultEspNowLocationInterval = 60000;
-  uint16_t espNowPerimiter1 = 25;             //Range at which beacon 1 applies
-  uint32_t espNowLocationInterval1 = 5000;    // interval between sends
-  uint16_t espNowPerimiter2 = 50;             //Range at which beacon 2 applies
-  uint32_t espNowLocationInterval2 = 5000;   // interval between sends
-  uint16_t espNowPerimiter3 = 100;            //Range at which beacon 3 applies
-  uint32_t espNowLocationInterval3 = 10000;   // interval between sends
-  uint32_t lastEspNowDeviceInfoSendTime = 0;
-  uint32_t espNowDeviceInfoInterval = 60000;    // Send info every 60s
-  uint32_t lastEspNowLocationSendTime = 0;
-  uint8_t broadcastMacAddress[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-  */
-#endif
-/*
- *
- *  LoRa support
- *
- */
-/*
-#if defined(SUPPORT_LORA)
-  #include <LoRa.h>
-  //#define LORA_ASYNC_METHODS //Uncomment to use callbacks, rather than polling for LoRa events
-  uint8_t defaultLoRaTxPower = 17;
-  uint8_t defaultLoRaSpreadingFactor = 7;
-  uint32_t defaultLoRaSignalBandwidth = 250E3; //125E3; //Supported values are 7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3(default), 250E3, and 500E3.
-  // Each nibble of the SX127x SyncWord must be strictly below 8 to be compatible with SX126x
-  // Each nibble of the SX127x SyncWord must be different from each other and from 0 or you might experience a slight loss of sensitivity
-  // Translation from SX127x to SX126x : 0xYZ -> 0xY4Z4 : if you do not set the two 4 you might lose sensitivity
-  // There is more to it, but this should be enough to setup your networks and hopefully the official response will be more complete.
-  uint8_t loRaSyncWord = 0x12;  //Don't use 0x34 as that is LoRaWAN, valid options are 0x12, 0x56, 0x78
-  uint32_t loRaTxTime = 0; //Time in ms spent transmitting
-  float maximumLoRaDutyCycle = 1.0;
-  float calculatedLoRaDutyCycle = 0.0;  //Calculated from loRaTxTime and millis()
-  static const uint8_t maxLoRaBufferSize = 255;
-  bool loRaEnabled = true;
-  const char string_loRaEnabled[] PROGMEM = "loRaEnabled";
-  bool loRaInitialised = false;   // Has the radio initialised OK
-  #if defined(LORA_ASYNC_METHODS)
-    #ifdef ESP32
-      portMUX_TYPE loRaRxSynch = portMUX_INITIALIZER_UNLOCKED;  //Mutex for multi-core ESP32s
-      portMUX_TYPE loRaTxSynch = portMUX_INITIALIZER_UNLOCKED;  //Mutex for multi-core ESP32s
-    #endif
-    volatile uint32_t loRaTxStartTime = 0; //Used to calculate TX time for each packet
-    volatile bool loRaTxBusy = false;
-    volatile bool loRaTxComplete = false;
-    volatile bool loRaRxBusy = false;
-    volatile uint8_t loRaSendBufferSize = 0;
-    volatile uint8_t loRaReceiveBufferSize = 0;
-    volatile float lastLoRaRssi = 0.0;
-    volatile uint32_t loRaTxPackets = 0;
-    volatile uint32_t loRaTxPacketsDropped = 0;
-    volatile uint32_t loRaRxPackets = 0;
-    volatile uint32_t loRaRxPacketsDropped = 0;
-  #else
-    volatile uint32_t loRaTxStartTime = 0; //Used to calculate TX time for each packet
-    volatile bool loRaTxBusy = false;
-    volatile bool loRaRxBusy = false;
-    volatile uint8_t loRaSendBufferSize = 0;
-    volatile uint8_t loRaReceiveBufferSize = 0;
-    volatile float lastLoRaRssi = 0.0;
-    volatile uint32_t loRaTxPackets = 0;
-    volatile uint32_t loRaTxPacketsDropped = 0;
-    volatile uint32_t loRaRxPackets = 0;
-    volatile uint32_t loRaRxPacketsDropped = 0;
-  #endif
-  uint8_t loRaSendBuffer[maxLoRaBufferSize];
-  uint8_t loRaReceiveBuffer[maxLoRaBufferSize];
-  uint32_t lastLoRaDeviceInfoSendTime = 0;    // last send time
-  uint32_t loRaDeviceInfoInterval = 60000;    // Send info every 60s
-  uint32_t lastLoRaLocationSendTime = 0;    // last send time
-  uint32_t defaultLoRaLocationInterval = 60000;
-  uint16_t loRaPerimiter1 = 25;             //Range at which beacon 1 applies
-  uint32_t loRaLocationInterval1 = 10000;    // interval between sends
-  uint16_t loRaPerimiter2 = 50;             //Range at which beacon 2 applies
-  uint32_t loRaLocationInterval2 = 20000;   // interval between sends
-  uint16_t loRaPerimiter3 = 100;            //Range at which beacon 3 applies
-  uint32_t loRaLocationInterval3 = 30000;   // interval between sends
-  #if defined(MEASURE_DISTANCE_WITH_LORA)
-    float rssiAttenuation = -6.0;           //Rate at which double the distance degrades RSSI (should be -6)
-    float rssiAttenuationBaseline = -40;    //RSSI at 10m
-    float rssiAttenuationPerimeter = 10;
-  #endif
-#endif
-*/
+//These are message packing IDs
+static const uint8_t locationUpdateId = 0x00;           //LoRa packet contains location info from a beacon
+static const uint8_t deviceStatusUpdateId = 0x10;       //LoRa packet contains device info, shared infrequently
+static const uint8_t deviceIcInfoId = 0x11;             //LoRa packet contains IC game info, shared very infrequently
 /*
  * 
  * Treacle multi-protocol wireless library
  * 
  */
-#if defined(SUPPORT_TREACLE)
-  #include <treacle.h>
-  const char string_id[] PROGMEM = "id";
-  bool treacleIntialised = false;
-  uint8_t localMacAddress[6] = {};
-  bool treacleEncryptionEnabled = false;
-  const char string_treacleEncryptionEnabled[] PROGMEM = "treacleEncryptionEnabled";
-  //ESP-Now
-  bool espNowEnabled =  true;
-  const char string_espNowEnabled[] PROGMEM = "espNowEnabled";
-  uint32_t espNowTickInterval = 10e3;
-  const char string_espNowTickInterval[] PROGMEM = "espNowTickInterval";
-  //LoRa
-  bool loRaEnabled  = true;
-  const char string_loRaEnabled[] PROGMEM = "loRaEnabled";
-  uint32_t loRaTickInterval = 45e3;
-  const char string_loRaTickInterval[] PROGMEM = "loRaTickInterval";
-  uint32_t loRaFrequency = 868E6;
-  const char string_loRaFrequency[] PROGMEM = "loRaFrequency";
-  uint8_t loRaTxPower = 17;
-  const char string_loRaTxPower[] PROGMEM = "loRaTxPower";
-  uint8_t loRaRxGain = 0;
-  const char string_loRaRxGain[] PROGMEM = "loRaRxGain";
-  uint8_t loRaSpreadingFactor = 9;
-  const char string_loRaSpreadingFactor[] PROGMEM = "loRaSpreadingFactor";
-  uint32_t loRaSignalBandwidth = 62.5E3;
-  const char string_loRaSignalBandwidth[] PROGMEM = "loRaSignalBandwidth";
-  uint32_t validLoRaSignalBandwidth[] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
-  //MQTT
-  //COBS
-#endif
+#include <treacle.h>
+const char string_id[] PROGMEM = "id";
+bool treacleIntialised = false;
+uint8_t localMacAddress[6] = {};
+bool treacleEncryptionEnabled = false;
+const char string_treacleEncryptionEnabled[] PROGMEM = "treacleEncryptionEnabled";
+uint32_t lastTreacleDeviceInfoSendTime = 0;       //Track the last time of updates
+uint32_t lastTreacleLocationSendTime = 0;
+uint32_t treacleDeviceInfoInterval = 60E3;        //Send device info every 60s
+uint32_t treacleLocationInterval = 10E3;          //Send device location every 60s
+uint8_t typeOfLastTreacleUpdate = deviceIcInfoId; //Use to cycle through update types
+//ESP-Now
+bool espNowEnabled =  true;
+const char string_espNowEnabled[] PROGMEM = "espNowEnabled";
+uint32_t espNowTickInterval = 10e3;
+const char string_espNowTickInterval[] PROGMEM = "espNowTickInterval";
+//LoRa
+bool loRaEnabled  = true;
+const char string_loRaEnabled[] PROGMEM = "loRaEnabled";
+uint32_t loRaTickInterval = 45e3;
+const char string_loRaTickInterval[] PROGMEM = "loRaTickInterval";
+uint32_t loRaFrequency = 868E6;
+const char string_loRaFrequency[] PROGMEM = "loRaFrequency";
+uint8_t loRaTxPower = 17;
+const char string_loRaTxPower[] PROGMEM = "loRaTxPower";
+uint8_t loRaRxGain = 0;
+const char string_loRaRxGain[] PROGMEM = "loRaRxGain";
+uint8_t loRaSpreadingFactor = 9;
+const char string_loRaSpreadingFactor[] PROGMEM = "loRaSpreadingFactor";
+uint32_t loRaSignalBandwidth = 62.5E3;
+const char string_loRaSignalBandwidth[] PROGMEM = "loRaSignalBandwidth";
+uint32_t validLoRaSignalBandwidth[] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
+//MQTT
+//COBS
 /*
 
    Pin configurations
@@ -909,33 +767,15 @@ static const uint16_t loggingYieldTime = 100;
  */
 #if defined(SUPPORT_GPS)
   struct deviceInfo {
-    #if defined(SUPPORT_TREACLE)
-      uint8_t id = 0;
-    #else
-      uint8_t id[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    #endif
+    uint8_t id = 0;
     char* name = nullptr;
     bool hasGpsFix = false;
-    uint8_t typeOfDevice = 0; // bitmask 0x00 = beacon, 0x01 = tracker, 0x02 = sensor, 0x04 = emitter, 0x08 = FTM beacon, 0x80 = mostly stationary
+    uint8_t typeOfDevice = 0; // bitmask 0x00 = beacon, 0x01 = tracker, 0x02 = sensor, 0x04 = emitter, 0x08 = FTM beacon, 0x40 = battery monitor, 0x80 = mostly stationary
     float supplyVoltage = 0;  // Battery health can be guesstimated from this
     uint32_t uptime = 0;  // Check for reboots
     uint8_t majorVersion = 0; //Software version
     uint8_t minorVersion = 0;
     uint8_t patchVersion = 0;
-    /*
-    #if defined(SUPPORT_ESPNOW)
-      bool espNowOnline = false;
-      uint32_t lastEspNowLocationUpdate = 0;  // Used to track packet loss
-      uint16_t nextEspNowLocationUpdate = 60E3;  // Used to track packet loss
-      uint16_t espNowUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
-    #endif
-    #if defined(SUPPORT_LORA)
-      bool loRaOnline = false;
-      uint32_t lastLoRaLocationUpdate = 0;  // Used to track packet loss
-      uint16_t nextLoRaLocationUpdate = 60E3;  // Used to track packet loss
-      uint16_t loRaUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
-    #endif
-    */
     double latitude = 0;  //Location info
     double longitude = 0;
     float course = 0;
@@ -945,11 +785,6 @@ static const uint16_t loggingYieldTime = 100;
     float courseTo = 0;
     float smoothedSpeed = 1;
     bool moving = true;
-    /*
-    #if defined(SUPPORT_LORA)
-      float lastLoRaRssi = 0; // Can also be used to estimate distance
-    #endif
-    */
     uint8_t numberOfStartingHits = 0;
     uint8_t numberOfStartingStunHits = 0;
     uint8_t currentNumberOfHits = 0;
@@ -985,7 +820,11 @@ static const uint16_t loggingYieldTime = 100;
   uint16_t sensitivityValues[4] = {0x0FFF, 0x00FF, 0x000F, 0x0007};
   #if defined(ACT_AS_TRACKER)
     uint32_t maximumEffectiveRange = 250;
-    const char string_maximumEffectiveRange[] PROGMEM = "maximumEffectiveRange";
+  #else
+    uint32_t maximumEffectiveRange = 10000;
+  #endif
+  const char string_maximumEffectiveRange[] PROGMEM = "maximumEffectiveRange";
+  #if defined(ACT_AS_TRACKER)
     uint8_t trackerPriority = 0;
     const char string_trackerPriority[] PROGMEM = "trackerPriority";
     uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
@@ -1125,12 +964,13 @@ static const uint16_t loggingYieldTime = 100;
     static lv_obj_t * meter1;
     static lv_meter_indicator_t * needle1;
     static lv_obj_t * meter1label0;
+
+    const char meter1text0[] PROGMEM = "To centre(m)";
+    const char meter1text1[] PROGMEM = "To edge(m)";
     
     static lv_obj_t * chart0;
     static lv_chart_series_t * chart0ser0;
-    #if defined(SUPPORT_TREACLE) || (defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA))
-      static lv_chart_series_t * chart0ser1;
-    #endif
+    static lv_chart_series_t * chart0ser1;
     static lv_obj_t * chart0label0;
     
     static lv_obj_t * chart1;
@@ -1183,8 +1023,13 @@ static const uint16_t loggingYieldTime = 100;
     bool enableMapTab = true;
     const char string_enableMapTab[] PROGMEM = "enableMapTab";
     static const char mapTabLabel[] = "Map";
-    lv_obj_t * mapTab = nullptr;
+    lv_obj_t* mapTab = nullptr;
     uint32_t lastMapTabUpdate = 0;
+
+    const uint8_t mapWidth = 200;
+    const uint8_t mapHeight = 150;
+    lv_obj_t* mapCanvas = nullptr;  //The map itself
+    //lv_color_t mapCanvasBuffer[LV_CANVAS_BUF_SIZE_TRUE_COLOR(mapWidth, mapHeight)];
   #endif
   //Settings/preferences tab
   #if defined(LVGL_SUPPORT_SETTINGS_TAB)

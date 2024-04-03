@@ -73,66 +73,32 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration[string_vibrationEnabled] = vibrationEnabled;
     configuration[string_vibrationLevel] = vibrationLevel;
   #endif
+  configuration[string_maximumEffectiveRange] = maximumEffectiveRange;
+  configuration[string_trackingSensitivity] = trackingSensitivity;
   #if defined(ACT_AS_TRACKER)
-    configuration[string_maximumEffectiveRange] = maximumEffectiveRange;
-    configuration[string_trackingSensitivity] = trackingSensitivity;
     configuration[string_trackerPriority] = trackerPriority;
   #endif
   configuration[string_icName] = device[0].icName;
   configuration[string_icDescription] = device[0].icDescription;
   configuration[string_diameter] = device[0].diameter;
   configuration[string_diameter] = device[0].height;
-  /*
-  #if defined(SUPPORT_ESPNOW)
-    configuration[string_espNowEnabled] = espNowEnabled;
-    configuration["espNowPreferredChannel"] = espNowPreferredChannel;
-    configuration["espNowDeviceInfoInterval"] = espNowDeviceInfoInterval;
-    configuration["defaultEspNowLocationInterval"] = defaultEspNowLocationInterval;
-    configuration["espNowLocationInterval1"] = espNowLocationInterval1;
-    configuration["espNowPerimiter1"] = espNowPerimiter1;
-    configuration["espNowLocationInterval2"] = espNowLocationInterval2;
-    configuration["espNowPerimiter2"] = espNowPerimiter2;
-    configuration["espNowLocationInterval3"] = espNowLocationInterval3;
-    configuration["espNowPerimiter3"] = espNowPerimiter3;
-  #endif
-  */
   #if defined(SUPPORT_FTM)
     configuration["ftmEnabled"] = ftmEnabled;
     configuration["ftmSSID"] = ftmSSID;
     configuration["ftmHideSSID"] = ftmHideSSID;
     configuration["ftmPSK"] = ftmPSK;
   #endif
-  /*
-  #if defined(SUPPORT_LORA)
-    configuration[string_loRaEnabled] = loRaEnabled;
-    configuration["loRaDeviceInfoInterval"] = loRaDeviceInfoInterval;
-    configuration["defaultLoRaLocationInterval"] = defaultLoRaLocationInterval;
-    configuration["loRaLocationInterval1"] = loRaLocationInterval1;
-    configuration["loRaPerimiter1"] = loRaPerimiter1;
-    configuration["loRaLocationInterval2"] = loRaLocationInterval2;
-    configuration["loRaPerimiter2"] = loRaPerimiter2;
-    configuration["loRaLocationInterval3"] = loRaLocationInterval3;
-    configuration["loRaPerimiter3"] = loRaPerimiter3;
-    #if defined(MEASURE_DISTANCE_WITH_LORA)
-      configuration["rssiAttenuationPerimeter"] = rssiAttenuationPerimeter;
-      configuration["rssiAttenuation"] = rssiAttenuation;
-      configuration["rssiAttenuationBaseline"] = rssiAttenuationBaseline;
-    #endif
-  #endif
-  */
-  #if defined(SUPPORT_TREACLE)
-    configuration[string_id] = device[0].id;
-    configuration[string_treacleEncryptionEnabled] = treacleEncryptionEnabled;
-    configuration[string_espNowEnabled] = espNowEnabled;
-    configuration[string_espNowTickInterval] = espNowTickInterval;
-    configuration[string_loRaEnabled] = loRaEnabled;
-    configuration[string_loRaTickInterval] = loRaTickInterval;
-    configuration[string_loRaFrequency] = loRaFrequency;
-    configuration[string_loRaTxPower] = loRaTxPower;
-    configuration[string_loRaRxGain] = loRaRxGain;
-    configuration[string_loRaSpreadingFactor] = loRaSpreadingFactor;
-    configuration[string_loRaSignalBandwidth] = loRaSignalBandwidth;
-  #endif
+  configuration[string_id] = device[0].id;
+  configuration[string_treacleEncryptionEnabled] = treacleEncryptionEnabled;
+  configuration[string_espNowEnabled] = espNowEnabled;
+  configuration[string_espNowTickInterval] = espNowTickInterval;
+  configuration[string_loRaEnabled] = loRaEnabled;
+  configuration[string_loRaTickInterval] = loRaTickInterval;
+  configuration[string_loRaFrequency] = loRaFrequency;
+  configuration[string_loRaTxPower] = loRaTxPower;
+  configuration[string_loRaRxGain] = loRaRxGain;
+  configuration[string_loRaSpreadingFactor] = loRaSpreadingFactor;
+  configuration[string_loRaSignalBandwidth] = loRaSignalBandwidth;
   #if defined(SUPPORT_LVGL)
     configuration[string_units] = units;
     configuration[string_dateFormat] = dateFormat;
@@ -235,9 +201,9 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         gpsCheckInterval = configuration[string_gpsCheckInterval] | 300E6;
       #endif
     #endif
+    maximumEffectiveRange = configuration[string_maximumEffectiveRange] | 99;
+    trackingSensitivity = configuration[string_trackingSensitivity] | 1;
     #if defined(ACT_AS_TRACKER)
-      maximumEffectiveRange = configuration[string_maximumEffectiveRange] | 99;
-      trackingSensitivity = configuration[string_trackingSensitivity] | 1;
       trackerPriority = configuration[string_trackerPriority];
     #endif
     if(configuration[string_icName])
@@ -276,49 +242,17 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         strlcpy(ftmPSK,default_ftmWiFi_PSK,strlen(default_ftmWiFi_PSK) + 1);
       }
     #endif
-    /*
-    #if defined(SUPPORT_ESPNOW)
-      espNowEnabled = configuration[string_espNowEnabled] | true;
-      espNowPreferredChannel = configuration["espNowPreferredChannel"] | 1;
-      espNowDeviceInfoInterval = configuration["espNowDeviceInfoInterval"] | 60000;
-      defaultEspNowLocationInterval = configuration["defaultEspNowLocationInterval"] | 60000;
-      espNowLocationInterval1 = configuration["espNowLocationInterval1"] | 5000;
-      espNowPerimiter1 = configuration["espNowPerimiter1"] | 20;
-      espNowLocationInterval2 = configuration["espNowLocationInterval2"] | 15000;
-      espNowPerimiter2 = configuration["espNowPerimiter2"] | 50;
-      espNowLocationInterval3 = configuration["espNowLocationInterval3"] | 30000;
-      espNowPerimiter3 = configuration["espNowPerimiter3"] | 100;
-    #endif
-    #if defined(SUPPORT_LORA)
-      loRaEnabled = configuration[string_loRaEnabled] | true;
-      loRaDeviceInfoInterval = configuration["loRaDeviceInfoInterval"] | 60000;
-      defaultLoRaLocationInterval = configuration["defaultLoRaLocationInterval"] | 60000;
-      loRaLocationInterval1 = configuration["loRaLocationInterval1"] | 5000;
-      loRaPerimiter1 = configuration["loRaPerimiter1"] | 20;
-      loRaLocationInterval2 = configuration["loRaLocationInterval2"] | 15000;
-      loRaPerimiter2 = configuration["loRaPerimiter2"] | 50;
-      loRaLocationInterval3 = configuration["loRaLocationInterval3"] | 30000;
-      loRaPerimiter3 = configuration["loRaPerimiter3"] | 100;
-      #if defined(MEASURE_DISTANCE_WITH_LORA)
-        rssiAttenuationPerimeter = configuration["rssiAttenuationPerimeter"];
-        rssiAttenuation = configuration["rssiAttenuation"];
-        rssiAttenuationBaseline = configuration["rssiAttenuationBaseline"];
-      #endif
-    #endif
-    */
-    #if defined(SUPPORT_TREACLE)
-      device[0].id = configuration[string_id] | 0;
-      treacleEncryptionEnabled = configuration[string_treacleEncryptionEnabled] | false;
-      espNowEnabled = configuration[string_espNowEnabled] | true;
-      espNowTickInterval = configuration[string_espNowTickInterval] | 10e3;
-      loRaTickInterval = configuration[string_loRaTickInterval] | 45e3;
-      loRaEnabled = configuration[string_loRaEnabled] | true;
-      loRaFrequency = configuration[string_loRaFrequency] | 868E6;
-      loRaTxPower = configuration[string_loRaTxPower] | 17;
-      loRaRxGain = configuration[string_loRaRxGain] | 0;
-      loRaSpreadingFactor = configuration[string_loRaSpreadingFactor] | 9;
-      loRaSignalBandwidth = configuration[string_loRaSignalBandwidth] | 62.5E3;
-    #endif
+    device[0].id = configuration[string_id] | 0;
+    treacleEncryptionEnabled = configuration[string_treacleEncryptionEnabled] | false;
+    espNowEnabled = configuration[string_espNowEnabled] | true;
+    espNowTickInterval = configuration[string_espNowTickInterval] | 10e3;
+    loRaTickInterval = configuration[string_loRaTickInterval] | 45e3;
+    loRaEnabled = configuration[string_loRaEnabled] | true;
+    loRaFrequency = configuration[string_loRaFrequency] | 868E6;
+    loRaTxPower = configuration[string_loRaTxPower] | 17;
+    loRaRxGain = configuration[string_loRaRxGain] | 0;
+    loRaSpreadingFactor = configuration[string_loRaSpreadingFactor] | 9;
+    loRaSignalBandwidth = configuration[string_loRaSignalBandwidth] | 62.5E3;
     #if defined(SUPPORT_BATTERY_METER)
       enableBatteryMonitor = configuration[string_enableBatteryMonitor] | true;
       topLadderResistor = configuration[string_topLadderResistor] | 330;
@@ -335,13 +269,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     else
     {
       device[0].name = new char[strlen(default_deviceName) + 5];
-      /*
-      #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
-        sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
-      */
-      #if defined(SUPPORT_TREACLE)
-        sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
-      #endif
+      sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
     }
     deviceUsuallyStatic = configuration[string_deviceUsuallyStatic] | false;
     if(configuration[string_configurationComment])
@@ -396,13 +324,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       else
       {
         APSSID = new char[strlen(default_deviceName) + 5];
-        /*
-        #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
-          sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
-        */
-        #if defined(SUPPORT_TREACLE)
-          sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
-        #endif
+        sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
         APPSK = new char[strlen(default_AP_PSK) + 1];
         strlcpy(APPSK,default_AP_PSK,strlen(default_AP_PSK) + 1);
       }
@@ -505,13 +427,7 @@ bool loadDefaultConfiguration()
 {
   localLogLn(F("Loading default configuration"));
   device[0].name = new char[strlen(default_deviceName) + 5];
-  /*
-  #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
-    sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
-  */
-  #if defined(SUPPORT_TREACLE)
-    sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
-  #endif
+  sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
   #if defined(ENABLE_LOCAL_WEBSERVER)
     #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
       http_user = new char[strlen(default_http_user) + 1];
@@ -705,9 +621,9 @@ void printConfiguration()
       localLog(string_gpsCheckInterval); localLog(string_colonSpace); localLogLn(gpsCheckInterval);
     #endif
   #endif
+  localLog(string_maximumEffectiveRange); localLog(string_colonSpace); localLogLn(maximumEffectiveRange);
+  localLog(string_trackingSensitivity); localLog(string_colonSpace); localLogLn(sensitivityValues[trackingSensitivity]);
   #if defined(ACT_AS_TRACKER)
-    localLog(string_maximumEffectiveRange); localLog(string_colonSpace); localLogLn(maximumEffectiveRange);
-    localLog(string_trackingSensitivity); localLog(string_colonSpace); localLogLn(sensitivityValues[trackingSensitivity]);
     localLog(string_trackerPriority); localLog(string_colonSpace); localLogLn(trackerPriority);
   #endif
   localLog(string_icName); localLog(string_colonSpace); localLogLn(device[0].icName);
@@ -726,49 +642,17 @@ void printConfiguration()
       localLog(string_ftmPSK); localLog(string_colonSpace); localLogLn(ftmPSK);
     }
   #endif
-  #if defined(SUPPORT_ESPNOW)
-    localLog(string_espNowEnabled); localLog(string_colonSpace); localLogLn(espNowEnabled);
-    localLog(F("espNowPreferredChannel: ")); localLogLn(espNowPreferredChannel);
-    localLog(F("espNowDeviceInfoInterval: ")); localLogLn(espNowDeviceInfoInterval);
-    localLog(F("defaultEspNowLocationInterval: ")); localLogLn(defaultEspNowLocationInterval);
-    localLog(F("espNowPerimiter1: ")); localLogLn(espNowPerimiter1);
-    localLog(F("espNowLocationInterval1: ")); localLogLn(espNowLocationInterval1);
-    localLog(F("espNowPerimiter2: ")); localLogLn(espNowPerimiter2);
-    localLog(F("espNowLocationInterval2: ")); localLogLn(espNowLocationInterval2);
-    localLog(F("espNowPerimiter3: ")); localLogLn(espNowPerimiter3);
-    localLog(F("espNowLocationInterval3: ")); localLogLn(espNowLocationInterval3);
-  #endif
-  /*
-  #if defined(SUPPORT_LORA)
-    localLog(F("loRaEnabled: ")); localLogLn(loRaEnabled);
-    localLog(F("loRaDeviceInfoInterval: ")); localLogLn(loRaDeviceInfoInterval);
-    localLog(F("defaultLoRaLocationInterval: ")); localLogLn(defaultLoRaLocationInterval);
-    localLog(F("loRaPerimiter1: ")); localLogLn(loRaPerimiter1);
-    localLog(F("loRaLocationInterval1: ")); localLogLn(loRaLocationInterval1);
-    localLog(F("loRaPerimiter2: ")); localLogLn(loRaPerimiter2);
-    localLog(F("loRaLocationInterval2: ")); localLogLn(loRaLocationInterval2);
-    localLog(F("loRaPerimiter3: ")); localLogLn(loRaPerimiter3);
-    localLog(F("loRaLocationInterval3: ")); localLogLn(loRaLocationInterval3);
-    #if defined(MEASURE_DISTANCE_WITH_LORA)
-      localLog(F("rssiAttenuation: ")); localLogLn(rssiAttenuation);
-      localLog(F("rssiAttenuationBaseline: ")); localLogLn(rssiAttenuationBaseline);
-      localLog(F("rssiAttenuationPerimeter: ")); localLogLn(rssiAttenuationPerimeter);
-    #endif
-  #endif
-  */
-  #if defined(SUPPORT_TREACLE)
-    localLog(string_id); localLog(string_colonSpace); localLogLn(device[0].id);
-    localLog(string_treacleEncryptionEnabled); localLog(string_colonSpace); localLogLn(treacleEncryptionEnabled);
-    localLog(string_espNowEnabled); localLog(string_colonSpace); localLogLn(espNowEnabled);
-    localLog(string_espNowTickInterval); localLog(string_colonSpace); localLogLn(espNowTickInterval);
-    localLog(string_loRaEnabled); localLog(string_colonSpace); localLogLn(loRaEnabled);
-    localLog(string_loRaTickInterval); localLog(string_colonSpace); localLogLn(loRaTickInterval);
-    localLog(string_loRaFrequency); localLog(string_colonSpace); localLogLn(loRaFrequency/1e6);
-    localLog(string_loRaTxPower); localLog(string_colonSpace); localLogLn(loRaTxPower);
-    localLog(string_loRaRxGain); localLog(string_colonSpace); localLogLn(loRaRxGain);
-    localLog(string_loRaSpreadingFactor); localLog(string_colonSpace); localLogLn(loRaSpreadingFactor);
-    localLog(string_loRaSignalBandwidth); localLog(string_colonSpace); localLogLn(loRaSignalBandwidth);
-  #endif
+  localLog(string_id); localLog(string_colonSpace); localLogLn(device[0].id);
+  localLog(string_treacleEncryptionEnabled); localLog(string_colonSpace); localLogLn(treacleEncryptionEnabled);
+  localLog(string_espNowEnabled); localLog(string_colonSpace); localLogLn(espNowEnabled);
+  localLog(string_espNowTickInterval); localLog(string_colonSpace); localLogLn(espNowTickInterval);
+  localLog(string_loRaEnabled); localLog(string_colonSpace); localLogLn(loRaEnabled);
+  localLog(string_loRaTickInterval); localLog(string_colonSpace); localLogLn(loRaTickInterval);
+  localLog(string_loRaFrequency); localLog(string_colonSpace); localLogLn(loRaFrequency/1e6);
+  localLog(string_loRaTxPower); localLog(string_colonSpace); localLogLn(loRaTxPower);
+  localLog(string_loRaRxGain); localLog(string_colonSpace); localLogLn(loRaRxGain);
+  localLog(string_loRaSpreadingFactor); localLog(string_colonSpace); localLogLn(loRaSpreadingFactor);
+  localLog(string_loRaSignalBandwidth); localLog(string_colonSpace); localLogLn(loRaSignalBandwidth);
   #if defined(SUPPORT_BATTERY_METER)
     localLog(string_enableBatteryMonitor); localLog(string_colonSpace); localLogLn(enableBatteryMonitor);
     localLog(string_topLadderResistor); localLog(string_colonSpace); localLogLn(topLadderResistor);
@@ -825,7 +709,7 @@ String deviceFeatures(uint8_t featureFlags)
   String features;
   if((featureFlags & 0x01) == 0)
   {
-    features = "GPS beacon";
+    features = "Beacon";
   }
   else
   {
@@ -833,19 +717,23 @@ String deviceFeatures(uint8_t featureFlags)
   }
   if((featureFlags & 0x02) == 0x02)
   {
-    features += " Lasertag sensor";
+    features += ", lasertag sensor";
   }
   if((featureFlags & 0x04) == 0x04)
   {
-    features += " Lasertag emitter";
+    features += ", lasertag emitter";
   }
   if((featureFlags & 0x08) == 0x08)
   {
-    features += " Time-of-flight beacon";
+    features += ", time-of-flight";
   }
   if((featureFlags & 0x80) == 0x80)
   {
-    features += " Usually static";
+    features += ", usually static";
+  }
+  if((featureFlags & 0x40) == 0x40)
+  {
+    features += ", battery monitor";
   }
   return features;
 }

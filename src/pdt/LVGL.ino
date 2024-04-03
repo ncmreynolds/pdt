@@ -208,7 +208,14 @@
     //Meter 0 label
     meter1label0 = lv_label_create(homeTab);
     lv_obj_align(meter1label0, LV_ALIGN_CENTER, meterDiameter/2+meterSpacing, -meterDiameter-meterSpacing-14);
-    lv_label_set_text(meter1label0, "Range(m)");
+    if(trackerPriority == 0)
+    {
+      lv_label_set_text(meter1label0, meter1text0);
+    }
+    else if(trackerPriority == 1)
+    {
+      lv_label_set_text(meter1label0, meter1text1);
+    }
     lv_obj_add_flag(meter1label0, LV_OBJ_FLAG_HIDDEN);
   
   
@@ -222,16 +229,12 @@
     lv_chart_set_update_mode(chart0, LV_CHART_UPDATE_MODE_SHIFT);
     chart0ser0 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_range(chart0, LV_CHART_AXIS_PRIMARY_Y, 0, 16);
-    #if defined(SUPPORT_TREACLE) || (defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA))
-      chart0ser1 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
-      lv_chart_set_range(chart0, LV_CHART_AXIS_SECONDARY_Y, 0, 16);
-    #endif
+    chart0ser1 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
+    lv_chart_set_range(chart0, LV_CHART_AXIS_SECONDARY_Y, 0, 16);
     uint32_t i;
     for(i = 0; i < chartPoints; i++) {
       chart0ser0->y_points[i] = 0;
-      #if defined(SUPPORT_TREACLE) || (defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA))
-        chart0ser1->y_points[i] = 0;
-      #endif
+      chart0ser1->y_points[i] = 0;
     }
     lv_chart_refresh(chart0);
     lv_obj_add_flag(chart0, LV_OBJ_FLAG_HIDDEN);
@@ -341,64 +344,31 @@
       //lv_obj_add_flag(needle1, LV_OBJ_FLAG_HIDDEN);
     }
     //Signal graph
-    /*
-    #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-      if(currentlyTrackedBeacon != maximumNumberOfDevices)
-      {
-        lv_chart_set_next_value(chart0, chart0ser0, countBits(device[currentlyTrackedBeacon].espNowUpdateHistory));
-        lv_chart_set_next_value(chart0, chart0ser1, countBits(device[currentlyTrackedBeacon].loRaUpdateHistory));
-      }
-      else
-      {
-        lv_chart_set_next_value(chart0, chart0ser0, 0);
-        lv_chart_set_next_value(chart0, chart0ser1, 0);
-      }
-    #elif defined(SUPPORT_ESPNOW)
-      if(currentlyTrackedBeacon != maximumNumberOfDevices)
-      {
-        lv_chart_set_next_value(chart0, chart0ser0, countBits(device[currentlyTrackedBeacon].espNowUpdateHistory));
-      }
-      else
-      {
-        lv_chart_set_next_value(chart0, chart0ser0, 0);
-      }
-    #elif defined(SUPPORT_LORA)
-      if(currentlyTrackedBeacon != maximumNumberOfDevices)
-      {
-        lv_chart_set_next_value(chart0, chart0ser0, countBits(device[currentlyTrackedBeacon].loRaUpdateHistory));
-      }
-      else
-      {
-        lv_chart_set_next_value(chart0, chart0ser0, 0);
-      }
-    */
-    #if defined(SUPPORT_TREACLE)
-      if(currentlyTrackedBeacon != maximumNumberOfDevices)
-      {
-        lv_chart_set_next_value(chart0, chart0ser0, countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)));
-        lv_chart_set_next_value(chart0, chart0ser1, countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)));
-        //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)>>12));
-        //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)>>12));
-        //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id));
-        //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id));
-      }
-      else
-      {
-        lv_chart_set_next_value(chart0, chart0ser0, 0);
-        lv_chart_set_next_value(chart0, chart0ser1, 0);
-      }
-      //Random junk
-      if(currentlyTrackedBeacon != maximumNumberOfDevices)
-      {
-        lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id))/16);
-        lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id))/16);
-      }
-      else
-      {
-        lv_chart_set_next_value(chart1, chart1ser0, 0);
-        lv_chart_set_next_value(chart1, chart1ser1, 0);
-      }
-    #endif
+    if(currentlyTrackedBeacon != maximumNumberOfDevices)
+    {
+      lv_chart_set_next_value(chart0, chart0ser0, countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)));
+      lv_chart_set_next_value(chart0, chart0ser1, countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)));
+      //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)>>12));
+      //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)>>12));
+      //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id));
+      //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id));
+    }
+    else
+    {
+      lv_chart_set_next_value(chart0, chart0ser0, 0);
+      lv_chart_set_next_value(chart0, chart0ser1, 0);
+    }
+    //Random junk
+    if(currentlyTrackedBeacon != maximumNumberOfDevices)
+    {
+      lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id))/16);
+      lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id))/16);
+    }
+    else
+    {
+      lv_chart_set_next_value(chart1, chart1ser0, 0);
+      lv_chart_set_next_value(chart1, chart1ser1, 0);
+    }
   }
   #if defined(LVGL_SUPPORT_GPS_TAB)
     void createGpsTab(void)
@@ -734,6 +704,14 @@
     lv_obj_t * obj = lv_event_get_target(e);
     if(code == LV_EVENT_VALUE_CHANGED) {
       trackerPriority = (uint8_t)lv_dropdown_get_selected(obj);
+      if(trackerPriority == 0)
+      {
+        lv_label_set_text(meter1label0, meter1text0);
+      }
+      else if(trackerPriority == 0)
+      {
+        lv_label_set_text(meter1label0, meter1text1);
+      }
       saveConfigurationSoon = millis();
       char buf[32];
       lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
@@ -819,7 +797,10 @@
     void createMapTab()
     {
       //Create the tab
-      mapTab = lv_tabview_add_tab(tabview, mapTabLabel);
+      //mapTab = lv_tabview_add_tab(tabview, mapTabLabel);
+
+      //Create the map canvas
+      //mapCanvas = lv_canvas_create(mapTab);
     }
   #endif
   #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
@@ -1032,15 +1013,7 @@
       String tempDropdownString = "";
       for(uint8_t index = 1; index < numberOfDevices; index++)
       {
-        /*
-        #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-        if((device[index].loRaOnline == true || device[index].espNowOnline == true) && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
-        #elif defined(SUPPORT_ESPNOW)
-        else if(device[index].espNowOnline == true && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
-        #elif defined(SUPPORT_LORA)
-        else if(device[index].loRaOnline == true && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
-        #endif
-        */
+        if(device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
         {
           if(index == currentlyTrackedBeacon) //Continue tracking after update
           {

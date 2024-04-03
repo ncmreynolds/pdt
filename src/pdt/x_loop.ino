@@ -21,19 +21,7 @@ void loop()
   #if defined(SUPPORT_HACKING)
     manageGame();
   #endif
-  /*
-  #if defined(SUPPORT_ESPNOW)
-    manageEspNow();
-  #endif
-  */
-  /*
-  #if defined(SUPPORT_LORA) && defined(SUPPORT_GPS)
-    manageLoRa();
-  #endif
-  */
-  #if defined(SUPPORT_TREACLE)
-    manageTreacle();
-  #endif
+  manageTreacle();
   #if defined(SUPPORT_GPS)
     manageGps();
   #endif

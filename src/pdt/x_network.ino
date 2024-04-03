@@ -27,20 +27,7 @@
       {
         if(wifiClientConnected == false)
         {
-          /*
-          #if defined(SUPPORT_ESPNOW)
-            if(espNowEnabled)
-            {
-              espBoilerplate.setApChannel(espNowPreferredChannel);  //Overrides AP channel
-            }
-            else
-            {
-              espBoilerplate.setApChannel(softApChannel);
-            }
-          #else
-          */
-            espBoilerplate.setApChannel(softApChannel);
-          //#endif
+          espBoilerplate.setApChannel(softApChannel);
           wifiApStarted = espBoilerplate.beginAp(APSSID, APPSK);
         }
         else

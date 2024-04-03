@@ -58,9 +58,6 @@
       {
         shutdownNow = 0;
         device[0].currentNumberOfStunHits = 0;
-        #if defined(SUPPORT_LORA)
-          scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
-        #endif
         currentSensorState = sensorState::stunned;
         sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
         lastSensorStateChange = millis();
@@ -68,9 +65,6 @@
         sensor.pause();
         #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
           xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, 2, NULL);
-        #endif
-        #if defined(SUPPORT_LORA)
-          scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
         #endif
         localLogLn(F("Disabling WiFi"));
         //WiFi.disconnect();
@@ -100,11 +94,6 @@
         #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
           xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, 2, NULL);
         #endif
-        /*
-        #if defined(SUPPORT_LORA)
-          scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
-        #endif
-        */
         WiFi.mode(WIFI_OFF);
       }
       else if((millis() - selfDestructNow)/1000 != selfDestructCountdown)
