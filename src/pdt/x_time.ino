@@ -93,7 +93,7 @@ uint64_t upTime()
   time(&now);
   return uint64_t(now) - bootTime;
 }
-String printableUptime(uint64_t seconds)
+String printableDuration(uint64_t seconds)
 {
   String formattedUptime = "";
   if(seconds > 172805)

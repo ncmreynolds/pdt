@@ -31,8 +31,8 @@
 //#define HARDWARE_VARIANT C3PDTasBeacon
 //#define HARDWARE_VARIANT C3TrackedSensor
 //#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
-//#define HARDWARE_VARIANT C3LoRaBeacon
-#define HARDWARE_VARIANT CYDTracker
+#define HARDWARE_VARIANT C3LoRaBeacon
+//#define HARDWARE_VARIANT CYDTracker
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 5
@@ -105,7 +105,7 @@
   #define DEBUG_GPS
   #define SUPPORT_TREACLE
   #define DEBUG_TREACLE
-  //#define SUPPORT_BATTERY_METER
+  #define SUPPORT_BATTERY_METER
   //#define SUPPORT_FTM
   #define SUPPORT_WIFI
   #define ENABLE_LOCAL_WEBSERVER

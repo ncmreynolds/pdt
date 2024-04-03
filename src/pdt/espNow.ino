@@ -457,7 +457,7 @@
                                           device[deviceIndex].minorVersion,
                                           device[deviceIndex].patchVersion,
                                           device[deviceIndex].name,
-                                          printableUptime(device[deviceIndex].uptime/1000).c_str(),
+                                          printableDuration(device[deviceIndex].uptime/1000).c_str(),
                                           device[deviceIndex].supplyVoltage
                                           );
                                       }
@@ -1044,7 +1044,7 @@
               device[0].minorVersion,
               device[0].patchVersion,
               device[0].name,
-              printableUptime(millis()/1000).c_str(),
+              printableDuration(millis()/1000).c_str(),
               device[0].supplyVoltage,
               device[0].currentNumberOfHits,
               device[0].numberOfStartingHits,
@@ -1058,7 +1058,7 @@
               device[0].minorVersion,
               device[0].patchVersion,
               device[0].name,
-              printableUptime(millis()/1000).c_str(),
+              printableDuration(millis()/1000).c_str(),
               device[0].supplyVoltage,
               defaultEspNowLocationInterval/1000,
               espNowPerimiter1,

@@ -148,14 +148,13 @@
             response->print(endColumn);
             response->print(ulStart);
             #if defined(ACT_AS_TRACKER)
-              response->printf_P(PSTR("<li>PDT tracker firmware: <b>v%u.%u.%u</b>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+              response->printf_P(PSTR("<li>PDT tracker firmware: <b>v%u.%u.%u</b></li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
             #elif defined(ACT_AS_BEACON)
-              response->printf_P(PSTR("<li>PDT beacon firmware: <b>v%u.%u.%u</b>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+              response->printf_P(PSTR("<li>PDT beacon firmware: <b>v%u.%u.%u</b></li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
             #endif
-            response->print(F(" Features: <b>"));
-            response->print(deviceFeatures(device[0].typeOfDevice));
-            response->printf_P(PSTR("</b><li>Built: <b>%s %s</b>"), __TIME__, __DATE__);
-            response->printf_P(PSTR(" Board: <b>%s</b></li><li>PCB Variant: <b>"), ARDUINO_BOARD);
+            response->printf_P(liStringPrintfFormatString, PSTR("Features"), deviceFeatures(device[0].typeOfDevice).c_str());
+            response->printf_P(PSTR("<li>Built: <b>%s %s</b></li>"), __TIME__, __DATE__);
+            response->printf_P(PSTR("<li>Board: <b>%s</b></li><li>PCB Variant: <b>"), ARDUINO_BOARD);
             #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
               response->print(F("C3 PDT v1"));
             #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
@@ -181,32 +180,27 @@
             #elif defined(SUPPORT_TREACLE)
               response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), localMacAddress[0], localMacAddress[1], localMacAddress[2], localMacAddress[3], localMacAddress[4], localMacAddress[5]);            
             #endif
-            response->print(F("<li>Filesystem: <b>"));
             if(filesystemMounted == true)
             {
               #if defined(USE_SPIFFS)
                 FSInfo fsInfo;
                 SPIFFS.info(fsInfo);
-                response->printf_P(PSTR("SPIFFS %u/%uKB used"), fsInfo.usedBytes/1024, fsInfo.totalBytes/1024);
+                response->printf_P(PSTR("<li>SPIFFS: <b>%u/%uKB used"), fsInfo.usedBytes/1024, fsInfo.totalBytes/1024);
                 if(fsInfo.usedBytes > 0 && fsInfo.totalBytes > 0)
                 {
                   response->printf_P(PSTR(" %.1f%% "),float(fsInfo.usedBytes) * 100/float(fsInfo.totalBytes));
                 }
               #elif defined(USE_LITTLEFS)
                 #if defined(ESP32)
-                  response->printf_P(PSTR("LittleFS %u/%uKB used"), LittleFS.usedBytes()/1024, LittleFS.totalBytes()/1024);
+                  response->printf_P(PSTR("<li>LittleFS: <b>%u/%uKB used"), LittleFS.usedBytes()/1024, LittleFS.totalBytes()/1024);
                   if(LittleFS.usedBytes() > 0 && LittleFS.totalBytes() > 0)
                   {
                     response->printf_P(PSTR(" %.1f%%"),float(LittleFS.usedBytes()) * 100/float(LittleFS.totalBytes()));
                   }
                 #endif
               #endif
+              response->print(F("</b></li>"));
             }
-            else
-            {
-              response->print(F("not mounted"));
-            }
-            response->print(F("</b></li>"));
             #if defined(ESP32)
               response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Free heap"), ESP.getFreeHeap()/1024, PSTR("KB"));
             #endif
@@ -230,7 +224,7 @@
             #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
               response->print(F("<li>Web UI software update: <b>enabled</b></li>"));
             #endif
-            response->print(F("<li>Time: <b>"));
+            response->print(F("<li>Time(UTC): <b>"));
             if(timeIsValid())
             {
               updateTimestamp();
@@ -241,7 +235,7 @@
               response->print(labelNotSet);
             }
             response->print(F("</b></li><li>Uptime: <b>"));
-            response->print(printableUptime(millis()/1000));
+            response->print(printableDuration(millis()/1000));
             response->print(F("</b></li>"));
             #if defined(ESP32)
               #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
@@ -273,11 +267,11 @@
             #if defined(SUPPORT_BATTERY_METER)
               if(enableBatteryMonitor == true)
               {
-                response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Battery voltage"), device[0].supplyVoltage, PSTR("v"));
+                response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Battery monitoring"), device[0].supplyVoltage, PSTR("v"));
               }
               else
               {
-                response->print(F("<li>Battery monitoring: <b>disabled</b>"));
+                response->printf_P(liStringPrintfFormatString, PSTR("Battery monitoring"), PSTR("disabled"));
               }
             #endif
             if(configurationComment != nullptr)
@@ -367,14 +361,14 @@
               }
               response->print(ulEndRow);
             #endif
+            //Status information
+            response->print(hr);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Tracking"));
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("tracking"), labelConfigure);
+            response->print(endColumn);
+            response->print(ulStart);
             #if defined(ACT_AS_TRACKER)
-              //Status information
-              response->print(hr);
-              response->printf_P(h2printfEightColumnsFormatString, PSTR("Tracking"));
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("tracking"), labelConfigure);
-              response->print(endColumn);
-              response->print(ulStart);
               response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Effective range"), maximumEffectiveRange, PSTR("m"));
             #endif
             response->print(F("<li>Sensitivity: <b>"));
@@ -612,7 +606,6 @@
                     }
                   }
                 #elif defined(ACT_AS_BEACON)
-                  response->print(F("<li><b>"));
                   if(closestTracker < maximumNumberOfDevices)
                   {
                     if(device[closestTracker].hasGpsFix)
@@ -625,7 +618,6 @@
               }
               response->print(ulEndRow);
             #endif
-            //response->print(F("</b>"));
             #if defined(ACT_AS_SENSOR)
               response->print(hr);
               response->printf_P(h2printfEightColumnsFormatString, PSTR("Sensor"));
@@ -4259,9 +4251,9 @@
               #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
               #elif defined(SUPPORT_TREACLE)
-                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>%.1f</td><td>%.1f</td><td>%s</td><td>%04XrX %04XtX</td><td>%04XrX %04XtX</td><td>%.1fs ago</td><td>"),
+                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>%.1f</td><td>%.1f</td><td>%s</td><td>%04XrX %04XtX</td><td>%04XrX %04XtX</td><td>%s ago</td><td>"),
               #else
-                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td></td><td>"),
+                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%s</td><td></td><td>"),
               #endif
                 (device[index].name == nullptr) ? "n/a" : device[index].name,
                 (device[index].icName == nullptr) ? "" : device[index].icName,
@@ -4272,7 +4264,7 @@
                 #endif
                 deviceFeatures(device[index].typeOfDevice).c_str(),
                 device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
-                (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
+                (index == 0) ? printableDuration(millis()/1000).c_str() : printableDuration(device[index].uptime/1000).c_str(),
                 device[index].supplyVoltage,
                 (device[index].hasGpsFix == true) ? PSTR("Yes") : PSTR("No"),
                 device[index].latitude,
@@ -4292,7 +4284,7 @@
                   treacle.espNowTxReliability(device[index].id),
                   treacle.loRaRxReliability(device[index].id),
                   treacle.loRaTxReliability(device[index].id),
-                  float(treacle.rxAge(device[index].id)/1000.0)
+                  printableDuration(treacle.rxAge(device[index].id)/1000.0).c_str()
                   );
                 #else
                 #endif
@@ -4314,7 +4306,7 @@
               #endif
               deviceFeatures(device[index].typeOfDevice).c_str(),
               device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
-              (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
+              (index == 0) ? printableDuration(millis()/1000).c_str() : printableDuration(device[index].uptime/1000).c_str(),
               device[index].supplyVoltage,
               (device[index].hasGpsFix == true) ? PSTR("Yes") : PSTR("No"),
               device[index].latitude,
