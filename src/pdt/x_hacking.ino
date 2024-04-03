@@ -1,4 +1,4 @@
-#ifdef SUPPORT_HACKING
+#if defined(SUPPORT_HACKING)
   void setupHacking()
   {
     localLogLn(F("Starting hacking game"));
@@ -58,7 +58,7 @@
       {
         shutdownNow = 0;
         device[0].currentNumberOfStunHits = 0;
-        #ifdef SUPPORT_LORA
+        #if defined(SUPPORT_LORA)
           scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
         #endif
         currentSensorState = sensorState::stunned;
@@ -69,7 +69,7 @@
         #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
           xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, 2, NULL);
         #endif
-        #ifdef SUPPORT_LORA
+        #if defined(SUPPORT_LORA)
           scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
         #endif
         localLogLn(F("Disabling WiFi"));
@@ -100,9 +100,11 @@
         #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
           xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, 2, NULL);
         #endif
-        #ifdef SUPPORT_LORA
+        /*
+        #if defined(SUPPORT_LORA)
           scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
         #endif
+        */
         WiFi.mode(WIFI_OFF);
       }
       else if((millis() - selfDestructNow)/1000 != selfDestructCountdown)

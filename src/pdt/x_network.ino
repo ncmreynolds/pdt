@@ -1,7 +1,7 @@
 #if defined(SUPPORT_WIFI)
   void setupNetwork()
   {
-    #ifdef SUPPORT_BUTTON
+    #if defined(SUPPORT_BUTTON)
       if(digitalRead(buttonPin) == false) //Start WiFi if button pushed
       {
         startWiFiApOnBoot = true;
@@ -11,7 +11,7 @@
       espBoilerplate.setOutputStream(SERIAL_DEBUG_PORT);
     #endif
     espBoilerplate.setRetries(wifiClientTimeout);
-    #ifdef SUPPORT_FTM
+    #if defined(SUPPORT_FTM)
       if(ftmEnabled == true)
       {
         espBoilerplate.enableFtm();
@@ -27,6 +27,7 @@
       {
         if(wifiClientConnected == false)
         {
+          /*
           #if defined(SUPPORT_ESPNOW)
             if(espNowEnabled)
             {
@@ -37,8 +38,9 @@
               espBoilerplate.setApChannel(softApChannel);
             }
           #else
+          */
             espBoilerplate.setApChannel(softApChannel);
-          #endif
+          //#endif
           wifiApStarted = espBoilerplate.beginAp(APSSID, APPSK);
         }
         else
@@ -46,7 +48,7 @@
           wifiApStarted = espBoilerplate.beginAp(APSSID, APPSK);
         }
       }
-      #ifdef ENABLE_LOCAL_WEBSERVER
+      #if defined(ENABLE_LOCAL_WEBSERVER)
         if(wifiApStarted == true && enableCaptivePortal == true)
         {
           localLog(F("Starting captive portal DNS server: "));
@@ -63,18 +65,18 @@
       {
         configureTimeServer();  //Set up the time server
       }
-      #ifdef SUPPORT_HACKING
+      #if defined(SUPPORT_HACKING)
         if(sensorReset == false)
         {
           setupHacking();
         }
       #endif
-      #ifdef ENABLE_LOCAL_WEBSERVER
+      #if defined(ENABLE_LOCAL_WEBSERVER)
         #if defined(ACT_AS_SENSOR)
           if(sensorReset == true && (wifiApStarted == true || wifiClientConnected == true))
           {
             setupWebServer();
-            #ifdef SUPPORT_OTA
+            #if defined(SUPPORT_OTA)
               if(otaEnabled == true)
               {
                   configureOTA();
@@ -85,7 +87,7 @@
           if(wifiApStarted == true || wifiClientConnected == true)
           {
             setupWebServer();
-            #ifdef SUPPORT_OTA
+            #if defined(SUPPORT_OTA)
               if(otaEnabled == true)
               {
                   configureOTA();

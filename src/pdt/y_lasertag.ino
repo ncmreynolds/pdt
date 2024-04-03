@@ -68,24 +68,30 @@
             if(effectiveHits >= device[0].currentNumberOfStunHits)
             {
               device[0].currentNumberOfStunHits = 0;
-              #ifdef SUPPORT_LORA
+              /*
+              #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
               currentSensorState = sensorState::stunned;
               sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
               lastSensorStateChange = millis();
-              #ifdef SUPPORT_LORA
+              /*
+              #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
               localLogLn(F("Sensor: stunned"));
               sensor.pause();
             }
             else
             {
               device[0].currentNumberOfStunHits -= effectiveHits;
-              #ifdef SUPPORT_LORA
+              /*
+              #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
               sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
               currentSensorState = sensorState::takenHit;
               localLogLn(F("Sensor: takenHit"));
@@ -108,9 +114,11 @@
             {
               device[0].currentNumberOfStunHits = device[0].numberOfStartingStunHits;
             }
-            #ifdef SUPPORT_LORA
+            /*
+            #if defined(SUPPORT_LORA)
               scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
             #endif
+            */
             sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
             sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
             message += " " + String(effectiveHits) + " healing received, now " + String(device[0].currentNumberOfHits) + "/" + String(device[0].numberOfStartingHits) + " hits";
@@ -135,9 +143,11 @@
               device[0].currentNumberOfHits = 0;
               bleedOutCounter = 0;
               currentSensorState = sensorState::dead;
-              #ifdef SUPPORT_LORA
+              /*
+              #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
               sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
               sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
               //sensorPersitentData.putUChar(currentSensorStateKey, (uint8_t)currentSensorState);
@@ -147,9 +157,11 @@
               #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
                 xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, 2, NULL);
               #endif
-              #ifdef SUPPORT_LORA
+              /*
+              #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
             }
             else
             {
@@ -161,9 +173,11 @@
                 xTaskCreate(playHitAnimation, "playHitAnimation", 1000, (void*)&effectiveHits, 2, NULL);
               #endif
             }
-            #ifdef SUPPORT_LORA
+            /*
+            #if defined(SUPPORT_LORA)
               scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
             #endif
+            */
             message += " " + String(effectiveHits) + " damage received, now " + String(device[0].currentNumberOfHits) + "/" + String(device[0].numberOfStartingHits) + " hits";
             localLogLn(message);
           }
@@ -461,22 +475,24 @@
     sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
     sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
     sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
-    #ifdef SUPPORT_LORA
+    /*
+    #if defined(SUPPORT_LORA)
       scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
     #endif
+    */
   }
   void playCountOutMinutesAnimation(void * parameter)
   {
     uint8_t numberOfMinutes = *((uint8_t*)parameter);
     for(uint8_t i = 0; i < numberOfMinutes; i++)
     {
-      #ifdef SUPPORT_BEEPER
+      #if defined(SUPPORT_BEEPER)
         if(beeperEnabled == true)
         {
           makeAsingleBeep(300, 250);
         }
       #endif
-      #ifdef SUPPORT_LED
+      #if defined(SUPPORT_LED)
         ledOn(125, 0);
       #endif
       vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -487,13 +503,13 @@
   {
     for(uint8_t i = 0; i < (device[0].currentNumberOfHits < 10 ? device[0].currentNumberOfHits : 10); i++)
     {
-      #ifdef SUPPORT_BEEPER
+      #if defined(SUPPORT_BEEPER)
         if(beeperEnabled == true)
         {
           makeAsingleBeep(sensorTones[2], 50);
         }
       #endif
-      #ifdef SUPPORT_LED
+      #if defined(SUPPORT_LED)
         ledOn(25, 0);
       #endif
       if(i%3 == 2)
@@ -512,34 +528,34 @@
     uint8_t numberOfHits = *((uint8_t*)parameter);
     for(uint8_t i = 0; i < numberOfHits; i++)
     {
-      #ifdef SUPPORT_BEEPER
+      #if defined(SUPPORT_BEEPER)
         if(beeperEnabled == true)
         {
           makeAsingleBeep(sensorTones[2], 75);
         }
       #endif
-      #ifdef SUPPORT_LED
+      #if defined(SUPPORT_LED)
         ledOn(100, 0);
       #endif
       vTaskDelay(150 / portTICK_PERIOD_MS);
     }
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       if(beeperEnabled == true)
       {
         makeAsingleBeep(900, 250);
       }
     #endif
-    #ifdef SUPPORT_LED
+    #if defined(SUPPORT_LED)
       ledOn(125, 0);
     #endif
     vTaskDelay(260 / portTICK_PERIOD_MS);
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       if(beeperEnabled == true)
       {
         makeAsingleBeep(500, 400);
       }
     #endif
-    #ifdef SUPPORT_LED
+    #if defined(SUPPORT_LED)
       ledOn(200, 0);
     #endif
     vTaskDelay(410 / portTICK_PERIOD_MS);
@@ -547,13 +563,13 @@
   }
   void playNearMissAnimation(void * parameter)
   {
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       if(beeperEnabled == true)
       {
         makeAsingleBeep(sensorTones[2], 100);
       }
     #endif
-    #ifdef SUPPORT_LED
+    #if defined(SUPPORT_LED)
       ledOn(50, 0);
     #endif
     vTaskDelay(150 / portTICK_PERIOD_MS);
@@ -563,13 +579,13 @@
   {
     while(currentSensorState == sensorState::dead)
     {
-      #ifdef SUPPORT_BEEPER
+      #if defined(SUPPORT_BEEPER)
         if(beeperEnabled == true)
         {
           makeAsingleBeep(1000, 199);
         }
       #endif
-      #ifdef SUPPORT_LED
+      #if defined(SUPPORT_LED)
         ledOn(100, 0);
       #endif
       vTaskDelay(205 / portTICK_PERIOD_MS);
@@ -580,23 +596,23 @@
   {
     for(uint8_t i = 0; i < 3; i++)
     {
-      #ifdef SUPPORT_BEEPER
+      #if defined(SUPPORT_BEEPER)
         if(beeperEnabled == true)
         {
           makeAsingleBeep(900, 200);
         }
       #endif
-      #ifdef SUPPORT_LED
+      #if defined(SUPPORT_LED)
         ledOn(100, 0);
       #endif
       vTaskDelay(210 / portTICK_PERIOD_MS);
-      #ifdef SUPPORT_BEEPER
+      #if defined(SUPPORT_BEEPER)
         if(beeperEnabled == true)
         {
           makeAsingleBeep(500, 200);
         }
       #endif
-      #ifdef SUPPORT_LED
+      #if defined(SUPPORT_LED)
         ledOn(100, 0);
       #endif
       vTaskDelay(210 / portTICK_PERIOD_MS);

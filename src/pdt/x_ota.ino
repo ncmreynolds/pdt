@@ -3,7 +3,7 @@
  * This file contains related to Over-The-Air software updates
  * 
  */
-#ifdef ENABLE_LOCAL_WEBSERVER
+#if defined(ENABLE_LOCAL_WEBSERVER)
   #if defined(ENABLE_OTA_UPDATE)
     void configureOTA()
     {
@@ -79,26 +79,28 @@
   #endif
   void killAllTasks()
   {
-    #ifdef SUPPORT_LORA
+    /*
+    #if defined(SUPPORT_LORA)
       LoRa.end();
     #endif
+    */
     if(loggingManagementTask)
     {
       vTaskDelete(loggingManagementTask);
     }
-    #ifdef SUPPORT_GPS
+    #if defined(SUPPORT_GPS)
       if(gpsManagementTask)
       {
         vTaskDelete(gpsManagementTask);
       }
     #endif
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       if(beeperManagementTask)
       {
         vTaskDelete(beeperManagementTask);
       }
     #endif
-    #ifdef SUPPORT_LED
+    #if defined(SUPPORT_LED)
       if(ledManagementTask)
       {
         vTaskDelete(ledManagementTask);
@@ -116,26 +118,28 @@
     {
       xTaskCreate(manageLogging, "manageLogging", 10000, NULL, configMAX_PRIORITIES - 1, &loggingManagementTask);
     }
-    #ifdef SUPPORT_GPS
+    #if defined(SUPPORT_GPS)
       if(!gpsManagementTask)
       {
         xTaskCreate(processGpsSentences, "processGpsSentences", 10000, NULL, 1, &gpsManagementTask );
       }
     #endif
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       if(!beeperManagementTask)
       {
         xTaskCreate(manageBeeper, "manageBeeper", 512, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
       }
     #endif
-    #ifdef SUPPORT_LED
+    #if defined(SUPPORT_LED)
       if(!ledManagementTask)
       {
         xTaskCreate(manageLed, "manageLed", 512, NULL, configMAX_PRIORITIES - 3, &ledManagementTask);
       }
     #endif
-    #ifdef SUPPORT_LORA
+    /*
+    #if defined(SUPPORT_LORA)
       //LoRa.sleep();
     #endif
+    */
   }
 #endif

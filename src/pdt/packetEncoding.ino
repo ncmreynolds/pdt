@@ -1,4 +1,5 @@
 #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+/*
   uint8_t identifyDevice(uint8_t *macAddress)
   {
     uint8_t deviceIndex = 1;
@@ -47,4 +48,5 @@
     #endif
     return numberOfDevices-1;
   }
+*/
 #endif

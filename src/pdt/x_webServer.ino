@@ -4,6 +4,50 @@
  * 
  */
 #if defined(ENABLE_LOCAL_WEBSERVER)
+  const char h2printfFormatString[] PROGMEM =                 "<div class=\"row\"><div class=\"twelve columns\"><h2>%s</h2></div></div>";
+  const char h2printfEightColumnsFormatString[] PROGMEM =     "<div class=\"row\"><div class=\"eight columns\"><h2>%s</h2></div>";
+  const char h3printfFormatString[] PROGMEM =                 "<div class=\"row\"><div class=\"twelve columns\"><h3>%s</h3></div></div>";
+  const char hr[] PROGMEM =                                   "<hr style=\"width:100%;text-align:left;margin-left:0\">";
+  const char startRow[] PROGMEM =                             "<div class=\"row\">";
+  const char ulStart[] PROGMEM =                              "<div class=\"row\"><div class=\"eight columns\"><ul>";
+  const char ulEnd[] PROGMEM =                                "</ul></div>";
+  const char ulEndRow[] PROGMEM =                             "</ul></div></div>";
+  const char liIntegerPrintfFormatString[] PROGMEM =          "<li>%s: <b>%u</b></li>";
+  const char liIntegerWithUnitsPrintfFormatString[] PROGMEM = "<li>%s: <b>%u%s</b></li>";
+  const char liFloatPrintfFormatString[] PROGMEM =            "<li>%s: <b>%.2f</b></li>";
+  const char liFloatWithUnitsPrintfFormatString[] PROGMEM =   "<li>%s: <b>%.2f%s</b></li>";
+  const char liStringPrintfFormatString[] PROGMEM =           "<li>%s: <b>%s</b></li>";
+  const char formStart[] PROGMEM =                            "<form method=\"POST\">";
+  const char formEnd[] PROGMEM =                              "</form>";
+  const char labelForPrintfFormatString[] PROGMEM =           "<label for=\"%s\">%s</label>";
+  const char selectPrintfFormatString[] PROGMEM =             "<select class=\"u-full-width\" id=\"%s\" name=\"%s\">";
+  const char inputTextPrintfFormatString[] PROGMEM =          "<input class=\"u-full-width\" type=\"text\" id=\"%s\" name=\"%s\" value=\"%s\">";
+  const char inputPasswordPrintfFormatString[] PROGMEM =      "<input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"%s\" name=\"%s\">";
+  const char inputNumberPrintfFormatString[] PROGMEM =        "<input class=\"u-full-width\" type=\"number\" id=\"%s\" name=\"%s\" value=\"%u\">";
+  const char string_empty[] PROGMEM =                         "";
+  const char divEnd[] PROGMEM =                               "</div>";
+  const char* endRow = divEnd;
+  const char buttonPrintfFormatString[] PROGMEM =             "<a href =\"/%s\"><input class=\"button-primary\" type=\"button\" value=\"%s\"></a>";
+  const char saveButton[] PROGMEM =                           "<input class=\"button-primary\" type=\"submit\" value=\"Save\">";
+  const char startTwelveColumns[] PROGMEM =                   "<div class=\"twelve columns\">";
+  const char startEightColumns[] PROGMEM =                    "<div class=\"eight columns\">";
+  const char startSixColumns[] PROGMEM =                      "<div class=\"six columns\">";
+  const char startFourColumns[] PROGMEM =                     "<div class=\"four columns\">";
+  const char startThreeColumns[] PROGMEM =                    "<div class=\"three columns\">";
+  const char* endColumn = divEnd;
+  const char selectValueTrue[] PROGMEM =                      "<option value=\"true\"";
+  const char selectValueFalse[] PROGMEM =                     "<option value=\"false\"";
+  const char selectValueSelected[] PROGMEM =                  " selected>";
+  const char selectValueNotSelected[] PROGMEM =               ">";
+  const char selectValueEnabled[] PROGMEM =                   "Enabled</option>";
+  const char selectValueDisabled[] PROGMEM =                  "Disabled</option>";
+  const char endSelect[] PROGMEM =                            "</select>";
+  const char labelNotSet[] PROGMEM =                          "Not set";
+  const char labelOn[] PROGMEM =                              "On";
+  const char labelOff[] PROGMEM =                             "Off";
+  const char labelConfigure[] PROGMEM =                       "Configure";
+  const char labelBack[] PROGMEM =                            "Back";
+
   void addPageHeader(AsyncResponseStream *response, uint8_t refresh, const char* refreshTo)
   {
     lastWifiActivity = millis();
@@ -33,7 +77,8 @@
     response->print(F("</head><body><div class=\"container\">"));
     if(device[0].name != nullptr)
     {
-      response->printf_P(PSTR("<h1>%s</h1><hr>"),device[0].name);
+      response->printf_P(PSTR("<h1>%s</h1>"),device[0].name);
+      response->print(hr);
     }
   }
   void addPageFooter(AsyncResponseStream *response)
@@ -44,11 +89,11 @@
   {
     if(filesystemMounted == true)
     {
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
         webserverSemaphore = xSemaphoreCreateBinary();
         xSemaphoreGive(webserverSemaphore);
       #endif
-      #ifdef SUPPORT_HACKING
+      #if defined(SUPPORT_HACKING)
         if(sensorReset == false)
         {
           //Re-use the ESPUI object
@@ -64,7 +109,7 @@
       #endif
       localLog(F("Configuring web server callbacks: "));
       adminWebServer->on("/admin", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -77,27 +122,39 @@
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 90, nullptr);
             //Top of page buttons
-            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/devices\"><input class=\"button-primary\" type=\"button\" value=\"Devices\" style=\"width: 100%;\"></a></div>"));
-            response->print(F("<div class=\"four columns\"><a href =\"/listLogs\"><input class=\"button-primary\" type=\"button\" value=\"Logs\" style=\"width: 100%;\"></a></div>"));
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("devices"), PSTR("Devices"));
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("listLogs"), PSTR("Logs"));
+            response->print(endColumn);
             #if defined(ENABLE_REMOTE_RESTART)
-              response->print(F("<div class=\"four columns\"><a href =\"/restart\"><input class=\"button-primary\" type=\"button\" value=\"Restart\" style=\"width: 100%;\"></a></div>"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("restart"), PSTR("Restart"));
+              response->print(endColumn);
             #endif
             #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
-              response->print(F("<div class=\"four columns\"><a href =\"/update\"><input class=\"button-primary\" type=\"button\" value=\"Software Update\" style=\"width: 100%;\"></a></div>"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("update"), PSTR("Software Update"));
+              response->print(endColumn);
             #endif
-            response->print(F("</div>"));
+            response->print(endRow);
             //Status information
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>General</h2></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul>"));
+            response->print(hr);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Hardware"));
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("hardware"), labelConfigure);
+            response->print(endColumn);
+            response->print(ulStart);
             #if defined(ACT_AS_TRACKER)
-              response->printf_P(PSTR("<li>PDT tracker firmware: <b>v%u.%u.%u</b>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+              response->printf_P(PSTR("<li>PDT tracker firmware: <b>v%u.%u.%u</b></li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
             #elif defined(ACT_AS_BEACON)
-              response->printf_P(PSTR("<li>PDT beacon firmware: <b>v%u.%u.%u</b>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
+              response->printf_P(PSTR("<li>PDT beacon firmware: <b>v%u.%u.%u</b></li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
             #endif
-            response->print(F(" Features: <b>"));
-            response->print(deviceFeatures(device[0].typeOfDevice));
-            response->printf_P(PSTR("</b><li>Built: <b>%s %s</b>"), __TIME__, __DATE__);
-            response->printf_P(PSTR(" Board: <b>%s</b></li><li>PCB Variant: <b>"), ARDUINO_BOARD);
+            response->printf_P(liStringPrintfFormatString, PSTR("Features"), deviceFeatures(device[0].typeOfDevice).c_str());
+            response->printf_P(PSTR("<li>Built: <b>%s %s</b></li>"), __TIME__, __DATE__);
+            response->printf_P(PSTR("<li>Board: <b>%s</b></li><li>PCB Variant: <b>"), ARDUINO_BOARD);
             #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
               response->print(F("C3 PDT v1"));
             #elif HARDWARE_VARIANT == C3TrackedSensor || HARDWARE_VARIANT == C3TrackedSensorAsBeacon
@@ -118,65 +175,58 @@
               #endif
             #endif
             response->print(F("</b></li>"));
-            response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), device[0].id[0], device[0].id[1], device[0].id[2], device[0].id[3], device[0].id[4], device[0].id[5]);
+            /*
+            #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+              response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), device[0].id[0], device[0].id[1], device[0].id[2], device[0].id[3], device[0].id[4], device[0].id[5]);
+            */
+            #if defined(SUPPORT_TREACLE)
+              response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), localMacAddress[0], localMacAddress[1], localMacAddress[2], localMacAddress[3], localMacAddress[4], localMacAddress[5]);            
+            #endif
             if(filesystemMounted == true)
             {
               #if defined(USE_SPIFFS)
                 FSInfo fsInfo;
                 SPIFFS.info(fsInfo);
-                response->printf_P(PSTR("<li>Filesystem: <b>SPIFFS %u/%uKB used"), fsInfo.usedBytes/1024, fsInfo.totalBytes/1024);
+                response->printf_P(PSTR("<li>SPIFFS: <b>%u/%uKB used"), fsInfo.usedBytes/1024, fsInfo.totalBytes/1024);
                 if(fsInfo.usedBytes > 0 && fsInfo.totalBytes > 0)
                 {
                   response->printf_P(PSTR(" %.1f%% "),float(fsInfo.usedBytes) * 100/float(fsInfo.totalBytes));
                 }
-                else
-                {
-                  response->print(F("</b> "));
-                }
               #elif defined(USE_LITTLEFS)
                 #if defined(ESP32)
-                  response->printf_P(PSTR("<li>Filesystem: <b>LittleFS %u/%uKB used"), LittleFS.usedBytes()/1024, LittleFS.totalBytes()/1024);
+                  response->printf_P(PSTR("<li>LittleFS: <b>%u/%uKB used"), LittleFS.usedBytes()/1024, LittleFS.totalBytes()/1024);
                   if(LittleFS.usedBytes() > 0 && LittleFS.totalBytes() > 0)
                   {
-                    response->printf_P(PSTR(" %.1f%%</b> "),float(LittleFS.usedBytes()) * 100/float(LittleFS.totalBytes()));
-                  }
-                  else
-                  {
-                    response->print(F("</b> "));
+                    response->printf_P(PSTR(" %.1f%%"),float(LittleFS.usedBytes()) * 100/float(LittleFS.totalBytes()));
                   }
                 #endif
               #endif
+              response->print(F("</b></li>"));
             }
-            else
-            {
-              response->print(F("<li>Filesystem: <b>not mounted</b> "));
-            }
-            response->print(F("</b></li>"));
             #if defined(ESP32)
-              response->print(F("<li>Free heap: <b>"));
-              response->print(ESP.getFreeHeap()/1024);
-              response->print(F("KB</b></li>"));
+              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Free heap"), ESP.getFreeHeap()/1024, PSTR("KB"));
             #endif
-            response->print(F("<li>USB serial logging: "));
+            response->print(F("<li>USB serial logging: <b>"));
             #if defined(SERIAL_DEBUG) || defined(SERIAL_LOG)
               if(debugPortAvailable)
               {
-                response->print(F("<b>enabled - connected</b></li>"));
+                response->print(F("enabled - connected"));
               }
               else
               {
-                response->print(F("<b>enabled - disconnected</b></li>"));
+                response->print(F("enabled - disconnected"));
               }
             #else
-              response->print(F("<b>disabled</b></li>"));
+              response->print(F("disabled"));
             #endif
+            response->print(F("</b></li>"));
             #if defined(ENABLE_OTA_UPDATE)
               response->print(F("<li>Over-the-air software update (Arduino IDE): <b>enabled</b></li>"));
             #endif
             #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
               response->print(F("<li>Web UI software update: <b>enabled</b></li>"));
             #endif
-            response->print(F("<li>Time: <b>"));
+            response->print(F("<li>Time(UTC): <b>"));
             if(timeIsValid())
             {
               updateTimestamp();
@@ -184,24 +234,27 @@
             }
             else
             {
-              response->print(F("Not set"));
+              response->print(labelNotSet);
             }
             response->print(F("</b></li><li>Uptime: <b>"));
-            response->print(printableUptime(millis()/1000));
+            response->print(printableDuration(millis()/1000));
             response->print(F("</b></li>"));
             #if defined(ESP32)
               #ifdef ESP_IDF_VERSION_MAJOR // IDF 4+
                 #if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
                   response->print(F("<li>Restart reason core 0: <b>"));
                   response->print(es32ResetReason(0));
-                  response->print(F("</b> Restart reason core 1: <b>"));
+                  response->print(F("</li><li></b>Restart reason core 1: <b>"));
                   response->print(es32ResetReason(1));
+                  response->print(F("</b></li>"));
                 #elif CONFIG_IDF_TARGET_ESP32S2
                   response->print(F("<li>Restart reason: <b>"));
                   response->print(es32ResetReason(0));
+                  response->print(F("</b></li>"));
                 #elif CONFIG_IDF_TARGET_ESP32C3
                   response->print(F("<li>Restart reason: <b>"));
                   response->print(es32ResetReason(0));
+                  response->print(F("</b></li>"));
                 #else 
                   #error Target CONFIG_IDF_TARGET is not supported
                 #endif
@@ -210,94 +263,230 @@
                 response->print(es32ResetReason(0));
                 response->print(F("</b> Restart reason core 1: <b>"));
                 response->print(es32ResetReason(1));
+                response->print(F("</b></li>"));
               #endif
             #endif
-            response->print(F("</b></li>"));
-            #ifdef SUPPORT_BATTERY_METER
+            #if defined(SUPPORT_BATTERY_METER)
               if(enableBatteryMonitor == true)
               {
-                response->print(F("<li>Battery voltage: <b>"));
-                response->print(device[0].supplyVoltage);
-                response->print(F("v ("));
-                response->print(batteryPercentage);
-                response->print(F("% charge)</b></li>"));
+                response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Battery monitoring"), device[0].supplyVoltage, PSTR("v"));
               }
               else
               {
-                response->print(F("<li>Battery monitoring: <b>disabled</b>"));
-              }
-            #endif
-            #if defined(SUPPORT_WIFI)
-              if(wiFiClientInactivityTimer > 0)
-              {
-                response->print(F("<li>WiFi disconnecting after : "));
-                if(wiFiClientInactivityTimer == 60000)
-                {
-                  response->print(F("1 minute"));
-                }
-                else if(wiFiClientInactivityTimer == 180000)
-                {
-                  response->print(F("3 minutes"));
-                }
-                else if(wiFiClientInactivityTimer == 300000)
-                {
-                  response->print(F("f minutes"));
-                }
-                response->print(F(" inactivity</li>"));
+                response->printf_P(liStringPrintfFormatString, PSTR("Battery monitoring"), PSTR("disabled"));
               }
             #endif
             if(configurationComment != nullptr)
             {
               if(strlen(configurationComment) > 0)
               {
-                response->print(F("<li>Configuration comment: <b>"));
-                response->print(configurationComment);
-                response->print(F("</b></li>"));
+                response->printf_P(liStringPrintfFormatString, PSTR("Configuration comment"), configurationComment);
               }
             }
-            response->print(F("</ul></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/configuration\"><input class=\"button-primary\" type=\"button\" value=\"Config\" style=\"width: 100%;\"></a></div>"));
-            response->print(F("<div class=\"four columns\"><a href =\"/wipe\"><input class=\"button-primary\" type=\"button\" value=\"Wipe\" style=\"width: 100%;\"></a></div></div>"));
-            #ifdef ACT_AS_BEACON
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>In-game info</h2></div></div>"));
-              response->print(F("<li>Name: <b>"));
-              if(device[0].icName != nullptr)
-              {
-                response->print(device[0].icName);
-              }
-              else
-              {
-                response->print(F("not set"));
-              }
-              response->print(F("</b></li><li>Description: <b>"));
-              if(device[0].icDescription != nullptr)
-              {
-                response->print(device[0].icDescription);
-              }
-              else
-              {
-                response->print(F("not set"));
-              }
-              response->print(F("</b></li>"));
-              response->print(F("<li>Diameter: <b>"));
-              response->print(device[0].diameter);
-              response->print(F("</b></li><li>Diameter: <b>"));
-              response->print(device[0].height);
-              response->print(F("</b></li>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/icconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"IC config\" style=\"width: 100%;\"></a></div></div>"));
+            response->print(ulEnd);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("wipe"), PSTR("Wipe"));
+            response->print(endColumn);
+            response->print(endRow);
+            //General
+            response->print(hr);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("General"));
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("general"), labelConfigure);
+            response->print(endColumn);
+            response->print(ulStart);
+            response->printf_P(liStringPrintfFormatString, PSTR("Name"), (device[0].name != nullptr) ? device[0].name : labelNotSet);
+            if(device[0].icName != nullptr)
+            {
+              response->printf_P(liStringPrintfFormatString, PSTR("IC Name"), device[0].icName);
+            }
+            else
+            {
+              response->printf_P(liStringPrintfFormatString, PSTR("IC Name"), labelNotSet);
+            }
+            #if defined(ACT_AS_BEACON)
+              response->printf_P(liStringPrintfFormatString, PSTR("Usually static"), (deviceUsuallyStatic) ? labelOn : labelOff);
             #endif
-            #ifdef SUPPORT_ESPNOW
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>ESP-Now</h2></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>ESP-Now radio: <b>"));
-              if(espNowEnabled == true)
+            if(device[0].icDescription != nullptr)
+            {
+              response->printf_P(liStringPrintfFormatString, PSTR("IC Description"), device[0].icDescription);
+            }
+            else
+            {
+              response->printf_P(liStringPrintfFormatString, PSTR("IC Description"), labelNotSet);
+            }
+            response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("IC Diameter"), device[0].diameter, PSTR("m"));
+            response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("IC Height"), device[0].height, PSTR("m"));
+            response->print(ulEndRow);
+            #if defined(SUPPORT_WIFI)
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("WiFi"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("wifi"), labelConfigure);
+              response->print(endColumn);
+              response->print(ulStart);
+              response->printf_P(liStringPrintfFormatString, PSTR("WiFi client"), (startWiFiClientOnBoot) ? labelOn : labelOff);
+              if(startWiFiClientOnBoot)
               {
-                response->print(F("On"));
+                response->print(F("<ul>"));
+                response->printf_P(liStringPrintfFormatString, PSTR("WiFi SSID"), (SSID != nullptr) ? SSID : labelNotSet);
+                if(wiFiClientInactivityTimer > 0)
+                {
+                  response->print(F("<li>WiFi disconnecting after: <b>"));
+                  if(wiFiClientInactivityTimer == 60000)
+                  {
+                    response->print(F("1 minute"));
+                  }
+                  else if(wiFiClientInactivityTimer == 180000)
+                  {
+                    response->print(F("3 minutes"));
+                  }
+                  else if(wiFiClientInactivityTimer == 300000)
+                  {
+                    response->print(F("5 minutes"));
+                  }
+                  response->print(F(" inactivity</b></li>"));
+                }
+                response->print(F("</ul>"));
+              }
+              response->printf_P(liStringPrintfFormatString, PSTR("WiFi AP"), (startWiFiApOnBoot) ? labelOn : labelOff);
+              if(startWiFiApOnBoot)
+              {
+                response->print(F("<ul>"));
+                response->printf_P(liStringPrintfFormatString, PSTR("SSID"), (APSSID != nullptr) ? APSSID : labelNotSet);
+                response->printf_P(liStringPrintfFormatString, PSTR("PSK"), (APPSK != nullptr) ? APPSK : labelNotSet);
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Preferred Channel"), softApChannel);
+                #if defined(ENABLE_LOCAL_WEBSERVER)
+                  response->printf_P(liStringPrintfFormatString, PSTR("Captive portal"), (enableCaptivePortal) ? labelOn : labelOff);
+                #endif
+                response->print(F("</ul>"));
+              }
+              response->print(ulEndRow);
+            #endif
+            //Status information
+            response->print(hr);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Tracking"));
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("tracking"), labelConfigure);
+            response->print(endColumn);
+            response->print(ulStart);
+            #if defined(ACT_AS_TRACKER)
+              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Effective range"), maximumEffectiveRange, PSTR("m"));
+            #endif
+            response->print(F("<li>Sensitivity: <b>"));
+            if(trackingSensitivity == 2)
+            {
+              response->print(F("High"));
+            }
+            else if(trackingSensitivity == 1)
+            {
+              response->print(F("Medium"));
+            }
+            else
+            {
+              response->print(F("Low"));
+            }
+            response->print(F("</b></li>"));
+            response->print(ulEndRow);
+            #if defined(SUPPORT_LVGL)
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("GUI"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("gui"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(ulStart);
+              #if defined(LVGL_SUPPORT_HOME_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("Home tab"), (enableHomeTab) ? labelOn : labelOff);
+              #endif
+              #if defined(LVGL_SUPPORT_MAP_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("Map tab"), (enableMapTab) ? labelOn : labelOff);
+              #endif
+              #if defined(LVGL_SUPPORT_GPS_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("GPS info tab"), (enableGpsTab) ? labelOn : labelOff);
+              #endif
+              #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("Scan Info tab"), (enableInfoTab) ? labelOn : labelOff);
+              #endif
+              #if defined(LVGL_SUPPORT_SETTINGS_TAB)
+                response->printf_P(liStringPrintfFormatString, PSTR("Settings tab"), (enableSettingsTab) ? labelOn : labelOff);
+              #endif
+              response->print(ulEndRow);
+            #endif
+            #if defined(SUPPORT_TREACLE)
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Treacle"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("treacleconfiguration"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
+              if(treacleIntialised == true)
+              {
+                response->print(ulStart);
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Node ID"), treacle.getNodeId());
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Number of nodes"), treacle.nodes());
+                response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Location updates"), treacleLocationInterval/1000, PSTR("s"));
+                response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Info updates"), treacleDeviceInfoInterval/1000, PSTR("s"));
+                response->printf_P(liStringPrintfFormatString, PSTR("ESP-Now radio"), (treacle.espNowEnabled()) ? labelOn : labelOff);
+                if(treacle.espNowEnabled() == true)
+                {
+                  if(treacle.espNowInitialised() == true)
+                  {
+                    response->print(F("<ul>"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Current channel"), treacle.getEspNowChannel());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Rx"), treacle.getEspNowRxPackets());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Tx"), treacle.getEspNowTxPackets());
+                    response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Duty cycle"), treacle.getEspNowDutyCycle(), PSTR("%"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Duty cycle exceptions"), treacle.getEspNowDutyCycleExceptions());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Rx dropped"), treacle.getEspNowRxPacketsDropped());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Tx dropped"), treacle.getEspNowTxPacketsDropped());
+                    response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Update interval"), treacle.getEspNowTickInterval()/1000, PSTR("s"));
+                    response->print(F("</ul>"));
+                  }
+                  else
+                  {
+                    response->print(F("<li><b>Not initialised</b></li>"));
+                  }
+                }
+                response->print(ulEndRow);
+                if(treacle.loRaEnabled() == true)
+                {
+                  response->print(ulStart);
+                  response->printf_P(liStringPrintfFormatString, PSTR("LoRa radio"), (treacle.loRaEnabled()) ? labelOn : labelOff);
+                  if(treacle.loRaInitialised() == true)
+                  {
+                    response->print(F("<ul>"));
+                    response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Frequency"), uint16_t(loRaFrequency/1E6), PSTR("MHz"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Spreading factor"), treacle.getLoRaSpreadingFactor());
+                    response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Signal bandwidth"), float(treacle.getLoRaSignalBandwidth())/1000.0, PSTR("kBaud"));
+                    response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Transmit power"), treacle.getLoRaTxPower(), PSTR("dBm"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Rx"), treacle.getLoRaRxPackets());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Tx"), treacle.getLoRaTxPackets());
+                    response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Duty cycle"), treacle.getLoRaDutyCycle(), PSTR("%"));
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Duty cycle exceptions"), treacle.getLoRaDutyCycleExceptions());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Rx dropped"), treacle.getLoRaRxPacketsDropped());
+                    response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Tx dropped"), treacle.getLoRaTxPacketsDropped());
+                    response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Update interval"), treacle.getLoRaTickInterval()/1000, PSTR("s"));
+                    response->print(F("</ul>"));
+                  }
+                  else
+                  {
+                    response->print(F("<li><b>Not initialised</b></li>"));
+                  }
+                }
+                response->print(ulEndRow);
               }
               else
               {
-                response->print(F("Off"));
+                response->print(startRow);
+                response->printf_P(h3printfFormatString, PSTR("Initialisation failed!"));
               }
-              response->print(F("</b></li>"));
+            #endif
+            /*
+            #if defined(SUPPORT_ESPNOW)
+              response->printf_P(h2printfFormatString, PSTR("ESP-Now"));
+              response->print(ulStart);
+              response->printf_P(liStringPrintfFormatString, PSTR("ESP-Now radio"), (espNowEnabled) ? labelOn : labelOff);
               if(espNowEnabled == true)
               {
                 if(espNowInitialised == true)
@@ -326,21 +515,19 @@
                   response->print(F("<li><b>Not initialised</b></li>"));
                 }
               }
-              response->print(F("</ul></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/espnowconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"ESP-Now config\" style=\"width: 100%;\"></a></div></div>"));
+              response->print(ulEndRow);
+              response->print(startRow);
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("espnowconfiguration"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
             #endif
+            */
+            /*
             #if defined(SUPPORT_LORA)
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>LoRa</h2></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>LoRa radio: <b>"));
-              if(loRaEnabled == true)
-              {
-                response->print(F("On"));
-              }
-              else
-              {
-                response->print(F("Off"));
-              }
-              response->print(F("</b></li>"));
+              response->printf_P(h2printfFormatString, PSTR("LoRa"));
+              response->print(ulStart);
+              response->printf_P(liStringPrintfFormatString, PSTR("LoRa radio"), (loRaEnabled) ? labelOn : labelOff);
               if(loRaEnabled == true)
               {
                 response->print(F("<li>Packets: <b>"));
@@ -365,38 +552,35 @@
                   response->print(F("Not initialised</b></li>"));
                 }
               }
-              response->print(F("</ul></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/loraconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"LoRa config\" style=\"width: 100%;\"></a></div></div>"));
+              response->print(ulEndRow);
+              response->print(startRow);
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("loraconfiguration"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
             #endif
-            #ifdef SUPPORT_FTM
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>FTM (time-of-flight) measurements</h2></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul><li>FTM beacon: <b>"));
-              if(ftmEnabled == true)
-              {
-                response->print(F("On"));
-              }
-              else
-              {
-                response->print(F("Off"));
-              }
-              response->print(F("</b></li>"));
-              response->print(F("</ul></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/ftmconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"FTM configuration\" style=\"width: 100%;\"></a></div></div>"));
+            */
+            #if defined(SUPPORT_FTM)
+              response->printf_P(h2printfFormatString, PSTR("FTM (time-of-flight) measurements"));
+              response->print(ulStart);
+              response->printf_P(liStringPrintfFormatString, PSTR("FTM beacon"), (ftmEnabled) ? labelOn : labelOff);
+              response->print(ulEndRow);
+              response->print(startRow);
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("ftm"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
             #endif
-            #ifdef SUPPORT_GPS
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>GPS</h2></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><ul>"));
-              #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
-                response->print(F("<li>Power: <b>"));
-                if(peripheralsEnabled == true)
-                {
-                  response->print(F("On"));
-                }
-                else
-                {
-                  response->print(F("Off"));
-                }
-                response->print(F("</b></li>"));
+            #if defined(SUPPORT_GPS)
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("GPS"));
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("gps"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(ulStart);
+              #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
+                response->printf_P(liStringPrintfFormatString, PSTR("Power"), (peripheralsEnabled) ? labelOn : labelOff);
               #endif
               if(device[0].hasGpsFix)
               {
@@ -409,88 +593,48 @@
                   #endif
                   response->print(F("s</b> ago</li>"));
                 #endif
-                response->print(F("<li>Latitude: <b>"));
-                response->print(device[0].latitude);
-                response->print(F("</b> Longitude: <b>"));
-                response->print(device[0].longitude);
-                response->print(F("</b> Speed: <b>"));
-                response->print(device[0].speed);
-                response->print(F("</b> HDOP: <b>"));
-                response->print(device[0].hdop);
-                response->print('(');
-                response->print(hdopDescription(device[0].hdop));
-                response->print(F(")</b></li>"));
-                response->print(F("<li>Chars: <b>"));
-                response->print(gpsChars);
-                response->print(F("</b></li>"));
-                response->print(F("<li>Sentences: <b>"));
-                response->print(gpsSentences);
-                response->print(F("</b> Errors: <b>"));
-                response->print(gpsErrors);
-                if(gpsSentences > 0 && gpsErrors > 0)
-                {
-                  response->print('(');
-                  response->print(float(100) * float(gpsErrors)/float(gpsSentences));
-                  response->print(F("%)"));
-                }
-                response->print(F("</b></li>"));
+                response->printf_P(liFloatPrintfFormatString, PSTR("Latitude"), device[0].latitude);
+                response->printf_P(liFloatPrintfFormatString, PSTR("Longitude"), device[0].longitude);
+                response->printf_P(liFloatPrintfFormatString, PSTR("Speed"), device[0].speed);
+                response->printf_P(liFloatPrintfFormatString, PSTR("Speed(smoothed)"), device[0].smoothedSpeed);
+                response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Movement threshold"), movementThreshold, PSTR("m/s"));
+                response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("HDOP"), device[0].hdop, hdopDescription(device[0].hdop));
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Chars"), gpsChars);
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Sentences"), gpsSentences);
+                response->printf_P(liIntegerPrintfFormatString, PSTR("Errors"), gpsErrors);
                 #if defined(ACT_AS_TRACKER)
-                  response->print(F("<li>Distance to tracked beacon: <b>"));
                   if(currentlyTrackedBeacon < maximumNumberOfDevices)
                   {
                     if(device[currentlyTrackedBeacon].hasGpsFix)
                     {
-                      response->print(device[currentlyTrackedBeacon].distanceTo);
-                      response->print(F("m</b></li>"));
-                      response->print(F("<li>Course to tracked beacon: <b>"));
-                      response->print(device[currentlyTrackedBeacon].courseTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Distance to tracked beacon"), device[currentlyTrackedBeacon].distanceTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Course to tracked beacon: "), device[currentlyTrackedBeacon].courseTo);
                     }
-                    else
-                    {
-                      response->print(F("Unknown"));
-                    }
-                  }
-                  else
-                  {
-                    response->print(F("no beacons"));
                   }
                 #elif defined(ACT_AS_BEACON)
-                  response->print(F("<li>Distance to nearest tracker: <b>"));
                   if(closestTracker < maximumNumberOfDevices)
                   {
                     if(device[closestTracker].hasGpsFix)
                     {
-                      response->print(device[closestTracker].distanceTo);
-                      response->print(F("m</b></li>"));
-                      response->print(F("<li>Course to nearest tracker: <b>"));
-                      response->print(device[closestTracker].courseTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Distance to nearest tracker"), device[closestTracker].distanceTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Course to nearest tracker"), device[closestTracker].courseTo);
                     }
-                    else
-                    {
-                      response->print(F("Unknown"));
-                    }
-                  }
-                  else
-                  {
-                    response->print(F("no trackers"));
                   }
                 #endif
-                response->print(F("</b></li>"));
               }
-              else
-              {
-                response->print(F("<li>Chars: <b>"));
-                response->print(gpsChars);
-                response->print(F("</b> - no fix yet</li>"));
-              }
-              response->print(F("</ul></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/gpsconfiguration\"><input class=\"button-primary\" type=\"button\" value=\"GPS config\" style=\"width: 100%;\"></a></div></div>"));
+              response->print(ulEndRow);
             #endif
-            //response->print(F("</b>"));
             #if defined(ACT_AS_SENSOR)
-              response->print(F("<h2>Sensor</h2>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/sensorConfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Sensor config\" style=\"width: 100%;\"></a></div>"));
-              response->print(F("<div class=\"four columns\"><a href =\"/sensorReset\"><input class=\"button-primary\" type=\"button\" value=\"Reset sensor\" style=\"width: 100%;\"></a></div></div>"));
+              response->print(hr);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Sensor"));
+              response->printf_P(buttonPrintfFormatString, PSTR("sensorConfiguration"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("sensorReset"), PSTR("Reset sensor"));
+              response->print(endColumn);
+              response->print(endRow);
               response->printf_P(PSTR("<li>Current hits: <b>%u/%u</b> stun: <b>%u/%u</b></li>"), device[0].currentNumberOfHits, device[0].numberOfStartingHits, device[0].currentNumberOfStunHits, device[0].numberOfStartingStunHits);
               if(armourValue > 0)
               {
@@ -533,18 +677,33 @@
                 response->print(F("<li>Ignore non-DOT: <b>true</b></li>"));
               }
             #endif
-            response->print(F("</ul>"));
-            #ifdef SUPPORT_HACKING
-              response->print(F("<h2>Game</h2>"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/gameConfiguration\"><input class=\"button-primary\" type=\"button\" value=\"Configure hacking game\" style=\"width: 100%;\"></a></div></div>"));
-              response->print(F("<ul>"));
+            response->print(ulEndRow);
+            #if defined(SUPPORT_HACKING)
+              response->printf_P(h2printfFormatString, PSTR("Game"));
+              response->print(startRow);
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("gameConfiguration"), labelConfigure);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(ulStart);
               response->printf_P(PSTR("<li>Game length: <b>%u</b></li><li>Game retries: <b>%u</b> (0=infinite)</li><li>Game speedup: <b>%u</b>(ms)</li>"), gameLength, gameRetries, gameSpeedup);
-              response->print(F("</ul>"));
+              response->print(ulEndRow);
             #endif
+            //Logging
+            response->print(hr);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Logging"));
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("logging"), labelConfigure);
+            response->print(endColumn);
+            response->print(ulStart);
+            response->printf_P(liIntegerPrintfFormatString, PSTR("Buffer size"), loggingBufferSize);
+            response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Flush interval"), logFlushInterval, PSTR("s"));
+            response->printf_P(liIntegerPrintfFormatString, PSTR("Flush threshold"), logFlushThreshold);
+            response->print(ulEndRow);
             addPageFooter(response);
             //Send response
             request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -557,7 +716,7 @@
         #endif
       });
       adminWebServer->on("/listLogs", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows a list of all the log files
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -573,8 +732,12 @@
             }
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 0, nullptr);
-            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div></div>"));
-            response->print(F("<h2>Log files</h2>"));
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+            response->print(endColumn);
+            response->print(endRow);
+            response->printf_P(h2printfFormatString, PSTR("Log files"));
             response->print(F("<table class=\"u-full-width\"><thead><tr><th>File</th><th>Size</th></tr></thead><tbody>"));
             #if defined(USE_SPIFFS)
               Dir dir = SPIFFS.openDir(logDirectory);
@@ -614,7 +777,7 @@
             addPageFooter(response);
             //Send response
             request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -628,7 +791,7 @@
       });
       #if defined(ENABLE_LOG_DELETION)
         adminWebServer->on("/deleteLog", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -643,7 +806,7 @@
                 AsyncWebParameter* file = request->getParam("file");
                 AsyncResponseStream *response = request->beginResponseStream("text/html");
                 addPageHeader(response, 0, nullptr);
-                response->print(F("<h2>Delete log file confirmation</h2>"));
+                response->printf_P(h2printfFormatString, PSTR("Delete log file confirmation"));
                 response->printf_P(PSTR("<p>Are you sure you want to delete the log file %s?</p>"),file->value().c_str());
                 response->printf_P(PSTR("<p><a href =\"/deleteLogConfirmed?file=%s\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a> <a href=\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a></p>"),file->value().c_str());
                 addPageFooter(response);
@@ -654,7 +817,7 @@
               {
                 request->send(500, "text/plain", request->url() + " file not found");
               }
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -667,7 +830,7 @@
         #endif
         });
         adminWebServer->on("/deleteLogConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -702,7 +865,7 @@
               {
                 request->send(500, "text/plain", request->url() + " file not found");
               }
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -715,8 +878,8 @@
         #endif
         });
       #endif
-      adminWebServer->on("/configuration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      adminWebServer->on("/hardware", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -729,208 +892,120 @@
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 0, nullptr);
             //Start of form
-            response->print(F("<form method=\"POST\">"));
-            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"four columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
-            response->print(F("<h2>Configuration</h2>"));
-            if(device[0].name != nullptr)
-            {
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"deviceName\">Node name</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"deviceName\" name=\"deviceName\"></div></div>"), device[0].name);
-            }
-            else
-            {
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"deviceName\">Node name</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"deviceName\" name=\"deviceName\"></div></div>"));
-            }
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Networking</h3></div></div>"));
-            #if defined(SUPPORT_WIFI)
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>WiFi</h3></div></div>"));
-              //WiFi client
-              response->print(F("<div class=\"row\"><div class=\"three columns\"><label for=\"startWiFiClientOnBoot\">Enable WiFi client on boot</label><select class=\"u-full-width\" id=\"startWiFiClientOnBoot\" name=\"startWiFiClientOnBoot\">"));
-              response->print(F("<option value=\"true\""));response->print(startWiFiClientOnBoot == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(startWiFiClientOnBoot == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"three columns\"><label for=\"wiFiClientInactivityTimer\">WiFi inactivity timer</label><select class=\"u-full-width\" id=\"wiFiClientInactivityTimer\" name=\"wiFiClientInactivityTimer\">"));
-              response->print(F("<option value=\"0\""));response->print(wiFiClientInactivityTimer == 0 ? " selected>":">");response->print(F("Never</option>"));
-              response->print(F("<option value=\"60000\""));response->print(wiFiClientInactivityTimer == 60000 ? " selected>":">");response->print(F("1m</option>"));
-              response->print(F("<option value=\"180000\""));response->print(wiFiClientInactivityTimer == 180000 ? " selected>":">");response->print(F("3m</option>"));
-              response->print(F("<option value=\"300000\""));response->print(wiFiClientInactivityTimer == 300000 ? " selected>":">");response->print(F("5m</option>"));
-              response->print(F("</select></div>"));
-              if(SSID != nullptr)
-              {
-                response->printf_P(PSTR("<div class=\"three columns\"><label for=\"SSID\">WiFi SSID</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"SSID\" name=\"SSID\"></div>"), SSID);
-              }
-              else
-              {
-                response->print(F("<div class=\"three columns\"><label for=\"SSID\">WiFi SSID</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"SSID\" name=\"SSID\"></div>"));
-              }
-              response->print(F("<div class=\"three columns\"><label for=\"PSK\">WiFi PSK</label><input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"PSK\" name=\"PSK\"></div></div>"));
-              //WiFi AP        
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><label for=\"startWiFiApOnBoot\">Enable WiFi AP on boot</label><select class=\"u-full-width\" id=\"startWiFiApOnBoot\" name=\"startWiFiApOnBoot\">"));
-              response->print(F("<option value=\"true\""));response->print(startWiFiApOnBoot == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(startWiFiApOnBoot == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"four columns\"><label for=\"enableCaptivePortal\">Enable captive portal</label><select class=\"u-full-width\" id=\"enableCaptivePortal\" name=\"enableCaptivePortal\">"));
-              response->print(F("<option value=\"true\""));response->print(enableCaptivePortal == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(enableCaptivePortal == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"four columns\"><label for=\"softApChannel\">Preferred channel</label><select class=\"u-full-width\" id=\"softApChannel\" name=\"softApChannel\">"));
-              response->print(F("<option value=\"1\""));response->print(softApChannel == 1 ? " selected>":">");response->print(F("1</option>"));
-              response->print(F("<option value=\"6\""));response->print(softApChannel == 6 ? " selected>":">");response->print(F("6</option>"));
-              response->print(F("<option value=\"11\""));response->print(softApChannel == 11 ? " selected>":">");response->print(F("11</option>"));
-              response->print(F("</select></div></div>"));
-              if(APSSID != nullptr)
-              {
-                response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"APSSID\">AP SSID</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"APSSID\" name=\"APSSID\"></div>"), APSSID);
-              }
-              else
-              {
-                response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"APSSID\">AP SSID</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"APSSID\" name=\"APSSID\"></div>"));
-              }
-              response->print(F("<div class=\"six columns\"><label for=\"APPSK\">AP PSK</label><input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"APPSK\" name=\"APPSK\"></div></div>"));
-            #endif
-            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><label for=\"basicAuthEnabled\">Web UI login</label><select class=\"u-full-width\" id=\"basicAuthEnabled\" name=\"basicAuthEnabled\">"));
-              response->print(F("<option value=\"true\""));response->print(basicAuthEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(basicAuthEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div>"));
-              if(http_user != nullptr)
-              {
-                response->printf_P(PSTR("<div class=\"four columns\"><label for=\"http_user\">Web UI username</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"http_user\" name=\"http_user\"></div>"), http_user);
-              }
-              else
-              {
-                response->print(F("<div class=\"four columns\"><label for=\"http_user\">Web UI username</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"http_user\" name=\"http_user\"></div>"));
-              }
-              response->print(F("<div class=\"four columns\"><label for=\"http_password\">Web UI/OTA password</label><input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"http_password\" name=\"http_password\"></div></div>"));
-            #endif
-            #if defined(SUPPORT_WIFI)
-              //Time Server
-              if(timeServer != nullptr)
-              {
-                response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"timeServer\">NTP host</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"timeServer\" name=\"timeServer\"></div>"), timeServer);
-              }
-              else
-              {
-                response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"timeServer\">NTP host</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"timeServer\" name=\"timeServer\"></div>"));
-              }
-              if(timeZone != nullptr)
-              {
-                response->printf_P(PSTR("<div class=\"six columns\"><label for=\"\">Timezone</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"timeZone\" name=\"timeZone\"></div></div>"), timeZone);
-              }
-              else
-              {
-                response->print(F("<div class=\"six columns\"><label for=\"\">Timezone</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"timeZone\" name=\"timeZone\"></div></div>"));
-              }
-            #endif
+            response->print(formStart);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Hardware configuration"));
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
+            response->print(endRow);
             #if defined(ENABLE_OTA_UPDATE)
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Software Update</h3></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"otaEnabled\">OTA enabled</label><select class=\"u-full-width\" id=\"otaEnabled\" name=\"otaEnabled\">"));
-              response->print(F("<option value=\"true\""));response->print(otaEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(otaEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"six columns\"><label for=\"otaAuthenticationEnabled\">OTA password enabled</label><select class=\"u-full-width\" id=\"otaAuthenticationEnabled\" name=\"otaAuthenticationEnabled\">"));
-              response->print(F("<option value=\"true\""));response->print(otaAuthenticationEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(otaAuthenticationEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div>"));
+              response->printf_P(h3printfFormatString, PSTR("Software Update"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_otaEnabled, PSTR("OTA enabled"));
+              response->printf_P(selectPrintfFormatString, string_otaEnabled, string_otaEnabled);
+              response->print(selectValueTrue);response->print(otaEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(otaEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_otaAuthenticationEnabled, PSTR("OTA password enabled"));
+              response->printf_P(selectPrintfFormatString, string_otaAuthenticationEnabled, string_otaAuthenticationEnabled);
+              response->print(selectValueTrue);response->print(otaAuthenticationEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(otaAuthenticationEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
             #endif
-            //Logging
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Logging</h3></div></div>"));
-            response->printf_P(PSTR("<div class=\"row\"><div class=\"four columns\"><label for=\"loggingBufferSize\">Logging buffer size</label><input class=\"u-full-width\" type=\"number\" value=\"%u\" id=\"loggingBufferSize\" name=\"loggingBufferSize\"></div>"), loggingBufferSize);
-            response->printf_P(PSTR("<div class=\"four columns\"><label for=\"logFlushThreshold\">Logging buffer flush threshold</label><input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"logFlushThreshold\" name=\"logFlushThreshold\"></div>"), logFlushThreshold);
-            response->print(F("<div class=\"four columns\"><label for=\"logFlushInterval\">Logging buffer flush frequency</label><select class=\"u-full-width\" id=\"logFlushInterval\" name=\"logFlushInterval\">"));
-            response->print(F("<option value=\"30\""));response->print(logFlushInterval == 30 ? " selected>":">");response->print(F("30s</option>"));
-            response->print(F("<option value=\"60\""));response->print(logFlushInterval == 60 ? " selected>":">");response->print(F("60s</option>"));
-            response->print(F("<option value=\"90\""));response->print(logFlushInterval == 90 ? " selected>":">");response->print(F("90s</option>"));
-            response->print(F("<option value=\"180\""));response->print(logFlushInterval == 180 ? " selected>":">");response->print(F("3 minutes</option>"));
-            response->print(F("<option value=\"300\""));response->print(logFlushInterval == 300 ? " selected>":">");response->print(F("5 minutes</option>"));
-            //response->print(F("<option value=\"7200\""));response->print(logFlushInterval == 7200 ? " selected>":">");response->print(F("2 hours</option>"));
-            //response->print(F("<option value=\"14400\""));response->print(logFlushInterval == 14400 ? " selected>":">");response->print(F("4 hours</option>"));
-            //response->print(F("<option value=\"28800\""));response->print(logFlushInterval == 28800 ? " selected>":">");response->print(F("8 hours</option>"));
-            //response->print(F("<option value=\"57600\""));response->print(logFlushInterval == 57600 ? " selected>":">");response->print(F("16 hours</option>"));
-            //response->print(F("<option value=\"86400\""));response->print(logFlushInterval == 86400 ? " selected>":">");response->print(F("24 hours</option>"));
-            response->print(F("</select></div></div>"));
             //Battery
-            #ifdef SUPPORT_BATTERY_METER
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Battery monitor</h3></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"enableBatteryMonitor\">Enable battery monitor</label><select class=\"u-full-width\" id=\"enableBatteryMonitor\" name=\"enableBatteryMonitor\">"));
-              response->print(F("<option value=\"true\""));response->print(enableBatteryMonitor == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(enableBatteryMonitor == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div><div class=\"six columns\">Defaults 330/104kOhm</div></div>"));
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"topLadderResistor\">Top ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"topLadderResistor\" name=\"topLadderResistor\"></div>"), topLadderResistor);
-              response->printf_P(PSTR("<div class=\"six columns\"><label for=\"bottomLadderResistor\">Bottom ladder resistor (Kohms)</label><input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\"></div></div>"), bottomLadderResistor);
+            #if defined(SUPPORT_BATTERY_METER)
+              response->printf_P(h3printfFormatString, PSTR("Battery monitor"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_enableBatteryMonitor, PSTR("Enable battery monitor"));
+              response->printf_P(selectPrintfFormatString, string_enableBatteryMonitor, string_enableBatteryMonitor);
+              response->print(selectValueTrue);response->print(enableBatteryMonitor == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(enableBatteryMonitor == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("Defaults 330/104kOhm"));
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_topLadderResistor, PSTR("Top ladder resistor (Kohms)"));
+              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"topLadderResistor\" name=\"topLadderResistor\">"), topLadderResistor);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_bottomLadderResistor, PSTR("Bottom ladder resistor (Kohms)"));
+              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\">"), bottomLadderResistor);
+              response->print(endColumn);
+              response->print(endRow);
             #endif
-            #if defined(ACT_AS_TRACKER)
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Tracking</h3></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"maximumEffectiveRange\">Maximum effective range</label><select class=\"u-full-width\" id=\"maximumEffectiveRange\" name=\"maximumEffectiveRange\">"));
-              response->print(F("<option value=\"50\""));response->print(maximumEffectiveRange == 50 ? " selected>":">");response->print(F("50m</option>"));
-              response->print(F("<option value=\"75\""));response->print(maximumEffectiveRange == 75 ? " selected>":">");response->print(F("75m</option>"));
-              response->print(F("<option value=\"99\""));response->print(maximumEffectiveRange == 99 ? " selected>":">");response->print(F("99m</option>"));
-              response->print(F("<option value=\"150\""));response->print(maximumEffectiveRange == 150 ? " selected>":">");response->print(F("150m</option>"));
-              response->print(F("<option value=\"250\""));response->print(maximumEffectiveRange == 250 ? " selected>":">");response->print(F("250m</option>"));
-              response->print(F("<option value=\"750\""));response->print(maximumEffectiveRange == 750 ? " selected>":">");response->print(F("750m</option>"));
-              response->print(F("<option value=\"1000\""));response->print(maximumEffectiveRange == 1000 ? " selected>":">");response->print(F("1000m</option>"));
-              response->print(F("<option value=\"9999\""));response->print(maximumEffectiveRange == 9999 ? " selected>":">");response->print(F("9999m</option>"));
-              response->print(F("<option value=\""));response->print(effectivelyUnreachable);response->print('"');response->print(maximumEffectiveRange == effectivelyUnreachable ? " selected>":">");response->print(F("Unlimited</option>"));
-              response->print(F("</select></div></div>"));
-            #endif
-            #if defined(ACT_AS_BEACON)
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Location tracking</h3></div></div>"));
-            #endif
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"trackingSensitivity\">Sensitivity</label><select class=\"u-full-width\" id=\"trackingSensitivity\" name=\"trackingSensitivity\">"));
-            response->print(F("<option value=\"0\""));response->print(trackingSensitivity == 0 ? " selected>":">");response->print(F("Low</option>"));
-            response->print(F("<option value=\"1\""));response->print(trackingSensitivity == 1 ? " selected>":">");response->print(F("Medium</option>"));
-            response->print(F("<option value=\"2\""));response->print(trackingSensitivity == 2 ? " selected>":">");response->print(F("High</option>"));
-            response->print(F("</select></div></div>"));
-            #ifdef SUPPORT_BEEPER
+            #if defined(SUPPORT_BEEPER)
               #if defined(ACT_AS_TRACKER)
-                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Beeper</h3></div></div>"));
-                response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"beeperEnabled\">Beeper enabled</label><select class=\"u-full-width\" id=\"beeperEnabled\" name=\"beeperEnabled\">"));
-                response->print(F("<option value=\"true\""));response->print(beeperEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-                response->print(F("<option value=\"false\""));response->print(beeperEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-                response->print(F("</select></div>"));
-                #ifdef SUPPORT_BUTTON
-                  response->print(F("<div class=\"six columns\"><label for=\"beepOnPress\">Button beep</label><select class=\"u-full-width\" id=\"beepOnPress\" name=\"beepOnPress\">"));
-                  response->print(F("<option value=\"true\""));response->print(beepOnPress == true ? " selected>":">");response->print(F("Enabled</option>"));
-                  response->print(F("<option value=\"false\""));response->print(beepOnPress == false ? " selected>":">");response->print(F("Disabled</option>"));
-                  response->print(F("</select></div></div>"));
+                response->printf_P(h3printfFormatString, PSTR("Beeper"));
+                response->print(startRow);
+                response->print(startSixColumns);
+                response->printf_P(labelForPrintfFormatString, string_beeperEnabled, PSTR("Beeper enabled"));
+                response->printf_P(selectPrintfFormatString, string_beeperEnabled, string_beeperEnabled);
+                response->print(selectValueTrue);response->print(beeperEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(beeperEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                #if defined(SUPPORT_BUTTON)
+                  response->print(startSixColumns);
+                  response->printf_P(labelForPrintfFormatString, string_beepOnPress, PSTR("Button beep"));
+                  response->printf_P(selectPrintfFormatString, string_beepOnPress, string_beepOnPress);
+                  response->print(selectValueTrue);response->print(beepOnPress == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                  response->print(selectValueFalse);response->print(beepOnPress == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                  response->print(endSelect);
+                  response->print(endColumn);
+                  response->print(endRow);
                 #endif
               #else
-                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Beeper</h3></div></div>"));
-                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"beeperEnabled\">Beeper enabled</label><select class=\"u-full-width\" id=\"beeperEnabled\" name=\"beeperEnabled\">"));
-                response->print(F("<option value=\"true\""));response->print(beeperEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-                response->print(F("<option value=\"false\""));response->print(beeperEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-                response->print(F("</select></div></div>"));
+                response->printf_P(h3printfFormatString, PSTR("Beeper"));
+                response->print(startRow);
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_beeperEnabled, PSTR("Beeper enabled"));
+                response->printf_P(selectPrintfFormatString, string_beeperEnabled, string_beeperEnabled);
+                response->print(selectValueTrue);response->print(beeperEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(beeperEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
               #endif
             #endif
-            #ifdef SUPPORT_VIBRATION
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Vibration motor</h3></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"vibrationEnabled\">Haptic feedback enabled</label><select class=\"u-full-width\" id=\"vibrationEnabled\" name=\"vibrationEnabled\">"));
-              response->print(F("<option value=\"true\""));response->print(vibrationEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(vibrationEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"vibrationLevel\">Vibration level</label><select class=\"u-full-width\" id=\"vibrationLevel\" name=\"vibrationLevel\">"));
-              response->print(F("<option value=\"10\""));response->print(vibrationLevel == 10 ? " selected>":">");response->print(F("10%</option>"));
-              response->print(F("<option value=\"25\""));response->print(vibrationLevel == 25 ? " selected>":">");response->print(F("25%</option>"));
-              response->print(F("<option value=\"50\""));response->print(vibrationLevel == 50 ? " selected>":">");response->print(F("50%</option>"));
-              response->print(F("<option value=\"75\""));response->print(vibrationLevel == 75 ? " selected>":">");response->print(F("75%</option>"));
-              response->print(F("<option value=\"100\""));response->print(vibrationLevel == 100 ? " selected>":">");response->print(F("100%</option>"));
-              response->print(F("</select></div></div>"));
+            #if defined(SUPPORT_VIBRATION)
+              response->printf_P(h3printfFormatString, PSTR("Vibration motor"));
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_vibrationEnabled, PSTR("Haptic feedback enabled"));
+              response->printf_P(selectPrintfFormatString, string_vibrationEnabled, string_vibrationEnabled);
+              response->print(selectValueTrue);response->print(vibrationEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(vibrationEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_vibrationLevel, PSTR("Vibration level"));
+              response->printf_P(selectPrintfFormatString, string_vibrationLevel, string_vibrationLevel);
+              response->print(F("<option value=\"10\""));response->print(vibrationLevel == 10 ? selectValueSelected:selectValueNotSelected);response->print(F("10%</option>"));
+              response->print(F("<option value=\"25\""));response->print(vibrationLevel == 25 ? selectValueSelected:selectValueNotSelected);response->print(F("25%</option>"));
+              response->print(F("<option value=\"50\""));response->print(vibrationLevel == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50%</option>"));
+              response->print(F("<option value=\"75\""));response->print(vibrationLevel == 75 ? selectValueSelected:selectValueNotSelected);response->print(F("75%</option>"));
+              response->print(F("<option value=\"100\""));response->print(vibrationLevel == 100 ? selectValueSelected:selectValueNotSelected);response->print(F("100%</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
             #endif
-            //Comment
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Configuration</h3></div></div>"));
-            if(configurationComment != nullptr)
-            {
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"configurationComment\">Comment (optional)</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"configurationComment\" name=\"configurationComment\"></div></div>"), configurationComment);
-            }
-            else
-            {
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"configurationComment\">Comment (optional)</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"configurationComment\" name=\"configurationComment\"></div></div>"));
-            }
             //End of form
-            response->print(F("</form>"));
+            response->print(formEnd);
             addPageFooter(response);
             //Send response
             request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -942,8 +1017,8 @@
           }
         #endif
         });
-        adminWebServer->on("/configuration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        adminWebServer->on("/hardware", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -953,131 +1028,35 @@
                   return request->requestAuthentication();  //Force basic authentication
               }
             #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
-              }
-            #endif
             //Read the submitted configuration
-            if(request->hasParam("deviceName", true))
-            {
-              if(device[0].name != nullptr)
-              {
-                delete [] device[0].name;
-              }
-              device[0].name = new char[request->getParam("deviceName", true)->value().length() + 1];
-              strlcpy(device[0].name,request->getParam("deviceName", true)->value().c_str(),request->getParam("deviceName", true)->value().length() + 1);
-              //localLog(F("deviceName: "));
-              //localLogLn(device[0].name);
-            }
-            if(request->hasParam("configurationComment", true))
-            {
-              if(configurationComment != nullptr)
-              {
-                delete [] configurationComment;
-              }
-              configurationComment = new char[request->getParam("configurationComment", true)->value().length() + 1];
-              strlcpy(configurationComment,request->getParam("configurationComment", true)->value().c_str(),request->getParam("configurationComment", true)->value().length() + 1);
-              //localLog(F("configurationComment: "));
-              //localLogLn(configurationComment);
-            }
-            else
-            {
-              if(configurationComment != nullptr)
-              {
-                delete [] configurationComment;
-              }
-              configurationComment = new char[strlen(default_configurationComment) + 1];  //Assign space on heap
-              strlcpy(configurationComment,default_configurationComment,strlen(default_configurationComment) + 1);  //Copy in default
-            }
-            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              if(request->hasParam("http_user", true))
-              {
-                if(http_user != nullptr)
-                {
-                  delete [] http_user;
-                }
-                http_user = new char[request->getParam("http_user", true)->value().length() + 1];
-                strlcpy(http_user,request->getParam("http_user", true)->value().c_str(),request->getParam("http_user", true)->value().length() + 1);
-                //localLog(F("http_user: "));
-                //localLogLn(http_user);
-              }
-              if(request->hasParam("http_password", true))
-              {
-                if(request->getParam("http_password", true)->value().length() > 0)
-                {
-                  if(http_password != nullptr)
-                  {
-                    delete [] http_password;
-                  }
-                  http_password = new char[request->getParam("http_password", true)->value().length() + 1];
-                  strlcpy(http_password,request->getParam("http_password", true)->value().c_str(),request->getParam("http_password", true)->value().length() + 1);
-                  //localLogLn(F("http_password: ********"));
-                }
-              }
-              if(request->hasParam("basicAuthEnabled", true))
-              {
-                //localLog(F("basicAuthEnabled: "));
-                if(request->getParam("basicAuthEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  basicAuthEnabled = true;
-                  //localLogLn(F("enabled"));
-                }
-                else
-                {
-                  basicAuthEnabled = false;
-                  //localLogLn(F("disabled"));
-                }
-              }
-            #endif
             #if defined(ENABLE_OTA_UPDATE)
               if(request->hasParam("otaEnabled", true))
               {
-                //localLog(F("otaEnabled: "));
                 if(request->getParam("otaEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   otaEnabled = true;
-                  //localLogLn(F("enabled"));
                 }
                 else
                 {
                   otaEnabled = false;
-                  //localLogLn(F("disabled"));
                 }
               }
               if(request->hasParam("otaAuthenticationEnabled", true))
               {
-                //localLog(F("otaAuthenticationEnabled: "));
                 if(request->getParam("otaAuthenticationEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   otaAuthenticationEnabled = true;
-                  //localLogLn(F("enabled"));
                 }
                 else
                 {
                   otaAuthenticationEnabled = false;
-                  //localLogLn(F("disabled"));
                 }
               }
             #endif
-            #ifdef SUPPORT_BATTERY_METER
-              if(request->hasParam("enableBatteryMonitor", true))
+            #if defined(SUPPORT_BATTERY_METER)
+              if(request->hasParam(string_enableBatteryMonitor, true))
               {
-                if(request->getParam("enableBatteryMonitor", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_enableBatteryMonitor, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   enableBatteryMonitor = true;
                 }
@@ -1086,34 +1065,31 @@
                   enableBatteryMonitor = false;
                 }
               }
-              if(request->hasParam("topLadderResistor", true))
+              if(request->hasParam(string_topLadderResistor, true))
               {
-                topLadderResistor = request->getParam("topLadderResistor", true)->value().toFloat();
+                topLadderResistor = request->getParam(string_topLadderResistor, true)->value().toFloat();
               }
-              if(request->hasParam("bottomLadderResistor", true))
+              if(request->hasParam(string_bottomLadderResistor, true))
               {
-                bottomLadderResistor = request->getParam("bottomLadderResistor", true)->value().toFloat();
+                bottomLadderResistor = request->getParam(string_bottomLadderResistor, true)->value().toFloat();
               }
             #endif
             #if defined(SUPPORT_BEEPER)
-              if(request->hasParam("beeperEnabled", true))
+              if(request->hasParam(string_beeperEnabled, true))
               {
-                //localLog(F("beeperEnabled: "));
-                if(request->getParam("beeperEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_beeperEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   beeperEnabled = true;
-                  //localLogLn(F("enabled"));
                 }
                 else
                 {
                   beeperEnabled = false;
-                  //localLogLn(F("disabled"));
                 }
               }
-              #ifdef SUPPORT_BUTTON
-                if(request->hasParam("beepOnPress", true))
+              #if defined(SUPPORT_BUTTON)
+                if(request->hasParam(string_beepOnPress, true))
                 {
-                  if(request->getParam("beepOnPress", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                  if(request->getParam(string_beepOnPress, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                   {
                     beepOnPress = true;
                   }
@@ -1124,10 +1100,10 @@
                 }
               #endif
             #endif
-            #ifdef SUPPORT_VIBRATION
-              if(request->hasParam("vibrationEnabled", true))
+            #if defined(SUPPORT_VIBRATION)
+              if(request->hasParam(string_vibrationEnabled, true))
               {
-                if(request->getParam("vibrationEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_vibrationEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   vibrationEnabled = true;
                 }
@@ -1136,186 +1112,48 @@
                   vibrationEnabled = false;
                 }
               }
-              if(request->hasParam("vibrationLevel", true))
+              if(request->hasParam(string_vibrationLevel, true))
               {
-                vibrationLevel = request->getParam("vibrationLevel", true)->value().toInt();
-              }
-            #endif
-            #if defined(SUPPORT_WIFI)
-              if(request->hasParam("SSID", true))
-              {
-                if(SSID != nullptr)
-                {
-                  delete [] SSID;
-                }
-                SSID = new char[request->getParam("SSID", true)->value().length() + 1];
-                strlcpy(SSID,request->getParam("SSID", true)->value().c_str(),request->getParam("SSID", true)->value().length() + 1);
-              }
-              if(request->hasParam("PSK", true))
-              {
-                if(request->getParam("PSK", true)->value().length() > 0)
-                {
-                  if(PSK != nullptr)
-                  {
-                    delete [] PSK;
-                  }
-                  PSK = new char[request->getParam("PSK", true)->value().length() + 1];
-                  strlcpy(PSK,request->getParam("PSK", true)->value().c_str(),request->getParam("PSK", true)->value().length() + 1);
-                }
-              }
-              if(request->hasParam("startWiFiClientOnBoot", true))
-              {
-                //localLog(F("startWiFiClientOnBoot: "));
-                if(request->getParam("startWiFiClientOnBoot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  startWiFiClientOnBoot = true;
-                  //localLogLn(F("enabled"));
-                }
-                else
-                {
-                  startWiFiClientOnBoot = false;
-                  //localLogLn(F("disabled"));
-                }
-              }
-              if(request->hasParam("wiFiClientInactivityTimer", true))
-              {
-                wiFiClientInactivityTimer = request->getParam("wiFiClientInactivityTimer", true)->value().toInt();
-                //localLog(F("wiFiClientInactivityTimer: "));
-                //localLogLn(wiFiClientInactivityTimer);
-              }
-              if(request->hasParam("timeServer", true))
-              {
-                if(timeServer != nullptr)
-                {
-                  delete [] timeServer;
-                }
-                timeServer = new char[request->getParam("timeServer", true)->value().length() + 1];
-                strlcpy(timeServer,request->getParam("timeServer", true)->value().c_str(),request->getParam("timeServer", true)->value().length() + 1);
-                //localLog(F("timeServer: "));
-                //localLogLn(timeServer);
-              }
-              if(request->hasParam("timeZone", true))
-              {
-                if(timeZone != nullptr)
-                {
-                  delete [] timeZone;
-                }
-                timeZone = new char[request->getParam("timeZone", true)->value().length() + 1];
-                strlcpy(timeZone,request->getParam("timeZone", true)->value().c_str(),request->getParam("timeZone", true)->value().length() + 1);
-                //localLog(F("timeZone: "));
-                //localLogLn(timeZone);
-              }
-              if(request->hasParam("APSSID", true))
-              {
-                if(APSSID != nullptr)
-                {
-                  delete [] APSSID;
-                }
-                APSSID = new char[request->getParam("APSSID", true)->value().length() + 1];
-                strlcpy(APSSID,request->getParam("APSSID", true)->value().c_str(),request->getParam("APSSID", true)->value().length() + 1);
-              }
-              if(request->hasParam("APPSK", true))
-              {
-                if(request->getParam("APPSK", true)->value().length() > 0)
-                {
-                  if(APPSK != nullptr)
-                  {
-                    delete [] APPSK;
-                  }
-                  APPSK = new char[request->getParam("APPSK", true)->value().length() + 1];
-                  strlcpy(APPSK,request->getParam("APPSK", true)->value().c_str(),request->getParam("APPSK", true)->value().length() + 1);
-                }
-              }
-              if(request->hasParam("startWiFiApOnBoot", true))
-              {
-                if(request->getParam("startWiFiApOnBoot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  startWiFiApOnBoot = true;
-                }
-                else
-                {
-                  startWiFiApOnBoot = false;
-                }
-              }
-              if(request->hasParam("enableCaptivePortal", true))
-              {
-                if(request->getParam("enableCaptivePortal", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  enableCaptivePortal = true;
-                }
-                else
-                {
-                  enableCaptivePortal = false;
-                }
-              }
-              if(request->hasParam("softApChannel", true))
-              {
-                softApChannel = request->getParam("softApChannel", true)->value().toInt();
-              }
-            #endif
-            #if defined(ACT_AS_TRACKER)    
-              if(request->hasParam("trackingSensitivity", true))
-              {
-                trackingSensitivity = request->getParam("trackingSensitivity", true)->value().toInt();
-                //localLog(F("maximumEffectiveRange: "));
-                //localLogLn(maximumEffectiveRange);
-              }
-              if(request->hasParam("maximumEffectiveRange", true))
-              {
-                maximumEffectiveRange = request->getParam("maximumEffectiveRange", true)->value().toInt();
-                //localLog(F("maximumEffectiveRange: "));
-                //localLogLn(maximumEffectiveRange);
+                vibrationLevel = request->getParam(string_vibrationLevel, true)->value().toInt();
               }
             #endif
             #if defined(SUPPORT_BEEPER)
-              if(request->hasParam("beeperEnabled", true))
+              if(request->hasParam(string_beeperEnabled, true))
               {
-                //localLog(F("beeperEnabled: "));
-                if(request->getParam("beeperEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_beeperEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   beeperEnabled = true;
-                  //localLogLn(F("enabled"));
                 }
                 else
                 {
                   beeperEnabled = false;
-                  //localLogLn(F("disabled"));
                 }
               }
             #endif
-            if(request->hasParam("loggingBufferSize", true))
+            if(request->hasParam(string_loggingBufferSize, true))
             {
-              if(loggingBufferSize != request->getParam("loggingBufferSize", true)->value().toInt())
+              if(loggingBufferSize != request->getParam(string_loggingBufferSize, true)->value().toInt())
               {
-                loggingBufferSize = request->getParam("loggingBufferSize", true)->value().toInt();
-                //localLog(F("loggingBufferSize: "));
-                //localLogLn(loggingBufferSize);
+                loggingBufferSize = request->getParam(string_loggingBufferSize, true)->value().toInt();
               }
             }
-            if(request->hasParam("logFlushThreshold", true))
+            if(request->hasParam(string_logFlushThreshold, true))
             {
-              if(logFlushThreshold != request->getParam("logFlushThreshold", true)->value().toInt())
+              if(logFlushThreshold != request->getParam(string_logFlushThreshold, true)->value().toInt())
               {
-                logFlushThreshold = request->getParam("logFlushThreshold", true)->value().toInt();
-                //localLog(F("logFlushThreshold: "));
-                //localLogLn(logFlushThreshold);
+                logFlushThreshold = request->getParam(string_logFlushThreshold, true)->value().toInt();
               }
             }
-            if(request->hasParam("logFlushInterval", true))
+            if(request->hasParam(string_logFlushInterval, true))
             {
-              if(logFlushInterval != request->getParam("logFlushInterval", true)->value().toInt())
+              if(logFlushInterval != request->getParam(string_logFlushInterval, true)->value().toInt())
               {
-                logFlushInterval = request->getParam("logFlushInterval", true)->value().toInt();
-                //localLog(F("logFlushInterval: "));
-                //localLogLn(logFlushInterval);
+                logFlushInterval = request->getParam(string_logFlushInterval, true)->value().toInt();
               }
             }
-            if(configurationChanged())
-            {
-              saveConfigurationSoon = millis();
-            }
+            saveConfigurationSoon = millis();
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -1327,139 +1165,599 @@
           }
         #endif
       });
-      #ifdef ACT_AS_BEACON
-        adminWebServer->on("/icconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      //WiFi configuration
+      #if defined(SUPPORT_WIFI)
+        adminWebServer->on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request){
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
-              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 0, nullptr);
+            //Start of form
+            response->print(formStart);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Wi-Fi configuration"));
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
+            response->print(endRow);
+            //WiFi client
+            response->print(startRow);
+            response->print(startThreeColumns);
+            response->printf_P(labelForPrintfFormatString, string_startWiFiClientOnBoot, PSTR("Enable Wi-Fi client on boot"));
+            response->printf_P(selectPrintfFormatString, string_startWiFiClientOnBoot, string_startWiFiClientOnBoot);
+            response->print(selectValueTrue);response->print(startWiFiClientOnBoot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+            response->print(selectValueFalse);response->print(startWiFiClientOnBoot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(startThreeColumns);
+            response->printf_P(labelForPrintfFormatString, string_wiFiClientInactivityTimer, PSTR("Wi-Fi inactivity timer"));
+            response->printf_P(selectPrintfFormatString, string_wiFiClientInactivityTimer, string_wiFiClientInactivityTimer);
+            response->print(F("<option value=\"0\""));response->print(wiFiClientInactivityTimer == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Never</option>"));
+            response->print(F("<option value=\"60000\""));response->print(wiFiClientInactivityTimer == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("1m</option>"));
+            response->print(F("<option value=\"180000\""));response->print(wiFiClientInactivityTimer == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
+            response->print(F("<option value=\"300000\""));response->print(wiFiClientInactivityTimer == 300000 ? selectValueSelected:selectValueNotSelected);response->print(F("5m</option>"));
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(startThreeColumns);
+            response->printf_P(labelForPrintfFormatString, string_SSID, PSTR("Wi-Fi SSID"));
+            response->printf_P(inputTextPrintfFormatString, string_SSID, string_SSID, (SSID != nullptr) ? SSID : string_empty);
+            response->print(endColumn);
+            response->print(startThreeColumns);
+            response->printf_P(labelForPrintfFormatString, string_PSK, PSTR("Wi-Fi PSK"));
+            response->printf_P(inputPasswordPrintfFormatString, string_PSK, string_PSK);
+            response->print(endColumn);
+            response->print(endRow);
+            //WiFi AP        
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_startWiFiApOnBoot, PSTR("Enable Wi-Fi AP on boot"));
+            response->printf_P(selectPrintfFormatString, string_startWiFiApOnBoot, string_startWiFiApOnBoot);
+            response->print(selectValueTrue);response->print(startWiFiApOnBoot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+            response->print(selectValueFalse);response->print(startWiFiApOnBoot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_enableCaptivePortal, PSTR("Enable captive portal"));
+            response->printf_P(selectPrintfFormatString, string_enableCaptivePortal, string_enableCaptivePortal);
+            response->print(selectValueTrue);response->print(enableCaptivePortal == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+            response->print(selectValueFalse);response->print(enableCaptivePortal == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_softApChannel, PSTR("Preferred channel"));
+            response->printf_P(selectPrintfFormatString, string_softApChannel, string_softApChannel);
+            response->print(F("<option value=\"1\""));response->print(softApChannel == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("1</option>"));
+            response->print(F("<option value=\"6\""));response->print(softApChannel == 6 ? selectValueSelected:selectValueNotSelected);response->print(F("6</option>"));
+            response->print(F("<option value=\"11\""));response->print(softApChannel == 11 ? selectValueSelected:selectValueNotSelected);response->print(F("11</option>"));
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(startRow);
+            response->print(startSixColumns);
+            response->printf_P(labelForPrintfFormatString, string_APSSID, PSTR("AP SSID"));
+            response->printf_P(inputTextPrintfFormatString, string_APSSID, string_APSSID, (APSSID != nullptr) ? APSSID : string_empty);
+            response->print(endColumn);
+            response->print(startSixColumns);
+            response->printf_P(labelForPrintfFormatString, string_APPSK, PSTR("AP PSK"));
+            response->printf_P(inputPasswordPrintfFormatString, string_APPSK, string_APPSK);
+            response->print(endColumn);
+            response->print(endRow);
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              response->print(startRow);
+              response->print(startFourColumns);
+              response->printf_P(labelForPrintfFormatString, string_basicAuthEnabled, PSTR("Web UI login"));
+              response->printf_P(selectPrintfFormatString, string_basicAuthEnabled, string_basicAuthEnabled);
+              response->print(selectValueTrue);response->print(basicAuthEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(basicAuthEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startFourColumns);
+              response->printf_P(labelForPrintfFormatString, string_http_user, PSTR("Web UI username"));
+              response->printf_P(inputTextPrintfFormatString, string_http_user, string_http_user, (http_user != nullptr) ? http_user : string_empty);
+              response->print(endColumn);
+              response->print(startFourColumns);
+              response->printf_P(labelForPrintfFormatString, string_http_password, PSTR("Web UI/OTA password"));
+              response->printf_P(inputPasswordPrintfFormatString, string_http_password, string_http_password);
+              response->print(endColumn);
+              response->print(endRow);
+            #endif
+            //Time Server
+            response->print(startRow);
+            response->print(startSixColumns);
+            response->printf_P(labelForPrintfFormatString, string_timeServer, PSTR("NTP host"));
+            response->printf_P(inputTextPrintfFormatString, string_timeServer, string_timeServer, (timeServer != nullptr) ? timeServer : string_empty);
+            response->print(endColumn);
+            response->print(startSixColumns);
+            response->printf_P(labelForPrintfFormatString, string_timeZone, PSTR("Timezone"));
+            response->printf_P(inputTextPrintfFormatString, string_timeZone, string_timeZone, (timeZone != nullptr) ? timeZone : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            //End of form
+            response->print(formEnd);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+        });
+        adminWebServer->on("/wifi", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            if(request->hasParam(string_SSID, true))
+            {
+              if(SSID != nullptr)
+              {
+                delete [] SSID;
+              }
+              SSID = new char[request->getParam(string_SSID, true)->value().length() + 1];
+              strlcpy(SSID,request->getParam(string_SSID, true)->value().c_str(),request->getParam(string_SSID, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_PSK, true))
+            {
+              if(request->getParam(string_PSK, true)->value().length() > 0)
+              {
+                if(PSK != nullptr)
                 {
-                    return request->requestAuthentication();  //Force basic authentication
+                  delete [] PSK;
                 }
-              #endif
-              AsyncResponseStream *response = request->beginResponseStream("text/html");
-              addPageHeader(response, 0, nullptr);
-              //Start of form
-              response->print(F("<form method=\"POST\">"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"four columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
-              response->print(F("<h2>In-game configuration</h2>"));
+                PSK = new char[request->getParam(string_PSK, true)->value().length() + 1];
+                strlcpy(PSK,request->getParam(string_PSK, true)->value().c_str(),request->getParam(string_PSK, true)->value().length() + 1);
+              }
+            }
+            if(request->hasParam(string_startWiFiClientOnBoot, true))
+            {
+              if(request->getParam(string_startWiFiClientOnBoot, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                startWiFiClientOnBoot = true;
+              }
+              else
+              {
+                startWiFiClientOnBoot = false;
+              }
+            }
+            if(request->hasParam(string_wiFiClientInactivityTimer, true))
+            {
+              wiFiClientInactivityTimer = request->getParam(string_wiFiClientInactivityTimer, true)->value().toInt();
+            }
+            if(request->hasParam(string_timeServer, true))
+            {
+              if(timeServer != nullptr)
+              {
+                delete [] timeServer;
+              }
+              timeServer = new char[request->getParam(string_timeServer, true)->value().length() + 1];
+              strlcpy(timeServer,request->getParam(string_timeServer, true)->value().c_str(),request->getParam(string_timeServer, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_timeZone, true))
+            {
+              if(timeZone != nullptr)
+              {
+                delete [] timeZone;
+              }
+              timeZone = new char[request->getParam(string_timeZone, true)->value().length() + 1];
+              strlcpy(timeZone,request->getParam(string_timeZone, true)->value().c_str(),request->getParam(string_timeZone, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_APSSID, true))
+            {
+              if(APSSID != nullptr)
+              {
+                delete [] APSSID;
+              }
+              APSSID = new char[request->getParam(string_APSSID, true)->value().length() + 1];
+              strlcpy(APSSID,request->getParam(string_APSSID, true)->value().c_str(),request->getParam(string_APSSID, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_APPSK, true))
+            {
+              if(request->getParam(string_APPSK, true)->value().length() > 0)
+              {
+                if(APPSK != nullptr)
+                {
+                  delete [] APPSK;
+                }
+                APPSK = new char[request->getParam(string_APPSK, true)->value().length() + 1];
+                strlcpy(APPSK,request->getParam(string_APPSK, true)->value().c_str(),request->getParam(string_APPSK, true)->value().length() + 1);
+              }
+            }
+            if(request->hasParam(string_startWiFiApOnBoot, true))
+            {
+              if(request->getParam(string_startWiFiApOnBoot, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                startWiFiApOnBoot = true;
+              }
+              else
+              {
+                startWiFiApOnBoot = false;
+              }
+            }
+            if(request->hasParam(string_enableCaptivePortal, true))
+            {
+              if(request->getParam(string_enableCaptivePortal, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                enableCaptivePortal = true;
+              }
+              else
+              {
+                enableCaptivePortal = false;
+              }
+            }
+            if(request->hasParam(string_softApChannel, true))
+            {
+              softApChannel = request->getParam(string_softApChannel, true)->value().toInt();
+            }
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(request->hasParam(string_http_user, true))
+              {
+                if(http_user != nullptr)
+                {
+                  delete [] http_user;
+                }
+                http_user = new char[request->getParam(string_http_user, true)->value().length() + 1];
+                strlcpy(http_user,request->getParam(string_http_user, true)->value().c_str(),request->getParam(string_http_user, true)->value().length() + 1);
+              }
+              if(request->hasParam(string_http_password, true))
+              {
+                if(request->getParam(string_http_password, true)->value().length() > 0)
+                {
+                  if(http_password != nullptr)
+                  {
+                    delete [] http_password;
+                  }
+                  http_password = new char[request->getParam(string_http_password, true)->value().length() + 1];
+                  strlcpy(http_password,request->getParam(string_http_password, true)->value().c_str(),request->getParam(string_http_password, true)->value().length() + 1);
+                }
+              }
+              if(request->hasParam(string_basicAuthEnabled, true))
+              {
+                if(request->getParam(string_basicAuthEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                {
+                  basicAuthEnabled = true;
+                }
+                else
+                {
+                  basicAuthEnabled = false;
+                }
+              }
+            #endif
+            saveConfigurationSoon = millis();
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      #endif      
+      adminWebServer->on("/general", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 0, nullptr);
+            //Start of form
+            response->print(formStart);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("General configuration"));
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
+            response->print(endRow);
+            //Name
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_deviceName, PSTR("Node name"));
+            response->printf_P(inputTextPrintfFormatString, string_deviceName, string_deviceName, (device[0].name != nullptr) ? device[0].name : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            #if defined(ACT_AS_BEACON)
+              //Static
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_deviceUsuallyStatic, PSTR("Usually static"));
+              response->printf_P(selectPrintfFormatString, string_deviceUsuallyStatic, string_deviceUsuallyStatic);
+              response->print(selectValueTrue);response->print(deviceUsuallyStatic == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(deviceUsuallyStatic == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+            #endif
+            //IC Name
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_icName, PSTR("IC name"));
+            response->printf_P(inputTextPrintfFormatString, string_icName, string_icName, (device[0].icName != nullptr) ? device[0].icName : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            //IC Description
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_icDescription, PSTR("IC description"));
+            response->printf_P(inputTextPrintfFormatString, string_icDescription, string_icDescription, (device[0].icDescription != nullptr) ? device[0].icDescription : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            //Diameter
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_diameter, PSTR("Diameter(m)"));
+            response->printf_P(inputNumberPrintfFormatString, string_diameter, string_diameter, device[0].diameter);
+            response->print(endColumn);
+            //Height
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_height, PSTR("Height(m)"));
+            response->printf_P(inputNumberPrintfFormatString, string_height, string_height, device[0].height);
+            response->print(endColumn);
+            //Comment
+            response->printf_P(h3printfFormatString, PSTR("Configuration"));
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_configurationComment, PSTR("Comment (optional)"));
+            response->printf_P(inputTextPrintfFormatString, string_configurationComment, string_configurationComment, (configurationComment != nullptr) ? configurationComment : string_empty);
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(formEnd);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+        });
+        adminWebServer->on("/general", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            if(request->hasParam(string_deviceName, true))
+            {
+              if(device[0].name != nullptr)
+              {
+                delete [] device[0].name;
+              }
+              device[0].name = new char[request->getParam(string_deviceName, true)->value().length() + 1];
+              strlcpy(device[0].name,request->getParam(string_deviceName, true)->value().c_str(),request->getParam(string_deviceName, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_deviceUsuallyStatic, true))
+            {
+              if(request->getParam(string_deviceUsuallyStatic, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(deviceUsuallyStatic != true)
+                {
+                  deviceUsuallyStatic = true;
+                }
+              }
+              else
+              {
+                if(deviceUsuallyStatic != false)
+                {
+                  deviceUsuallyStatic = false;
+                }
+              }
+            }
+            if(request->hasParam(string_configurationComment, true))
+            {
+              if(configurationComment != nullptr)
+              {
+                delete [] configurationComment;
+              }
+              configurationComment = new char[request->getParam(string_configurationComment, true)->value().length() + 1];
+              strlcpy(configurationComment,request->getParam(string_configurationComment, true)->value().c_str(),request->getParam(string_configurationComment, true)->value().length() + 1);
+            }
+            else
+            {
+              if(configurationComment != nullptr)
+              {
+                delete [] configurationComment;
+              }
+              configurationComment = new char[strlen(default_configurationComment) + 1];  //Assign space on heap
+              strlcpy(configurationComment,default_configurationComment,strlen(default_configurationComment) + 1);  //Copy in default
+            }
+            if(request->hasParam(string_icName, true))
+            {
               if(device[0].icName != nullptr)
               {
-                response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"icName\">IC name</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"icName\" name=\"icName\"></div></div>"), device[0].icName);
+                delete [] device[0].icName;
               }
-              else
-              {
-                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"icName\">IC name</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"icName\" name=\"icName\"></div></div>"));
-              }
+              device[0].icName = new char[request->getParam(string_icName, true)->value().length() + 1];
+              strlcpy(device[0].icName,request->getParam(string_icName, true)->value().c_str(),request->getParam(string_icName, true)->value().length() + 1);
+            }
+            if(request->hasParam(string_icName, true))
+            {
               if(device[0].icDescription != nullptr)
               {
-                response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"icDescription\">IC description</label><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"icDescription\" name=\"icDescription\"></div></div>"), device[0].icDescription);
+                delete [] device[0].icDescription;
               }
-              else
-              {
-                response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"icDescription\">IC description</label><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"icDescription\" name=\"icDescription\"></div></div>"));
-              }
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"height\">Diameter(m)</label><input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"height\" name=\"diameter\"></div>"), device[0].diameter);
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><label for=\"height\">Height(m)</label><input class=\"u-full-width\" type=\"text\" value=\"%u\" id=\"height\" name=\"height\"></div>"), device[0].height);
-              response->print(F("</form>"));
-              addPageFooter(response);
-              //Send response
-              request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-              xSemaphoreGive(webserverSemaphore);
+              device[0].icDescription = new char[request->getParam(string_icDescription, true)->value().length() + 1];
+              strlcpy(device[0].icDescription,request->getParam(string_icDescription, true)->value().c_str(),request->getParam(string_icDescription, true)->value().length() + 1);
             }
-            else
+            if(request->hasParam(string_diameter, true))
             {
-              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-              response->addHeader("Retry-After","5"); //Ask it to wait 5s
-              //Send response
-              request->send(response);
-            }
-          #endif
-          });
-          adminWebServer->on("/icconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-              if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+              if(device[0].diameter != request->getParam(string_diameter, true)->value().toInt())
               {
+                device[0].diameter = request->getParam(string_diameter, true)->value().toInt();
+              }
+            }
+            if(request->hasParam(string_height, true))
+            {
+              if(device[0].height != request->getParam(string_height, true)->value().toInt())
+              {
+                device[0].height = request->getParam(string_height, true)->value().toInt();
+              }
+            }
+            saveConfigurationSoon = millis();
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      adminWebServer->on("/tracking", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
             #endif
-              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-                {
-                    return request->requestAuthentication();  //Force basic authentication
-                }
-              #endif
-              #ifdef DEBUG_FORM_SUBMISSION
-                int params = request->params();
-                localLog(F("Submitted Configuration parameters: "));
-                localLogLn(params);
-                for(int i=0;i<params;i++){
-                  AsyncWebParameter* p = request->getParam(i);
-                  if(p->isFile()){ //p->isPost() is also true
-                    //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                  } else if(p->isPost()){
-                    //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                    localLog(F("POST["));
-                    localLog(p->name().c_str());
-                    localLog(F("]: "));
-                    localLogLn(p->value().c_str());
-                  } else {
-                    //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  }
-                }
-              #endif
-              //Read the submitted configuration
-              if(request->hasParam("icName", true))
-              {
-                if(device[0].icName != nullptr)
-                {
-                  delete [] device[0].icName;
-                }
-                device[0].icName = new char[request->getParam("icName", true)->value().length() + 1];
-                strlcpy(device[0].icName,request->getParam("icName", true)->value().c_str(),request->getParam("icName", true)->value().length() + 1);
-              }
-              if(request->hasParam("icName", true))
-              {
-                if(device[0].icDescription != nullptr)
-                {
-                  delete [] device[0].icDescription;
-                }
-                device[0].icDescription = new char[request->getParam("icDescription", true)->value().length() + 1];
-                strlcpy(device[0].icDescription,request->getParam("icDescription", true)->value().c_str(),request->getParam("icDescription", true)->value().length() + 1);
-              }
-              if(request->hasParam("diameter", true))
-              {
-                if(device[0].diameter != request->getParam("diameter", true)->value().toInt())
-                {
-                  device[0].diameter = request->getParam("diameter", true)->value().toInt();
-                }
-              }
-              if(request->hasParam("height", true))
-              {
-                if(device[0].height != request->getParam("height", true)->value().toInt())
-                {
-                  device[0].height = request->getParam("height", true)->value().toInt();
-                }
-              }
-              saveConfigurationSoon = millis();
-              request->redirect("/admin");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
-              xSemaphoreGive(webserverSemaphore);
-            }
-            else
-            {
-              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-              response->addHeader("Retry-After","5"); //Ask it to wait 5s
-              //Send response
-              request->send(response);
-            }
-          #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 0, nullptr);
+            //Start of form
+            response->print(formStart);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("General configuration"));
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
+            response->print(endRow);
+            //Name
+            #if defined(ACT_AS_TRACKER)
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_maximumEffectiveRange, PSTR("Maximum effective range"));
+              response->printf_P(selectPrintfFormatString, string_maximumEffectiveRange, string_maximumEffectiveRange);
+              response->print(F("<option value=\"50\""));response->print(maximumEffectiveRange == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50m</option>"));
+              response->print(F("<option value=\"75\""));response->print(maximumEffectiveRange == 75 ? selectValueSelected:selectValueNotSelected);response->print(F("75m</option>"));
+              response->print(F("<option value=\"99\""));response->print(maximumEffectiveRange == 99 ? selectValueSelected:selectValueNotSelected);response->print(F("99m</option>"));
+              response->print(F("<option value=\"100\""));response->print(maximumEffectiveRange == 100 ? selectValueSelected:selectValueNotSelected);response->print(F("100m</option>"));
+              response->print(F("<option value=\"150\""));response->print(maximumEffectiveRange == 150 ? selectValueSelected:selectValueNotSelected);response->print(F("150m</option>"));
+              response->print(F("<option value=\"250\""));response->print(maximumEffectiveRange == 250 ? selectValueSelected:selectValueNotSelected);response->print(F("250m</option>"));
+              response->print(F("<option value=\"500\""));response->print(maximumEffectiveRange == 500 ? selectValueSelected:selectValueNotSelected);response->print(F("500m</option>"));
+              response->print(F("<option value=\"750\""));response->print(maximumEffectiveRange == 750 ? selectValueSelected:selectValueNotSelected);response->print(F("750m</option>"));
+              response->print(F("<option value=\"1000\""));response->print(maximumEffectiveRange == 1000 ? selectValueSelected:selectValueNotSelected);response->print(F("1000m</option>"));
+              response->print(F("<option value=\"9999\""));response->print(maximumEffectiveRange == 9999 ? selectValueSelected:selectValueNotSelected);response->print(F("9999m</option>"));
+              response->print(F("<option value=\"10000\""));response->print(maximumEffectiveRange == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10000m</option>"));
+              response->print(F("<option value=\""));response->print(effectivelyUnreachable);response->print('"');response->print(maximumEffectiveRange == effectivelyUnreachable ? selectValueSelected:selectValueNotSelected);response->print(F("Unlimited</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+            #endif
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_trackingSensitivity, PSTR("Sensitivity"));
+            response->printf_P(selectPrintfFormatString, string_trackingSensitivity, string_trackingSensitivity);
+            response->print(F("<option value=\"0\""));response->print(trackingSensitivity == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Low</option>"));
+            response->print(F("<option value=\"1\""));response->print(trackingSensitivity == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("Medium</option>"));
+            response->print(F("<option value=\"2\""));response->print(trackingSensitivity == 2 ? selectValueSelected:selectValueNotSelected);response->print(F("High</option>"));
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(formEnd);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
         });
-      #endif
-      #ifdef SUPPORT_ESPNOW
+        adminWebServer->on("/tracking", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            if(request->hasParam(string_trackingSensitivity, true))
+            {
+              trackingSensitivity = request->getParam(string_trackingSensitivity, true)->value().toInt();
+            }
+            #if defined(ACT_AS_TRACKER)    
+              if(request->hasParam(string_maximumEffectiveRange, true))
+              {
+                maximumEffectiveRange = request->getParam(string_maximumEffectiveRange, true)->value().toInt();
+              }
+            #endif
+            saveConfigurationSoon = millis();
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      //ESP-Now
+      /*
+      #if defined(SUPPORT_ESPNOW)
           adminWebServer->on("/espnowconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -1472,98 +1770,146 @@
               AsyncResponseStream *response = request->beginResponseStream("text/html");
               addPageHeader(response, 0, nullptr);
               //Start of form
-              response->print(F("<form method=\"POST\">"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"four columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>ESP-Now configuration</h2></div></div>"));
+              response->print(formStart);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("ESP-Now configuration"));
+              response->print(startFourColumns);
+              response->print(saveButton);
+              response->print(endColumn);
+              response->print(endRow);
               //ESP-Now
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"espNowEnabled\">ESP-Now radio enabled</label><select class=\"u-full-width\" id=\"espNowEnabled\" name=\"espNowEnabled\">"));
-              response->print(F("<option value=\"true\""));response->print(espNowEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(espNowEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->print(F("<label for=\"espNowEnabled\">ESP-Now radio enabled</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"espNowEnabled\" name=\"espNowEnabled\">"));
+              response->print(selectValueTrue);response->print(espNowEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(espNowEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Channel
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"espNowPreferredChannel\">Preferred channel</label><select class=\"u-full-width\" id=\"espNowPreferredChannel\" name=\"espNowPreferredChannel\">"));
-              response->print(F("<option value=\"1\""));response->print(espNowPreferredChannel == 1 ? " selected>":">");response->print(F("1</option>"));
-              response->print(F("<option value=\"6\""));response->print(espNowPreferredChannel == 6 ? " selected>":">");response->print(F("6</option>"));
-              response->print(F("<option value=\"11\""));response->print(espNowPreferredChannel == 11 ? " selected>":">");response->print(F("11</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->print(F("<label for=\"espNowPreferredChannel\">Preferred channel</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"espNowPreferredChannel\" name=\"espNowPreferredChannel\">"));
+              response->print(F("<option value=\"1\""));response->print(espNowPreferredChannel == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("1</option>"));
+              response->print(F("<option value=\"6\""));response->print(espNowPreferredChannel == 6 ? selectValueSelected:selectValueNotSelected);response->print(F("6</option>"));
+              response->print(F("<option value=\"11\""));response->print(espNowPreferredChannel == 11 ? selectValueSelected:selectValueNotSelected);response->print(F("11</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //espNow beacon interval 1
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"espNowPerimiter1\">ESP-Now perimiter 1</label><select class=\"u-full-width\" id=\"espNowPerimiter1\" name=\"espNowPerimiter1\">"));
-              response->print(F("<option value=\"10\""));response->print(espNowPerimiter1 == 10 ? " selected>":">");response->print(F("10m</option>"));
-              response->print(F("<option value=\"15\""));response->print(espNowPerimiter1 == 15 ? " selected>":">");response->print(F("15m</option>"));
-              response->print(F("<option value=\"20\""));response->print(espNowPerimiter1 == 20 ? " selected>":">");response->print(F("20m</option>"));
-              response->print(F("<option value=\"25\""));response->print(espNowPerimiter1 == 25 ? " selected>":">");response->print(F("25m</option>"));
-              response->print(F("<option value=\"30\""));response->print(espNowPerimiter1 == 30 ? " selected>":">");response->print(F("30m</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"six columns\"><label for=\"espNowLocationInterval1\">ESP-Now beacon interval 1</label><select class=\"u-full-width\" id=\"espNowLocationInterval1\" name=\"espNowLocationInterval1\">"));
-              response->print(F("<option value=\"1000\""));response->print(espNowLocationInterval1 == 1000 ? " selected>":">");response->print(F("1s</option>"));
-              response->print(F("<option value=\"5000\""));response->print(espNowLocationInterval1 == 5000 ? " selected>":">");response->print(F("5s</option>"));
-              response->print(F("<option value=\"10000\""));response->print(espNowLocationInterval1 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-              response->print(F("<option value=\"15000\""));response->print(espNowLocationInterval1 == 15000 ? " selected>":">");response->print(F("15s</option>"));
-              response->print(F("<option value=\"30000\""));response->print(espNowLocationInterval1 == 30000 ? " selected>":">");response->print(F("30s</option>"));
-              response->print(F("<option value=\"45000\""));response->print(espNowLocationInterval1 == 45000 ? " selected>":">");response->print(F("45s</option>"));
-              response->print(F("<option value=\"60000\""));response->print(espNowLocationInterval1 == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(espNowLocationInterval1 == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"espNowPerimiter1\">ESP-Now perimiter 1</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"espNowPerimiter1\" name=\"espNowPerimiter1\">"));
+              response->print(F("<option value=\"10\""));response->print(espNowPerimiter1 == 10 ? selectValueSelected:selectValueNotSelected);response->print(F("10m</option>"));
+              response->print(F("<option value=\"15\""));response->print(espNowPerimiter1 == 15 ? selectValueSelected:selectValueNotSelected);response->print(F("15m</option>"));
+              response->print(F("<option value=\"20\""));response->print(espNowPerimiter1 == 20 ? selectValueSelected:selectValueNotSelected);response->print(F("20m</option>"));
+              response->print(F("<option value=\"25\""));response->print(espNowPerimiter1 == 25 ? selectValueSelected:selectValueNotSelected);response->print(F("25m</option>"));
+              response->print(F("<option value=\"30\""));response->print(espNowPerimiter1 == 30 ? selectValueSelected:selectValueNotSelected);response->print(F("30m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"espNowLocationInterval1\">ESP-Now beacon interval 1</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"espNowLocationInterval1\" name=\"espNowLocationInterval1\">"));
+              response->print(F("<option value=\"1000\""));response->print(espNowLocationInterval1 == 1000 ? selectValueSelected:selectValueNotSelected);response->print(F("1s</option>"));
+              response->print(F("<option value=\"5000\""));response->print(espNowLocationInterval1 == 5000 ? selectValueSelected:selectValueNotSelected);response->print(F("5s</option>"));
+              response->print(F("<option value=\"10000\""));response->print(espNowLocationInterval1 == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10s</option>"));
+              response->print(F("<option value=\"15000\""));response->print(espNowLocationInterval1 == 15000 ? selectValueSelected:selectValueNotSelected);response->print(F("15s</option>"));
+              response->print(F("<option value=\"30000\""));response->print(espNowLocationInterval1 == 30000 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+              response->print(F("<option value=\"45000\""));response->print(espNowLocationInterval1 == 45000 ? selectValueSelected:selectValueNotSelected);response->print(F("45s</option>"));
+              response->print(F("<option value=\"60000\""));response->print(espNowLocationInterval1 == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(espNowLocationInterval1 == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //espNow beacon interval 2
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"espNowPerimiter2\">ESP-Now perimiter 2</label><select class=\"u-full-width\" id=\"espNowPerimiter2\" name=\"espNowPerimiter2\">"));
-              response->print(F("<option value=\"25\""));response->print(espNowPerimiter2 == 25 ? " selected>":">");response->print(F("25m</option>"));
-              response->print(F("<option value=\"30\""));response->print(espNowPerimiter2 == 30 ? " selected>":">");response->print(F("30m</option>"));
-              response->print(F("<option value=\"35\""));response->print(espNowPerimiter2 == 35 ? " selected>":">");response->print(F("35m</option>"));
-              response->print(F("<option value=\"40\""));response->print(espNowPerimiter2 == 40 ? " selected>":">");response->print(F("40m</option>"));
-              response->print(F("<option value=\"45\""));response->print(espNowPerimiter2 == 45 ? " selected>":">");response->print(F("45m</option>"));
-              response->print(F("<option value=\"50\""));response->print(espNowPerimiter2 == 50 ? " selected>":">");response->print(F("50m</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"six columns\"><label for=\"espNowLocationInterval2\">ESP-Now beacon interval 2</label><select class=\"u-full-width\" id=\"espNowLocationInterval2\" name=\"espNowLocationInterval2\">"));
-              response->print(F("<option value=\"1000\""));response->print(espNowLocationInterval2 == 1000 ? " selected>":">");response->print(F("1s</option>"));
-              response->print(F("<option value=\"5000\""));response->print(espNowLocationInterval2 == 5000 ? " selected>":">");response->print(F("5s</option>"));
-              response->print(F("<option value=\"10000\""));response->print(espNowLocationInterval2 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-              response->print(F("<option value=\"15000\""));response->print(espNowLocationInterval2 == 15000 ? " selected>":">");response->print(F("15s</option>"));
-              response->print(F("<option value=\"30000\""));response->print(espNowLocationInterval2 == 30000 ? " selected>":">");response->print(F("30s</option>"));
-              response->print(F("<option value=\"45000\""));response->print(espNowLocationInterval2 == 45000 ? " selected>":">");response->print(F("45s</option>"));
-              response->print(F("<option value=\"60000\""));response->print(espNowLocationInterval2 == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(espNowLocationInterval2 == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"espNowPerimiter2\">ESP-Now perimiter 2</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"espNowPerimiter2\" name=\"espNowPerimiter2\">"));
+              response->print(F("<option value=\"25\""));response->print(espNowPerimiter2 == 25 ? selectValueSelected:selectValueNotSelected);response->print(F("25m</option>"));
+              response->print(F("<option value=\"30\""));response->print(espNowPerimiter2 == 30 ? selectValueSelected:selectValueNotSelected);response->print(F("30m</option>"));
+              response->print(F("<option value=\"35\""));response->print(espNowPerimiter2 == 35 ? selectValueSelected:selectValueNotSelected);response->print(F("35m</option>"));
+              response->print(F("<option value=\"40\""));response->print(espNowPerimiter2 == 40 ? selectValueSelected:selectValueNotSelected);response->print(F("40m</option>"));
+              response->print(F("<option value=\"45\""));response->print(espNowPerimiter2 == 45 ? selectValueSelected:selectValueNotSelected);response->print(F("45m</option>"));
+              response->print(F("<option value=\"50\""));response->print(espNowPerimiter2 == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"espNowLocationInterval2\">ESP-Now beacon interval 2</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"espNowLocationInterval2\" name=\"espNowLocationInterval2\">"));
+              response->print(F("<option value=\"1000\""));response->print(espNowLocationInterval2 == 1000 ? selectValueSelected:selectValueNotSelected);response->print(F("1s</option>"));
+              response->print(F("<option value=\"5000\""));response->print(espNowLocationInterval2 == 5000 ? selectValueSelected:selectValueNotSelected);response->print(F("5s</option>"));
+              response->print(F("<option value=\"10000\""));response->print(espNowLocationInterval2 == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10s</option>"));
+              response->print(F("<option value=\"15000\""));response->print(espNowLocationInterval2 == 15000 ? selectValueSelected:selectValueNotSelected);response->print(F("15s</option>"));
+              response->print(F("<option value=\"30000\""));response->print(espNowLocationInterval2 == 30000 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+              response->print(F("<option value=\"45000\""));response->print(espNowLocationInterval2 == 45000 ? selectValueSelected:selectValueNotSelected);response->print(F("45s</option>"));
+              response->print(F("<option value=\"60000\""));response->print(espNowLocationInterval2 == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(espNowLocationInterval2 == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //espNow beacon interval 3
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"espNowPerimiter3\">ESP-Now perimiter 3</label><select class=\"u-full-width\" id=\"espNowPerimiter3\" name=\"espNowPerimiter3\">"));
-              response->print(F("<option value=\"50\""));response->print(espNowPerimiter3 == 50 ? " selected>":">");response->print(F("50m</option>"));
-              response->print(F("<option value=\"75\""));response->print(espNowPerimiter3 == 75 ? " selected>":">");response->print(F("75m</option>"));
-              response->print(F("<option value=\"100\""));response->print(espNowPerimiter3 == 100 ? " selected>":">");response->print(F("100m</option>"));
-              response->print(F("<option value=\"150\""));response->print(espNowPerimiter3 == 150 ? " selected>":">");response->print(F("150m</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"six columns\"><label for=\"espNowLocationInterval3\">ESP-Now beacon interval 3</label><select class=\"u-full-width\" id=\"espNowLocationInterval3\" name=\"espNowLocationInterval3\">"));
-              response->print(F("<option value=\"1000\""));response->print(espNowLocationInterval3 == 1000 ? " selected>":">");response->print(F("1s</option>"));
-              response->print(F("<option value=\"5000\""));response->print(espNowLocationInterval3 == 5000 ? " selected>":">");response->print(F("5s</option>"));
-              response->print(F("<option value=\"10000\""));response->print(espNowLocationInterval3 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-              response->print(F("<option value=\"15000\""));response->print(espNowLocationInterval3 == 15000 ? " selected>":">");response->print(F("15s</option>"));
-              response->print(F("<option value=\"30000\""));response->print(espNowLocationInterval3 == 30000 ? " selected>":">");response->print(F("30s</option>"));
-              response->print(F("<option value=\"45000\""));response->print(espNowLocationInterval3 == 45000 ? " selected>":">");response->print(F("45s</option>"));
-              response->print(F("<option value=\"60000\""));response->print(espNowLocationInterval3 == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(espNowLocationInterval3 == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"espNowPerimiter3\">ESP-Now perimiter 3</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"espNowPerimiter3\" name=\"espNowPerimiter3\">"));
+              response->print(F("<option value=\"50\""));response->print(espNowPerimiter3 == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50m</option>"));
+              response->print(F("<option value=\"75\""));response->print(espNowPerimiter3 == 75 ? selectValueSelected:selectValueNotSelected);response->print(F("75m</option>"));
+              response->print(F("<option value=\"100\""));response->print(espNowPerimiter3 == 100 ? selectValueSelected:selectValueNotSelected);response->print(F("100m</option>"));
+              response->print(F("<option value=\"150\""));response->print(espNowPerimiter3 == 150 ? selectValueSelected:selectValueNotSelected);response->print(F("150m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"espNowLocationInterval3\">ESP-Now beacon interval 3</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"espNowLocationInterval3\" name=\"espNowLocationInterval3\">"));
+              response->print(F("<option value=\"1000\""));response->print(espNowLocationInterval3 == 1000 ? selectValueSelected:selectValueNotSelected);response->print(F("1s</option>"));
+              response->print(F("<option value=\"5000\""));response->print(espNowLocationInterval3 == 5000 ? selectValueSelected:selectValueNotSelected);response->print(F("5s</option>"));
+              response->print(F("<option value=\"10000\""));response->print(espNowLocationInterval3 == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10s</option>"));
+              response->print(F("<option value=\"15000\""));response->print(espNowLocationInterval3 == 15000 ? selectValueSelected:selectValueNotSelected);response->print(F("15s</option>"));
+              response->print(F("<option value=\"30000\""));response->print(espNowLocationInterval3 == 30000 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+              response->print(F("<option value=\"45000\""));response->print(espNowLocationInterval3 == 45000 ? selectValueSelected:selectValueNotSelected);response->print(F("45s</option>"));
+              response->print(F("<option value=\"60000\""));response->print(espNowLocationInterval3 == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(espNowLocationInterval3 == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Default beacon interval
-              response->print(F("<div class=\"row\"><div class=\"six columns\">Default ESP-Now beacon interval</div>"));
-              //response->print(F("<div class=\"six columns\"><label for=\"defaultEspNowLocationInterval\">ESP-Now beacon interval</label><select class=\"u-full-width\" id=\"defaultEspNowLocationInterval\" name=\"defaultEspNowLocationInterval\">"));
-              response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"defaultEspNowLocationInterval\" name=\"defaultEspNowLocationInterval\">"));
-              response->print(F("<option value=\"30000\""));response->print(defaultEspNowLocationInterval == 30000 ? " selected>":">");response->print(F("30s</option>"));
-              response->print(F("<option value=\"60000\""));response->print(defaultEspNowLocationInterval == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(defaultEspNowLocationInterval == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("<option value=\"120000\""));response->print(defaultEspNowLocationInterval == 120000 ? " selected>":">");response->print(F("2m</option>"));
-              response->print(F("<option value=\"180000\""));response->print(defaultEspNowLocationInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("Default ESP-Now beacon interval"));
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<select class=\"u-full-width\" id=\"defaultEspNowLocationInterval\" name=\"defaultEspNowLocationInterval\">"));
+              response->print(F("<option value=\"30000\""));response->print(defaultEspNowLocationInterval == 30000 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+              response->print(F("<option value=\"60000\""));response->print(defaultEspNowLocationInterval == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(defaultEspNowLocationInterval == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(F("<option value=\"120000\""));response->print(defaultEspNowLocationInterval == 120000 ? selectValueSelected:selectValueNotSelected);response->print(F("2m</option>"));
+              response->print(F("<option value=\"180000\""));response->print(defaultEspNowLocationInterval == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Config sync
-              response->print(F("<div class=\"row\"><div class=\"six columns\">Configuration sync interval</div>"));
-              response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"espNowDeviceInfoInterval\" name=\"espNowDeviceInfoInterval\">"));
-              response->print(F("<option value=\"60000\""));response->print(espNowDeviceInfoInterval == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(espNowDeviceInfoInterval == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("<option value=\"180000\""));response->print(espNowDeviceInfoInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
-              response->print(F("<option value=\"120000\""));response->print(espNowDeviceInfoInterval == 300000 ? " selected>":">");response->print(F("5m</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("Configuration sync interval"));
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<select class=\"u-full-width\" id=\"espNowDeviceInfoInterval\" name=\"espNowDeviceInfoInterval\">"));
+              response->print(F("<option value=\"60000\""));response->print(espNowDeviceInfoInterval == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(espNowDeviceInfoInterval == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(F("<option value=\"180000\""));response->print(espNowDeviceInfoInterval == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
+              response->print(F("<option value=\"120000\""));response->print(espNowDeviceInfoInterval == 300000 ? selectValueSelected:selectValueNotSelected);response->print(F("5m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //End of form
-              response->print(F("</form>"));
+              response->print(formEnd);
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -1576,7 +1922,7 @@
           #endif
           });
         adminWebServer->on("/espnowconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -1586,30 +1932,11 @@
                   return request->requestAuthentication();  //Force basic authentication
               }
             #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
-              }
-            #endif
             //Read the submitted configuration
             bool espNowConfigurationChanged = false;
-            if(request->hasParam("espNowEnabled", true))
+            if(request->hasParam(string_espNowEnabled, true))
             {
-              if(request->getParam("espNowEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              if(request->getParam(string_espNowEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
               {
                 if(espNowEnabled != true)
                 {
@@ -1725,7 +2052,7 @@
               saveConfigurationSoon = millis();
             }
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -1738,9 +2065,11 @@
         #endif
       });
       #endif
-      #ifdef SUPPORT_LORA
+      */
+      /*
+      #if defined(SUPPORT_LORA)
         adminWebServer->on("/loraconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -1753,93 +2082,150 @@
               AsyncResponseStream *response = request->beginResponseStream("text/html");
               addPageHeader(response, 0, nullptr);
               //Start of form
-              response->print(F("<form method=\"POST\">"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"four columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>LoRa configuration</h2></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><label for=\"loRaEnabled\">LoRa radio enabled</label><select class=\"u-full-width\" id=\"loRaEnabled\" name=\"loRaEnabled\">"));
-              response->print(F("<option value=\"true\""));response->print(loRaEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(loRaEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(formStart);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("LoRa configuration"));
+              response->print(startFourColumns);
+              response->print(saveButton);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->print(F("<label for=\"loRaEnabled\">LoRa radio enabled</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"loRaEnabled\" name=\"loRaEnabled\">"));
+              response->print(selectValueTrue);response->print(loRaEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(loRaEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //LoRa beacon interval 1
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter1\">LoRa perimiter 1</label><select class=\"u-full-width\" id=\"loRaPerimiter1\" name=\"loRaPerimiter1\">"));
-              response->print(F("<option value=\"10\""));response->print(loRaPerimiter1 == 10 ? " selected>":">");response->print(F("10m</option>"));
-              response->print(F("<option value=\"15\""));response->print(loRaPerimiter1 == 15 ? " selected>":">");response->print(F("15m</option>"));
-              response->print(F("<option value=\"20\""));response->print(loRaPerimiter1 == 20 ? " selected>":">");response->print(F("20m</option>"));
-              response->print(F("<option value=\"25\""));response->print(loRaPerimiter1 == 25 ? " selected>":">");response->print(F("25m</option>"));
-              response->print(F("<option value=\"30\""));response->print(loRaPerimiter1 == 30 ? " selected>":">");response->print(F("30m</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"six columns\"><label for=\"loRaLocationInterval1\">LoRa beacon interval 1</label><select class=\"u-full-width\" id=\"loRaLocationInterval1\" name=\"loRaLocationInterval1\">"));
-              response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval1 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-              response->print(F("<option value=\"15000\""));response->print(loRaLocationInterval1 == 15000 ? " selected>":">");response->print(F("15s</option>"));
-              response->print(F("<option value=\"30000\""));response->print(loRaLocationInterval1 == 30000 ? " selected>":">");response->print(F("30s</option>"));
-              response->print(F("<option value=\"45000\""));response->print(loRaLocationInterval1 == 45000 ? " selected>":">");response->print(F("45s</option>"));
-              response->print(F("<option value=\"60000\""));response->print(loRaLocationInterval1 == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(loRaLocationInterval1 == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"loRaPerimiter1\">LoRa perimiter 1</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"loRaPerimiter1\" name=\"loRaPerimiter1\">"));
+              response->print(F("<option value=\"10\""));response->print(loRaPerimiter1 == 10 ? selectValueSelected:selectValueNotSelected);response->print(F("10m</option>"));
+              response->print(F("<option value=\"15\""));response->print(loRaPerimiter1 == 15 ? selectValueSelected:selectValueNotSelected);response->print(F("15m</option>"));
+              response->print(F("<option value=\"20\""));response->print(loRaPerimiter1 == 20 ? selectValueSelected:selectValueNotSelected);response->print(F("20m</option>"));
+              response->print(F("<option value=\"25\""));response->print(loRaPerimiter1 == 25 ? selectValueSelected:selectValueNotSelected);response->print(F("25m</option>"));
+              response->print(F("<option value=\"30\""));response->print(loRaPerimiter1 == 30 ? selectValueSelected:selectValueNotSelected);response->print(F("30m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"loRaLocationInterval1\">LoRa beacon interval 1</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"loRaLocationInterval1\" name=\"loRaLocationInterval1\">"));
+              response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval1 == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10s</option>"));
+              response->print(F("<option value=\"15000\""));response->print(loRaLocationInterval1 == 15000 ? selectValueSelected:selectValueNotSelected);response->print(F("15s</option>"));
+              response->print(F("<option value=\"30000\""));response->print(loRaLocationInterval1 == 30000 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+              response->print(F("<option value=\"45000\""));response->print(loRaLocationInterval1 == 45000 ? selectValueSelected:selectValueNotSelected);response->print(F("45s</option>"));
+              response->print(F("<option value=\"60000\""));response->print(loRaLocationInterval1 == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(loRaLocationInterval1 == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //LoRa beacon interval 2
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter2\">LoRa perimiter 2</label><select class=\"u-full-width\" id=\"loRaPerimiter2\" name=\"loRaPerimiter2\">"));
-              response->print(F("<option value=\"25\""));response->print(loRaPerimiter2 == 25 ? " selected>":">");response->print(F("25m</option>"));
-              response->print(F("<option value=\"30\""));response->print(loRaPerimiter2 == 30 ? " selected>":">");response->print(F("30m</option>"));
-              response->print(F("<option value=\"35\""));response->print(loRaPerimiter2 == 35 ? " selected>":">");response->print(F("35m</option>"));
-              response->print(F("<option value=\"40\""));response->print(loRaPerimiter2 == 40 ? " selected>":">");response->print(F("40m</option>"));
-              response->print(F("<option value=\"45\""));response->print(loRaPerimiter2 == 45 ? " selected>":">");response->print(F("45m</option>"));
-              response->print(F("<option value=\"50\""));response->print(loRaPerimiter2 == 50 ? " selected>":">");response->print(F("50m</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"six columns\"><label for=\"loRaLocationInterval2\">LoRa beacon interval 2</label><select class=\"u-full-width\" id=\"loRaLocationInterval2\" name=\"loRaLocationInterval2\">"));
-              response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval2 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-              response->print(F("<option value=\"15000\""));response->print(loRaLocationInterval2 == 15000 ? " selected>":">");response->print(F("15s</option>"));
-              response->print(F("<option value=\"30000\""));response->print(loRaLocationInterval2 == 30000 ? " selected>":">");response->print(F("30s</option>"));
-              response->print(F("<option value=\"45000\""));response->print(loRaLocationInterval2 == 45000 ? " selected>":">");response->print(F("45s</option>"));
-              response->print(F("<option value=\"60000\""));response->print(loRaLocationInterval2 == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(loRaLocationInterval2 == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"loRaPerimiter2\">LoRa perimiter 2</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"loRaPerimiter2\" name=\"loRaPerimiter2\">"));
+              response->print(F("<option value=\"25\""));response->print(loRaPerimiter2 == 25 ? selectValueSelected:selectValueNotSelected);response->print(F("25m</option>"));
+              response->print(F("<option value=\"30\""));response->print(loRaPerimiter2 == 30 ? selectValueSelected:selectValueNotSelected);response->print(F("30m</option>"));
+              response->print(F("<option value=\"35\""));response->print(loRaPerimiter2 == 35 ? selectValueSelected:selectValueNotSelected);response->print(F("35m</option>"));
+              response->print(F("<option value=\"40\""));response->print(loRaPerimiter2 == 40 ? selectValueSelected:selectValueNotSelected);response->print(F("40m</option>"));
+              response->print(F("<option value=\"45\""));response->print(loRaPerimiter2 == 45 ? selectValueSelected:selectValueNotSelected);response->print(F("45m</option>"));
+              response->print(F("<option value=\"50\""));response->print(loRaPerimiter2 == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"loRaLocationInterval2\">LoRa beacon interval 2</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"loRaLocationInterval2\" name=\"loRaLocationInterval2\">"));
+              response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval2 == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10s</option>"));
+              response->print(F("<option value=\"15000\""));response->print(loRaLocationInterval2 == 15000 ? selectValueSelected:selectValueNotSelected);response->print(F("15s</option>"));
+              response->print(F("<option value=\"30000\""));response->print(loRaLocationInterval2 == 30000 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+              response->print(F("<option value=\"45000\""));response->print(loRaLocationInterval2 == 45000 ? selectValueSelected:selectValueNotSelected);response->print(F("45s</option>"));
+              response->print(F("<option value=\"60000\""));response->print(loRaLocationInterval2 == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(loRaLocationInterval2 == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //LoRa beacon interval 3
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"loRaPerimiter3\">LoRa perimiter 3</label><select class=\"u-full-width\" id=\"loRaPerimiter3\" name=\"loRaPerimiter3\">"));
-              response->print(F("<option value=\"50\""));response->print(loRaPerimiter3 == 50 ? " selected>":">");response->print(F("50m</option>"));
-              response->print(F("<option value=\"75\""));response->print(loRaPerimiter3 == 75 ? " selected>":">");response->print(F("75m</option>"));
-              response->print(F("<option value=\"100\""));response->print(loRaPerimiter3 == 100 ? " selected>":">");response->print(F("100m</option>"));
-              response->print(F("<option value=\"150\""));response->print(loRaPerimiter3 == 150 ? " selected>":">");response->print(F("150m</option>"));
-              response->print(F("</select></div>"));
-              response->print(F("<div class=\"six columns\"><label for=\"loRaLocationInterval3\">LoRa beacon interval 3</label><select class=\"u-full-width\" id=\"loRaLocationInterval3\" name=\"loRaLocationInterval3\">"));
-              response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval3 == 10000 ? " selected>":">");response->print(F("10s</option>"));
-              response->print(F("<option value=\"15000\""));response->print(loRaLocationInterval3 == 15000 ? " selected>":">");response->print(F("15s</option>"));
-              response->print(F("<option value=\"30000\""));response->print(loRaLocationInterval3 == 30000 ? " selected>":">");response->print(F("30s</option>"));
-              response->print(F("<option value=\"45000\""));response->print(loRaLocationInterval3 == 45000 ? " selected>":">");response->print(F("45s</option>"));
-              response->print(F("<option value=\"60000\""));response->print(loRaLocationInterval3 == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(loRaLocationInterval3 == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"loRaPerimiter3\">LoRa perimiter 3</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"loRaPerimiter3\" name=\"loRaPerimiter3\">"));
+              response->print(F("<option value=\"50\""));response->print(loRaPerimiter3 == 50 ? selectValueSelected:selectValueNotSelected);response->print(F("50m</option>"));
+              response->print(F("<option value=\"75\""));response->print(loRaPerimiter3 == 75 ? selectValueSelected:selectValueNotSelected);response->print(F("75m</option>"));
+              response->print(F("<option value=\"100\""));response->print(loRaPerimiter3 == 100 ? selectValueSelected:selectValueNotSelected);response->print(F("100m</option>"));
+              response->print(F("<option value=\"150\""));response->print(loRaPerimiter3 == 150 ? selectValueSelected:selectValueNotSelected);response->print(F("150m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<label for=\"loRaLocationInterval3\">LoRa beacon interval 3</label>"));
+              response->print(F("<select class=\"u-full-width\" id=\"loRaLocationInterval3\" name=\"loRaLocationInterval3\">"));
+              response->print(F("<option value=\"10000\""));response->print(loRaLocationInterval3 == 10000 ? selectValueSelected:selectValueNotSelected);response->print(F("10s</option>"));
+              response->print(F("<option value=\"15000\""));response->print(loRaLocationInterval3 == 15000 ? selectValueSelected:selectValueNotSelected);response->print(F("15s</option>"));
+              response->print(F("<option value=\"30000\""));response->print(loRaLocationInterval3 == 30000 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+              response->print(F("<option value=\"45000\""));response->print(loRaLocationInterval3 == 45000 ? selectValueSelected:selectValueNotSelected);response->print(F("45s</option>"));
+              response->print(F("<option value=\"60000\""));response->print(loRaLocationInterval3 == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(loRaLocationInterval3 == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Default beacon interval
-              response->print(F("<div class=\"row\"><div class=\"six columns\">Default LoRa beacon interval</div>"));
-              response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"defaultLoRaLocationInterval\" name=\"defaultLoRaLocationInterval\">"));
-              response->print(F("<option value=\"30000\""));response->print(defaultLoRaLocationInterval == 30000 ? " selected>":">");response->print(F("30s</option>"));
-              response->print(F("<option value=\"60000\""));response->print(defaultLoRaLocationInterval == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(defaultLoRaLocationInterval == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("<option value=\"120000\""));response->print(defaultLoRaLocationInterval == 120000 ? " selected>":">");response->print(F("2m</option>"));
-              response->print(F("<option value=\"180000\""));response->print(defaultLoRaLocationInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
-              response->print(F("</select></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"six columns\">Configuration sync interval</div>"));
-              response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"loRaDeviceInfoInterval\" name=\"loRaDeviceInfoInterval\">"));
-              response->print(F("<option value=\"60000\""));response->print(loRaDeviceInfoInterval == 60000 ? " selected>":">");response->print(F("60s</option>"));
-              response->print(F("<option value=\"90000\""));response->print(loRaDeviceInfoInterval == 90000 ? " selected>":">");response->print(F("90s</option>"));
-              response->print(F("<option value=\"180000\""));response->print(loRaDeviceInfoInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
-              response->print(F("<option value=\"120000\""));response->print(loRaDeviceInfoInterval == 300000 ? " selected>":">");response->print(F("5m</option>"));
-              response->print(F("</select></div></div>"));
-              //RSSI range estimation
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"four columns\"><label for=\"rssiAttenuation\">RSSI attenuation (distance halfing rate)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuation\" name=\"rssiAttenuation\"></div>"), rssiAttenuation);
-              response->printf_P(PSTR("<div class=\"four columns\"><label for=\"rssiAttenuationBaseline\">RSSI at 10m (approx)</label><input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuationBaseline\" name=\"rssiAttenuationBaseline\"></div>"), rssiAttenuationBaseline);
-              response->print(F("<div class=\"four columns\"><label for=\"rssiAttenuationPerimeter\">Minimum distance for RSSI attenuation distance estimation</label><select class=\"u-full-width\" id=\"rssiAttenuationPerimeter\" name=\"rssiAttenuationPerimeter\">"));
-              response->print(F("<option value=\"3\""));response->print(rssiAttenuationPerimeter == 3 ? " selected>":">");response->print(F("3m</option>"));
-              response->print(F("<option value=\"5\""));response->print(rssiAttenuationPerimeter == 5 ? " selected>":">");response->print(F("5m</option>"));
-              response->print(F("<option value=\"7\""));response->print(rssiAttenuationPerimeter == 7 ? " selected>":">");response->print(F("7m</option>"));
-              response->print(F("<option value=\"10\""));response->print(rssiAttenuationPerimeter == 10 ? " selected>":">");response->print(F("10m</option>"));
-              response->print(F("<option value=\"15\""));response->print(rssiAttenuationPerimeter == 15 ? " selected>":">");response->print(F("15m</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("Default LoRa beacon interval"));
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<select class=\"u-full-width\" id=\"defaultLoRaLocationInterval\" name=\"defaultLoRaLocationInterval\">"));
+              response->print(F("<option value=\"30000\""));response->print(defaultLoRaLocationInterval == 30000 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+              response->print(F("<option value=\"60000\""));response->print(defaultLoRaLocationInterval == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(defaultLoRaLocationInterval == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(F("<option value=\"120000\""));response->print(defaultLoRaLocationInterval == 120000 ? selectValueSelected:selectValueNotSelected);response->print(F("2m</option>"));
+              response->print(F("<option value=\"180000\""));response->print(defaultLoRaLocationInterval == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->print(F("Configuration sync interval"));
+              response->print(endColumn);
+              response->print(startSixColumns);
+              response->print(F("<select class=\"u-full-width\" id=\"loRaDeviceInfoInterval\" name=\"loRaDeviceInfoInterval\">"));
+              response->print(F("<option value=\"60000\""));response->print(loRaDeviceInfoInterval == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+              response->print(F("<option value=\"90000\""));response->print(loRaDeviceInfoInterval == 90000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+              response->print(F("<option value=\"180000\""));response->print(loRaDeviceInfoInterval == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
+              response->print(F("<option value=\"120000\""));response->print(loRaDeviceInfoInterval == 300000 ? selectValueSelected:selectValueNotSelected);response->print(F("5m</option>"));
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              #if defined(MEASURE_DISTANCE_WITH_LORA)
+                //RSSI range estimation
+                response->print(startRow);
+                response->print(startFourColumns);
+                response->print(F("<label for=\"rssiAttenuation\">RSSI attenuation (distance halfing rate)</label>"));
+                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuation\" name=\"rssiAttenuation\">"), rssiAttenuation);
+                response->print(endColumn);
+                response->print(startFourColumns);
+                response->print(F("<label for=\"rssiAttenuationBaseline\">RSSI at 10m (approx)</label>"));
+                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.01\" value=\"%.2f\" id=\"rssiAttenuationBaseline\" name=\"rssiAttenuationBaseline\">"), rssiAttenuationBaseline);
+                response->print(endColumn);
+                response->print(startFourColumns);
+                response->print(F("<label for=\"rssiAttenuationPerimeter\">Minimum distance for RSSI attenuation distance estimation</label>"));
+                response->print(F("<select class=\"u-full-width\" id=\"rssiAttenuationPerimeter\" name=\"rssiAttenuationPerimeter\">"));
+                response->print(F("<option value=\"3\""));response->print(rssiAttenuationPerimeter == 3 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
+                response->print(F("<option value=\"5\""));response->print(rssiAttenuationPerimeter == 5 ? selectValueSelected:selectValueNotSelected);response->print(F("5m</option>"));
+                response->print(F("<option value=\"7\""));response->print(rssiAttenuationPerimeter == 7 ? selectValueSelected:selectValueNotSelected);response->print(F("7m</option>"));
+                response->print(F("<option value=\"10\""));response->print(rssiAttenuationPerimeter == 10 ? selectValueSelected:selectValueNotSelected);response->print(F("10m</option>"));
+                response->print(F("<option value=\"15\""));response->print(rssiAttenuationPerimeter == 15 ? selectValueSelected:selectValueNotSelected);response->print(F("15m</option>"));
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+              #endif
               //End of form
-              response->print(F("</form>"));
+              response->print(formEnd);
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -1852,7 +2238,7 @@
           #endif
           });
           adminWebServer->on("/loraconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
             #endif
@@ -1862,30 +2248,11 @@
                     return request->requestAuthentication();  //Force basic authentication
                 }
               #endif
-              #ifdef DEBUG_FORM_SUBMISSION
-                int params = request->params();
-                localLog(F("Submitted Configuration parameters: "));
-                localLogLn(params);
-                for(int i=0;i<params;i++){
-                  AsyncWebParameter* p = request->getParam(i);
-                  if(p->isFile()){ //p->isPost() is also true
-                    //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                  } else if(p->isPost()){
-                    //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                    localLog(F("POST["));
-                    localLog(p->name().c_str());
-                    localLog(F("]: "));
-                    localLogLn(p->value().c_str());
-                  } else {
-                    //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  }
-                }
-              #endif
               //Read the submitted configuration
               bool loRaConfigurationChanged = false;
-              if(request->hasParam("loRaEnabled", true))
+              if(request->hasParam(string_loRaEnabled, true))
               {
-                if(request->getParam("loRaEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_loRaEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   if(loRaEnabled == false)
                   {
@@ -1986,42 +2353,44 @@
                   loRaConfigurationChanged = true;
                 }
               }
-              if(request->hasParam("rssiAttenuation", true))
-              {
-                if(rssiAttenuation != request->getParam("rssiAttenuation", true)->value().toFloat())
+              #if defined(MEASURE_DISTANCE_WITH_LORA)
+                if(request->hasParam("rssiAttenuation", true))
                 {
-                  rssiAttenuation = request->getParam("rssiAttenuation", true)->value().toFloat();
-                  localLog(F("rssiAttenuation: "));
-                  localLogLn(rssiAttenuation);
-                  loRaConfigurationChanged = true;
+                  if(rssiAttenuation != request->getParam("rssiAttenuation", true)->value().toFloat())
+                  {
+                    rssiAttenuation = request->getParam("rssiAttenuation", true)->value().toFloat();
+                    localLog(F("rssiAttenuation: "));
+                    localLogLn(rssiAttenuation);
+                    loRaConfigurationChanged = true;
+                  }
                 }
-              }
-              if(request->hasParam("rssiAttenuationBaseline", true))
-              {
-                if(rssiAttenuationBaseline != request->getParam("rssiAttenuationBaseline", true)->value().toFloat())
+                if(request->hasParam("rssiAttenuationBaseline", true))
                 {
-                  rssiAttenuationBaseline = request->getParam("rssiAttenuationBaseline", true)->value().toFloat();
-                  localLog(F("rssiAttenuationBaseline: "));
-                  localLogLn(rssiAttenuationBaseline);
-                  loRaConfigurationChanged = true;
+                  if(rssiAttenuationBaseline != request->getParam("rssiAttenuationBaseline", true)->value().toFloat())
+                  {
+                    rssiAttenuationBaseline = request->getParam("rssiAttenuationBaseline", true)->value().toFloat();
+                    localLog(F("rssiAttenuationBaseline: "));
+                    localLogLn(rssiAttenuationBaseline);
+                    loRaConfigurationChanged = true;
+                  }
                 }
-              }
-              if(request->hasParam("rssiAttenuationPerimeter", true))
-              {
-                if(rssiAttenuationPerimeter != request->getParam("rssiAttenuationPerimeter", true)->value().toFloat())
+                if(request->hasParam("rssiAttenuationPerimeter", true))
                 {
-                  rssiAttenuationPerimeter = request->getParam("rssiAttenuationPerimeter", true)->value().toFloat();
-                  localLog(F("rssiAttenuationPerimeter: "));
-                  localLogLn(rssiAttenuationPerimeter);
-                  loRaConfigurationChanged = true;
+                  if(rssiAttenuationPerimeter != request->getParam("rssiAttenuationPerimeter", true)->value().toFloat())
+                  {
+                    rssiAttenuationPerimeter = request->getParam("rssiAttenuationPerimeter", true)->value().toFloat();
+                    localLog(F("rssiAttenuationPerimeter: "));
+                    localLogLn(rssiAttenuationPerimeter);
+                    loRaConfigurationChanged = true;
+                  }
                 }
-              }
+              #endif
               if(loRaConfigurationChanged == true)
               {
                 saveConfigurationSoon = millis();
               }
               request->redirect("/admin");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2034,9 +2403,10 @@
           #endif
         });
       #endif
-      #ifdef SUPPORT_FTM
-        adminWebServer->on("/ftmconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      */
+      #if defined(SUPPORT_TREACLE)
+        adminWebServer->on("/treacleconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2049,59 +2419,140 @@
               AsyncResponseStream *response = request->beginResponseStream("text/html");
               addPageHeader(response, 0, nullptr);
               //Start of form
-              response->print(F("<form method=\"POST\">"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"four columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>FTM configuration</h2></div></div>"));
-              //FTM
-              #if defined(ACT_AS_TRACKER)
-                //State
-                response->print(F("<div class=\"row\"><div class=\"six columns\">Time-of-flight probe</div>"));
-                response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"ftmEnabled\" name=\"ftmEnabled\">"));
-                response->print(F("<option value=\"true\""));response->print(ftmEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-                response->print(F("<option value=\"false\""));response->print(ftmEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-                response->print(F("</select></div></div>"));
-                //SSID/PSK
-                response->print(F("<div class=\"row\"><div class=\"six columns\">SSID template (simple pattern search)</div>"));
-                if(ftmSSID != nullptr)
-                {
-                  response->printf_P(PSTR("<div class=\"six columns\"><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"ftmSSID\" name=\"ftmSSID\"></div>"), ftmSSID);
-                }
-                else
-                {
-                  response->print(F("<div class=\"six columns\"><input class=\"u-full-width\" type=\"text\" value=\"\" id=\"ftmSSID\" name=\"ftmSSID\"></div>"));
-                }
-                response->print(F("<div class=\"row\"><div class=\"six columns\">Pre-shared key to try</div>"));
-                response->print(F("<div class=\"six columns\"><input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"ftmPSK\" name=\"ftmPSK\"></div></div>"));
-              #elif defined(ACT_AS_BEACON)
-                //State
-                response->print(F("<div class=\"row\"><div class=\"six columns\">Time-of-flight beacon</div>"));
-                response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"ftmEnabled\" name=\"ftmEnabled\">"));
-                response->print(F("<option value=\"true\""));response->print(ftmEnabled == true ? " selected>":">");response->print(F("Enabled</option>"));
-                response->print(F("<option value=\"false\""));response->print(ftmEnabled == false ? " selected>":">");response->print(F("Disabled</option>"));
-                response->print(F("</select></div></div>"));
-                response->print(F("<div class=\"row\"><div class=\"six columns\">SSID suffix (appended to any configured SSID)</div>"));
-                if(ftmSSID != nullptr)
-                {
-                  response->printf_P(PSTR("<div class=\"six columns\"><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"ftmSSID\" name=\"ftmSSID\"></div>"), ftmSSID);
-                }
-                else
-                {
-                  response->print(F("<div class=\"six columns\"><input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"ftmSSID\" name=\"ftmSSID\"></div>"));
-                }
-                response->print(F("<div class=\"row\"><div class=\"six columns\">Hide FTM SSID (unless otherwise enabled)</div>"));
-                response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"ftmHideSSID\" name=\"ftmHideSSID\">"));
-                response->print(F("<option value=\"true\""));response->print(ftmHideSSID == true ? " selected>":">");response->print(F("Enabled</option>"));
-                response->print(F("<option value=\"false\""));response->print(ftmHideSSID == false ? " selected>":">");response->print(F("Disabled</option>"));
-                response->print(F("</select></div></div>"));
-                response->print(F("<div class=\"row\"><div class=\"six columns\">Pre-shared key (if not otherwise set)</div>"));
-                response->print(F("<div class=\"six columns\"><input class=\"u-full-width\" type=\"password\" placeholder=\"********\" id=\"ftmPSK\" name=\"ftmPSK\"></div></div>"));
-              #endif
+              response->print(formStart);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Treacle configuration"));
+              response->print(startFourColumns);
+              response->print(saveButton);
+              response->print(endColumn);
+              response->print(endRow);
+              //Treacle encryption
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_treacleEncryptionEnabled, PSTR("Encryption enabled"));
+              response->printf_P(selectPrintfFormatString, string_treacleEncryptionEnabled, string_treacleEncryptionEnabled);
+              response->print(selectValueTrue);response->print(treacleEncryptionEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(treacleEncryptionEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              //ESP-Now
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_espNowEnabled, PSTR("ESP-Now radio enabled"));
+              response->printf_P(selectPrintfFormatString, string_espNowEnabled, string_espNowEnabled);
+              response->print(selectValueTrue);response->print(espNowEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(espNowEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              //ESP-Now tick interval
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_espNowTickInterval, PSTR("ESP-Now tick interval"));
+              response->printf_P(selectPrintfFormatString, string_espNowTickInterval, string_espNowTickInterval);
+              for(uint32_t value = 5000; value <= 55000; value+=5000)
+              {
+                response->printf_P(PSTR("<option value=\"%u\""), value);
+                response->print(espNowTickInterval == value ? selectValueSelected:selectValueNotSelected);
+                response->print(value/1000);
+                response->print(F("s</option>"));
+              }
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_loRaEnabled, PSTR("LoRa radio enabled"));
+              response->printf_P(selectPrintfFormatString, string_loRaEnabled, string_loRaEnabled);
+              response->print(selectValueTrue);response->print(loRaEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(loRaEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              //ESP-Now tick interval
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_loRaTickInterval, PSTR("LoRa tick interval"));
+              response->printf_P(selectPrintfFormatString, string_loRaTickInterval, string_loRaTickInterval);
+              for(uint32_t value = 5000; value <= 55000; value+=5000)
+              {
+                response->printf_P(PSTR("<option value=\"%u\""), value);
+                response->print(loRaTickInterval == value ? selectValueSelected:selectValueNotSelected);
+                response->print(value/1000);
+                response->print(F("s</option>"));
+              }
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              //TX power
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_loRaTxPower, PSTR("LoRa Tx power"));
+              response->printf_P(selectPrintfFormatString, string_loRaTxPower, string_loRaTxPower);
+              for(uint8_t value = 2; value <= 20; value++)
+              {
+                response->printf_P(PSTR("<option value=\"%u\""), value);
+                response->print(loRaTxPower == value ? selectValueSelected:selectValueNotSelected);
+                response->print(value);
+                response->print(F("dBm</option>"));
+              }
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              //RX gain
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_loRaRxGain, PSTR("LoRa Rx gain"));
+              response->printf_P(selectPrintfFormatString, string_loRaRxGain, string_loRaRxGain);
+              response->printf_P(PSTR("<option value=\"%u\""), 0);
+              response->print(loRaRxGain == 0 ? selectValueSelected:selectValueNotSelected);
+              response->print(F("Auto</option>"));
+              for(uint8_t value = 1; value <= 6; value++)
+              {
+                response->printf_P(PSTR("<option value=\"%u\""), value);
+                response->print(loRaRxGain == value ? selectValueSelected:selectValueNotSelected);
+                response->print(value);
+                response->print(F("</option>"));
+              }
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              //Spreading factor
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_loRaSpreadingFactor, PSTR("LoRa spreading factor"));
+              response->printf_P(selectPrintfFormatString, string_loRaSpreadingFactor, string_loRaSpreadingFactor);
+              for(uint8_t value = 7; value <= 12; value++)
+              {
+                response->printf_P(PSTR("<option value=\"%u\""), value);
+                response->print(loRaSpreadingFactor == value ? selectValueSelected:selectValueNotSelected);
+                response->print(value);
+                response->print(F("</option>"));
+              }
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              //Signal bandwidth
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_loRaSignalBandwidth, PSTR("LoRa signal bandwidth"));
+              response->printf_P(selectPrintfFormatString, string_loRaSignalBandwidth, string_loRaSignalBandwidth);
+              for(uint8_t index = 0; index < 10; index++)
+              {
+                response->printf_P(PSTR("<option value=\"%u\""), validLoRaSignalBandwidth[index]);
+                response->print(loRaSignalBandwidth == validLoRaSignalBandwidth[index] ? selectValueSelected:selectValueNotSelected);
+                response->print(validLoRaSignalBandwidth[index]/1000.0);
+                response->print(F("baud</option>"));
+              }
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //End of form
-              response->print(F("</form>"));
+              response->print(formEnd);
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2113,8 +2564,470 @@
             }
           #endif
           });
-          adminWebServer->on("/ftmconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        adminWebServer->on("/treacleconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            bool treacleConfigurationChanged = false;
+            if(request->hasParam(string_espNowEnabled, true))
+            {
+              if(request->getParam(string_espNowEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(espNowEnabled == false)
+                {
+                  espNowEnabled = true;
+                  treacleConfigurationChanged = true;
+                }
+              }
+              else
+              {
+                if(espNowEnabled == true)
+                {
+                  espNowEnabled = false;
+                  treacleConfigurationChanged = true;
+                }
+              }
+            }
+            if(request->hasParam(string_espNowTickInterval, true))
+            {
+              if(espNowTickInterval != request->getParam(string_espNowTickInterval, true)->value().toInt())
+              {
+                espNowTickInterval = request->getParam(string_espNowTickInterval, true)->value().toInt();
+                treacle.setEspNowTickInterval(espNowTickInterval);
+                treacleConfigurationChanged = true;
+              }
+            }
+            if(request->hasParam(string_loRaEnabled, true))
+            {
+              if(request->getParam(string_loRaEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(loRaEnabled == false)
+                {
+                  loRaEnabled = true;
+                  treacleConfigurationChanged = true;
+                }
+              }
+              else
+              {
+                if(loRaEnabled == true)
+                {
+                  loRaEnabled = false;
+                  treacleConfigurationChanged = true;
+                }
+              }
+            }
+            if(request->hasParam(string_loRaTickInterval, true))
+            {
+              if(loRaTickInterval != request->getParam(string_loRaTickInterval, true)->value().toInt())
+              {
+                loRaTickInterval = request->getParam(string_loRaTickInterval, true)->value().toInt();
+                treacle.setLoRaTickInterval(loRaTickInterval);
+                treacleConfigurationChanged = true;
+              }
+            }
+            if(request->hasParam(string_loRaTxPower, true))
+            {
+              if(loRaTxPower != request->getParam(string_loRaTxPower, true)->value().toInt())
+              {
+                loRaTxPower = request->getParam(string_loRaTxPower, true)->value().toInt();
+                treacleConfigurationChanged = true;
+              }
+            }
+            if(request->hasParam(string_loRaRxGain, true))
+            {
+              if(loRaRxGain != request->getParam(string_loRaRxGain, true)->value().toInt())
+              {
+                loRaRxGain = request->getParam(string_loRaRxGain, true)->value().toInt();
+                treacleConfigurationChanged = true;
+              }
+            }
+            if(request->hasParam(string_loRaSpreadingFactor, true))
+            {
+              if(loRaSpreadingFactor != request->getParam(string_loRaSpreadingFactor, true)->value().toInt())
+              {
+                loRaSpreadingFactor = request->getParam(string_loRaSpreadingFactor, true)->value().toInt();
+                treacleConfigurationChanged = true;
+              }
+            }
+            if(request->hasParam(string_loRaSignalBandwidth, true))
+            {
+              if(loRaSignalBandwidth != request->getParam(string_loRaSignalBandwidth, true)->value().toInt())
+              {
+                loRaSignalBandwidth = request->getParam(string_loRaSignalBandwidth, true)->value().toInt();
+                treacleConfigurationChanged = true;
+              }
+            }
+            if(treacleConfigurationChanged == true)
+            {
+              saveConfigurationSoon = millis();
+            }
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      #endif
+      #if defined(SUPPORT_LVGL)
+        adminWebServer->on("/gui", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              AsyncResponseStream *response = request->beginResponseStream("text/html");
+              addPageHeader(response, 0, nullptr);
+              //Start of form
+              response->print(formStart);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("GUI configuration"));
+              response->print(startFourColumns);
+              response->print(saveButton);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startEightColumns);
+              response->print(F("&nbsp;"));
+              response->print(endColumn);
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("touchscreen"), PSTR("Reset touchscreen"));
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_enableHomeTab, PSTR("Home tab"));
+              response->printf_P(selectPrintfFormatString, string_enableHomeTab, string_enableHomeTab);
+              response->print(selectValueTrue);response->print(enableHomeTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(enableHomeTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_enableMapTab, PSTR("Map tab"));
+              response->printf_P(selectPrintfFormatString, string_enableMapTab, string_enableMapTab);
+              response->print(selectValueTrue);response->print(enableMapTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(enableMapTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_enableInfoTab, PSTR("Info tab"));
+              response->printf_P(selectPrintfFormatString, string_enableInfoTab, string_enableInfoTab);
+              response->print(selectValueTrue);response->print(enableInfoTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(enableInfoTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_enableGpsTab, PSTR("GPS tab"));
+              response->printf_P(selectPrintfFormatString, string_enableGpsTab, string_enableGpsTab);
+              response->print(selectValueTrue);response->print(enableGpsTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(enableGpsTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_enableSettingsTab, PSTR("Settings tab"));
+              response->printf_P(selectPrintfFormatString, string_enableSettingsTab, string_enableSettingsTab);
+              response->print(selectValueTrue);response->print(enableSettingsTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(enableSettingsTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              //End of form
+              response->print(formEnd);
+              addPageFooter(response);
+              //Send response
+              request->send(response);
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+          });
+        adminWebServer->on("/gui", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            bool lvglConfigurationChanged = false;
+            if(request->hasParam(string_enableHomeTab, true))
+            {
+              if(request->getParam(string_enableHomeTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(enableHomeTab == false)
+                {
+                  enableHomeTab = true;
+                  lvglConfigurationChanged = true;
+                }
+              }
+              else
+              {
+                if(enableHomeTab == true)
+                {
+                  enableHomeTab = false;
+                  lvglConfigurationChanged = true;
+                }
+              }
+            }
+            if(request->hasParam(string_enableMapTab, true))
+            {
+              if(request->getParam(string_enableMapTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(enableMapTab == false)
+                {
+                  enableMapTab = true;
+                  lvglConfigurationChanged = true;
+                }
+              }
+              else
+              {
+                if(enableMapTab == true)
+                {
+                  enableMapTab = false;
+                  lvglConfigurationChanged = true;
+                }
+              }
+            }
+            if(request->hasParam(string_enableInfoTab, true))
+            {
+              if(request->getParam(string_enableInfoTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(enableInfoTab == false)
+                {
+                  enableInfoTab = true;
+                  lvglConfigurationChanged = true;
+                }
+              }
+              else
+              {
+                if(enableInfoTab == true)
+                {
+                  enableInfoTab = false;
+                  lvglConfigurationChanged = true;
+                }
+              }
+            }
+            if(request->hasParam(string_enableGpsTab, true))
+            {
+              if(request->getParam(string_enableGpsTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(enableGpsTab == false)
+                {
+                  enableGpsTab = true;
+                  lvglConfigurationChanged = true;
+                }
+              }
+              else
+              {
+                if(enableGpsTab == true)
+                {
+                  enableGpsTab = false;
+                  lvglConfigurationChanged = true;
+                }
+              }
+            }
+            if(request->hasParam(string_enableSettingsTab, true))
+            {
+              if(request->getParam(string_enableSettingsTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(enableSettingsTab == false)
+                {
+                  enableSettingsTab = true;
+                  lvglConfigurationChanged = true;
+                }
+              }
+              else
+              {
+                if(enableSettingsTab == true)
+                {
+                  enableSettingsTab = false;
+                  lvglConfigurationChanged = true;
+                }
+              }
+            }
+            if(lvglConfigurationChanged == true)
+            {
+              saveConfigurationSoon = millis();
+            }
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      #endif
+      #if defined(SUPPORT_FTM)
+        adminWebServer->on("/ftm", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              AsyncResponseStream *response = request->beginResponseStream("text/html");
+              addPageHeader(response, 0, nullptr);
+              //Start of form
+              response->print(formStart);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("FTM configuration"));
+              response->print(startFourColumns);
+              response->print(saveButton);
+              response->print(endColumn);
+              response->print(endRow);
+              //FTM
+              #if defined(ACT_AS_TRACKER)
+                //State
+                response->print(startRow);
+                response->print(startSixColumns);
+                response->print(F("Time-of-flight probe"));
+                response->print(endColumn);
+                response->print(startSixColumns);
+                response->print(F("<select class=\"u-full-width\" id=\"ftmEnabled\" name=\"ftmEnabled\">"));
+                response->print(selectValueTrue);response->print(ftmEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(ftmEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+                //SSID/PSK
+                response->print(startRow);
+                response->print(startSixColumns);
+                response->print(F("SSID template (simple pattern search)"));
+                response->print(endColumn);
+                if(ftmSSID != nullptr)
+                {
+                  response->print(startSixColumns);
+                  response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"ftmSSID\" name=\"ftmSSID\">"), ftmSSID);
+                  response->print(endColumn);
+                }
+                else
+                {
+                  response->print(startSixColumns);
+                  response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"\" id=\"ftmSSID\" name=\"ftmSSID\">"));
+                  response->print(endColumn);
+                }
+                response->print(startRow);
+                response->print(startSixColumns);
+                response->print(F("Pre-shared key to try"));
+                response->print(endColumn);
+                response->print(startSixColumns);
+                response->printf_P(inputPasswordPrintfFormatString, string_ftmPSK, string_ftmPSK);
+                response->print(endColumn);
+                response->print(endRow);
+              #elif defined(ACT_AS_BEACON)
+                //State
+                response->print(startRow);
+                response->print(startSixColumns);
+                response->print(F("Time-of-flight beacon"));
+                response->print(endColumn);
+                response->print(startSixColumns);
+                response->print(F("<select class=\"u-full-width\" id=\"ftmEnabled\" name=\"ftmEnabled\">"));
+                response->print(selectValueTrue);response->print(ftmEnabled == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(ftmEnabled == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+                response->print(startRow);
+                response->print(startSixColumns);
+                response->print(F("SSID suffix (appended to any configured SSID)"));
+                response->print(endColumn);
+                if(ftmSSID != nullptr)
+                {
+                  response->print(startSixColumns);
+                  response->printf_P(PSTR("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"ftmSSID\" name=\"ftmSSID\">"), ftmSSID);
+                  response->print(endColumn);
+                }
+                else
+                {
+                  response->print(startSixColumns);
+                  response->print(F("<input class=\"u-full-width\" type=\"text\" value=\"%s\" id=\"ftmSSID\" name=\"ftmSSID\">"));
+                  response->print(endColumn);
+                }
+                response->print(startRow);
+                response->print(startSixColumns);
+                response->print(F("Hide FTM SSID (unless otherwise enabled)"));
+                response->print(endColumn);
+                response->print(startSixColumns);
+                response->print(F("<select class=\"u-full-width\" id=\"ftmHideSSID\" name=\"ftmHideSSID\">"));
+                response->print(selectValueTrue);response->print(ftmHideSSID == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(ftmHideSSID == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+                response->print(startRow);
+                response->print(startSixColumns);
+                response->print(F("Pre-shared key (if not otherwise set)"));
+                response->print(endColumn);
+                response->print(startSixColumns);
+                response->printf_P(inputPasswordPrintfFormatString, string_ftmPSK, string_ftmPSK);
+                response->print(endColumn);
+                response->print(endRow);
+              #endif
+              //End of form
+              response->print(formEnd);
+              addPageFooter(response);
+              //Send response
+              request->send(response);
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+          });
+          adminWebServer->on("/ftm", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
             #endif
@@ -2122,25 +3035,6 @@
                 if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
                 {
                     return request->requestAuthentication();  //Force basic authentication
-                }
-              #endif
-              #ifdef DEBUG_FORM_SUBMISSION
-                int params = request->params();
-                localLog(F("Submitted Configuration parameters: "));
-                localLogLn(params);
-                for(int i=0;i<params;i++){
-                  AsyncWebParameter* p = request->getParam(i);
-                  if(p->isFile()){ //p->isPost() is also true
-                    //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                  } else if(p->isPost()){
-                    //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                    localLog(F("POST["));
-                    localLog(p->name().c_str());
-                    localLog(F("]: "));
-                    localLogLn(p->value().c_str());
-                  } else {
-                    //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  }
                 }
               #endif
               bool ftmConfigurationChanged = false;
@@ -2225,7 +3119,7 @@
                 saveConfigurationSoon = millis();
               }
               request->redirect("/admin");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2238,9 +3132,9 @@
           #endif
         });
       #endif
-      #ifdef SUPPORT_GPS
-        adminWebServer->on("/gpsconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(SUPPORT_GPS)
+        adminWebServer->on("/gps", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2253,38 +3147,63 @@
               AsyncResponseStream *response = request->beginResponseStream("text/html");
               addPageHeader(response, 0, nullptr);
               //Start of form
-              response->print(F("<form method=\"POST\">"));
-              response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div><div class=\"four columns\"><input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\"></div></div>"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>GPS configuration</h2></div></div>"));
-              #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
-                response->print(F("<div class=\"row\"><div class=\"six columns\">Switch off GPS when stationary after</div>"));
-                response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"gpsStationaryTimeout\" name=\"gpsStationaryTimeout\">"));
-                response->print(F("<option value=\"0\""));response->print(gpsStationaryTimeout == 0 ? " selected>":">");response->print(F("Never</option>"));
-                response->print(F("<option value=\"60000\""));response->print(gpsStationaryTimeout == 60000 ? " selected>":">");response->print(F("1m</option>"));
-                response->print(F("<option value=\"180000\""));response->print(gpsStationaryTimeout == 180000 ? " selected>":">");response->print(F("3m</option>"));
-                response->print(F("<option value=\"120000\""));response->print(gpsStationaryTimeout == 300000 ? " selected>":">");response->print(F("5m</option>"));
-                response->print(F("</select></div></div>"));
-                response->print(F("<div class=\"row\"><div class=\"six columns\">Check for movement after</div>"));
-                response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"gpsCheckInterval\" name=\"gpsCheckInterval\">"));
-                response->print(F("<option value=\"0\""));response->print(gpsCheckInterval == 0 ? " selected>":">");response->print(F("Never (dangerous)</option>"));
-                response->print(F("<option value=\"180000\""));response->print(gpsCheckInterval == 180000 ? " selected>":">");response->print(F("3m</option>"));
-                response->print(F("<option value=\"120000\""));response->print(gpsCheckInterval == 300000 ? " selected>":">");response->print(F("5m</option>"));
-                response->print(F("<option value=\"900000\""));response->print(gpsCheckInterval == 900000 ? " selected>":">");response->print(F("15m</option>"));
-                response->print(F("<option value=\"1800000\""));response->print(gpsCheckInterval == 1800000 ? " selected>":">");response->print(F("30m</option>"));
-                response->print(F("<option value=\"3600000\""));response->print(gpsCheckInterval == 3600000 ? " selected>":">");response->print(F("60m</option>"));
-                response->print(F("</select></div></div>"));
+              response->print(formStart);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("GPS configuration"));
+              response->print(startFourColumns);
+              response->print(saveButton);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_useGpsForTimeSync, PSTR("Sync time with GPS"));
+              response->printf_P(selectPrintfFormatString, string_useGpsForTimeSync, string_useGpsForTimeSync);
+              response->print(selectValueTrue);response->print(useGpsForTimeSync == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(useGpsForTimeSync == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startTwelveColumns);
+              response->printf_P(labelForPrintfFormatString, string_movementThreshold, PSTR("Movement threshold(m/s)"));
+              response->printf_P(PSTR("<input type=\"number\" id=\"movementThreshold\" name=\"movementThreshold\" class=\"u-full-width\" min=\"0.1\" max=\"5.0\" step=\"0.1\" value=\"%.1f\">"), movementThreshold);
+              response->printf_P(labelForPrintfFormatString, string_smoothingFactor, PSTR("Movement smoothing factor"));
+              response->printf_P(PSTR("<input type=\"number\" id=\"smoothingFactor\" name=\"smoothingFactor\" class=\"u-full-width\" min=\"0.05\" max=\"0.95\" step=\"0.05\" value=\"%.2f\">"), smoothingFactor);
+              response->print(endColumn);
+              response->print(endRow);
+              #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
+                response->print(startRow);
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_gpsStationaryTimeout, PSTR("Switch off GPS when stationary after"));
+                response->printf_P(selectPrintfFormatString, string_gpsStationaryTimeout, string_gpsStationaryTimeout);
+                response->print(F("<option value=\"0\""));response->print(gpsStationaryTimeout == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Never</option>"));
+                response->print(F("<option value=\"60000\""));response->print(gpsStationaryTimeout == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("1m</option>"));
+                response->print(F("<option value=\"90000\""));response->print(gpsStationaryTimeout == 60000 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+                response->print(F("<option value=\"180000\""));response->print(gpsStationaryTimeout == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
+                response->print(F("<option value=\"300000\""));response->print(gpsStationaryTimeout == 300000 ? selectValueSelected:selectValueNotSelected);response->print(F("5m</option>"));
+                response->print(F("<option value=\"900000\""));response->print(gpsStationaryTimeout == 900000 ? selectValueSelected:selectValueNotSelected);response->print(F("15m</option>"));
+                response->print(F("<option value=\"1800000\""));response->print(gpsStationaryTimeout == 1800000 ? selectValueSelected:selectValueNotSelected);response->print(F("30m</option>"));
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+                response->print(startRow);
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_gpsCheckInterval, PSTR("Check for movement after"));
+                response->printf_P(selectPrintfFormatString, string_gpsCheckInterval, string_gpsCheckInterval);
+                response->print(F("<option value=\"0\""));response->print(gpsCheckInterval == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("Never (dangerous)</option>"));
+                response->print(F("<option value=\"180000\""));response->print(gpsCheckInterval == 180000 ? selectValueSelected:selectValueNotSelected);response->print(F("3m</option>"));
+                response->print(F("<option value=\"120000\""));response->print(gpsCheckInterval == 300000 ? selectValueSelected:selectValueNotSelected);response->print(F("5m</option>"));
+                response->print(F("<option value=\"900000\""));response->print(gpsCheckInterval == 900000 ? selectValueSelected:selectValueNotSelected);response->print(F("15m</option>"));
+                response->print(F("<option value=\"1800000\""));response->print(gpsCheckInterval == 1800000 ? selectValueSelected:selectValueNotSelected);response->print(F("30m</option>"));
+                response->print(F("<option value=\"3600000\""));response->print(gpsCheckInterval == 3600000 ? selectValueSelected:selectValueNotSelected);response->print(F("60m</option>"));
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
               #endif
-              response->print(F("<div class=\"row\"><div class=\"six columns\">Sync time with GPS</div>"));
-              response->print(F("<div class=\"six columns\"><select class=\"u-full-width\" id=\"useGpsForTimeSync\" name=\"useGpsForTimeSync\">"));
-              response->print(F("<option value=\"true\""));response->print(useGpsForTimeSync == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(useGpsForTimeSync == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
               //End of form
-              response->print(F("</form>"));
+              response->print(formEnd);
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2296,8 +3215,8 @@
             }
           #endif
           });
-          adminWebServer->on("/gpsconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          adminWebServer->on("/gps", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
             #endif
@@ -2307,30 +3226,11 @@
                     return request->requestAuthentication();  //Force basic authentication
                 }
               #endif
-              #ifdef DEBUG_FORM_SUBMISSION
-                int params = request->params();
-                localLog(F("Submitted Configuration parameters: "));
-                localLogLn(params);
-                for(int i=0;i<params;i++){
-                  AsyncWebParameter* p = request->getParam(i);
-                  if(p->isFile()){ //p->isPost() is also true
-                    //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                  } else if(p->isPost()){
-                    //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                    localLog(F("POST["));
-                    localLog(p->name().c_str());
-                    localLog(F("]: "));
-                    localLogLn(p->value().c_str());
-                  } else {
-                    //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  }
-                }
-              #endif
               //Read the submitted configuration
               bool gpsConfigurationChanged = false;
-              if(request->hasParam("useGpsForTimeSync", true))
+              if(request->hasParam(string_useGpsForTimeSync, true))
               {
-                if(request->getParam("useGpsForTimeSync", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                if(request->getParam(string_useGpsForTimeSync, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
                   if(useGpsForTimeSync != true)
                   {
@@ -2351,7 +3251,27 @@
                   }
                 }
               }
-              #ifdef SUPPORT_SOFT_POWER_OFF
+              if(request->hasParam(string_movementThreshold, true))
+              {
+                if(movementThreshold != request->getParam(string_movementThreshold, true)->value().toFloat())
+                {
+                  movementThreshold = request->getParam(string_movementThreshold, true)->value().toFloat();
+                  localLog(F("movementThreshold: "));
+                  localLogLn(movementThreshold);
+                  gpsConfigurationChanged = true;
+                }
+              }
+              if(request->hasParam(string_smoothingFactor, true))
+              {
+                if(smoothingFactor != request->getParam(string_smoothingFactor, true)->value().toFloat())
+                {
+                  smoothingFactor = request->getParam(string_smoothingFactor, true)->value().toFloat();
+                  localLog(F("smoothingFactor: "));
+                  localLogLn(smoothingFactor);
+                  gpsConfigurationChanged = true;
+                }
+              }
+              #if defined(SUPPORT_SOFT_POWER_OFF)
                 if(request->hasParam("gpsStationaryTimeout", true))
                 {
                   if(gpsStationaryTimeout != request->getParam("gpsStationaryTimeout", true)->value().toInt())
@@ -2362,11 +3282,11 @@
                     gpsConfigurationChanged = true;
                   }
                 }
-                if(request->hasParam("gpsCheckInterval", true))
+                if(request->hasParam(string_gpsCheckInterval, true))
                 {
-                  if(gpsCheckInterval != request->getParam("gpsCheckInterval", true)->value().toInt())
+                  if(gpsCheckInterval != request->getParam(string_gpsCheckInterval, true)->value().toInt())
                   {
-                    gpsCheckInterval = request->getParam("gpsCheckInterval", true)->value().toInt();
+                    gpsCheckInterval = request->getParam(string_gpsCheckInterval, true)->value().toInt();
                     localLog(F("gpsCheckInterval: "));
                     localLogLn(gpsCheckInterval);
                     gpsConfigurationChanged = true;
@@ -2378,7 +3298,7 @@
                 saveConfigurationSoon = millis();
               }
               request->redirect("/admin");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2394,7 +3314,7 @@
       
       #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
         adminWebServer->on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2406,8 +3326,8 @@
               #endif
               AsyncResponseStream *response = request->beginResponseStream("text/html");
               addPageHeader(response, 0, nullptr);
-              response->print(F("<h2>Software update</h2>"));
-              response->print(F("<ul>"));
+              response->printf_P(h2printfFormatString, PSTR("Software update"));
+              response->print(ulStart);
               response->printf_P(PSTR("<li>Current firmware: %u.%u.%u</li>"), device[0].majorVersion, device[0].minorVersion, device[0].patchVersion);
               response->printf_P(PSTR("<li>Built: %s %s</li>"), __TIME__, __DATE__);
               response->printf_P(PSTR("<li>Board: %s</li>"), ARDUINO_BOARD);
@@ -2421,14 +3341,23 @@
                   response->print(ESP_IDF_VERSION_MAJOR);
                 #endif
               #endif
-              response->print(F("</ul>"));
+              response->print(ulEndRow);
               response->print(F("<p>Before uploading any pre-compiled binary software, please check it is the version you want and for the right board after checking the information above.</p>"));
               response->print(F("<form method=\"POST\" action=\"/update\" enctype=\"multipart/form-data\">"));
-              response->print(F("<input class=\"button-primary\" type=\"file\" name=\"update\"><br /><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Update\" style=\"width: 100%;\"></form>"));
+              response->print(F("<input class=\"button-primary\" type=\"file\" name=\"update\"><br />"));
+              response->print(startRow);
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+              response->print(endColumn);
+              response->print(startFourColumns);
+              repsonse->print(F("<input class=\"button-primary\" type=\"submit\" value=\"Update\" style=\"width: 100%;\">"));
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(formEnd);
               addPageFooter(response);
               //Send response
               request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2442,7 +3371,7 @@
         });
         adminWebServer->on("/update", HTTP_POST,[](AsyncWebServerRequest *request)
           { //This lambda function is called when the update is complete
-            #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
               {
             #endif
@@ -2469,15 +3398,21 @@
                   #endif
                   AsyncResponseStream *response = request->beginResponseStream("text/html");
                   addPageHeader(response, 0, nullptr);
-                  response->print(F("<h2>Update failed</h2>"));
+                  response->printf_P(h2printfFormatString, PSTR("Update failed"));
+                  response->print(startRow);
                   response->print(F("<p>The software update failed!</p>"));
-                  response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+                  response->print(endRow);
+                  response->print(startRow);
+                  response->print(startFourColumns);
+                  response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+                  response->print(endColumn);
+                  response->print(endRow);
                   addPageFooter(response);
                   //Send response
                   request->send(response);
                   otaInProgress = false;
                 }
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2552,7 +3487,7 @@
             }
           });
         adminWebServer->on("/postUpdateRestart", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -2564,14 +3499,18 @@
             #endif
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 20, "/admin"); //This sends the page to / after 20s
-            response->print(F("<h2>Software update successful</h2>"));
+            response->printf_P(h2printfFormatString, PSTR("Software update successful"));
             response->print(F("<p>The software update was successful and this node will restart in roughly 10 seconds.</p>"));
-            response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a>"));
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+            response->print(endColumn);
+            response->print(endRow);
             addPageFooter(response);
             //Send response
             request->send(response);
             restartTimer = millis();
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2584,9 +3523,114 @@
         #endif
         });
       #endif
+      adminWebServer->on("/logging", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 0, nullptr);
+            response->print(formStart);
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("Logging configuration"));
+            response->print(startFourColumns);
+            response->print(saveButton);
+            response->print(endColumn);
+            response->print(endRow);
+            //Start of form
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_loggingBufferSize, PSTR("Buffer size"));
+            response->printf_P(inputNumberPrintfFormatString, string_loggingBufferSize, string_loggingBufferSize, loggingBufferSize);
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_logFlushThreshold, PSTR("Buffer flush threshold"));
+            response->printf_P(inputNumberPrintfFormatString, string_logFlushThreshold, string_logFlushThreshold, logFlushThreshold);
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(labelForPrintfFormatString, string_logFlushInterval, PSTR("Buffer flush frequency"));
+            response->printf_P(selectPrintfFormatString, string_logFlushInterval, string_logFlushInterval);
+            response->print(F("<option value=\"30\""));response->print(logFlushInterval == 30 ? selectValueSelected:selectValueNotSelected);response->print(F("30s</option>"));
+            response->print(F("<option value=\"60\""));response->print(logFlushInterval == 60 ? selectValueSelected:selectValueNotSelected);response->print(F("60s</option>"));
+            response->print(F("<option value=\"90\""));response->print(logFlushInterval == 90 ? selectValueSelected:selectValueNotSelected);response->print(F("90s</option>"));
+            response->print(F("<option value=\"180\""));response->print(logFlushInterval == 180 ? selectValueSelected:selectValueNotSelected);response->print(F("3 minutes</option>"));
+            response->print(F("<option value=\"300\""));response->print(logFlushInterval == 300 ? selectValueSelected:selectValueNotSelected);response->print(F("5 minutes</option>"));
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(endRow);
+            //End of form
+            response->print(formEnd);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+        });
+        adminWebServer->on("/logging", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            if(request->hasParam(string_loggingBufferSize, true))
+            {
+              if(loggingBufferSize != request->getParam(string_loggingBufferSize, true)->value().toInt())
+              {
+                loggingBufferSize = request->getParam(string_loggingBufferSize, true)->value().toInt();
+              }
+            }
+            if(request->hasParam(string_logFlushThreshold, true))
+            {
+              if(logFlushThreshold != request->getParam(string_logFlushThreshold, true)->value().toInt())
+              {
+                logFlushThreshold = request->getParam(string_logFlushThreshold, true)->value().toInt();
+              }
+            }
+            if(request->hasParam(string_logFlushInterval, true))
+            {
+              if(logFlushInterval != request->getParam(string_logFlushInterval, true)->value().toInt())
+              {
+                logFlushInterval = request->getParam(string_logFlushInterval, true)->value().toInt();
+              }
+            }
+            saveConfigurationSoon = millis();
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+        
       #if defined(ACT_AS_SENSOR)
         adminWebServer->on("/sensorConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2598,68 +3642,131 @@
               #endif
               AsyncResponseStream *response = request->beginResponseStream("text/html");
               addPageHeader(response, 0, nullptr);
-              response->print(F("<h2>Sensor configuration</h2>"));
               //Start of form
-              response->print(F("<form method=\"POST\">"));
-              response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\">"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Starting values</h3></div></div>"));
+              response->print(formStart);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Sensor configuration"));
+              response->print(startFourColumns);
+              response->print(saveButton);
+              response->print(endColumn);
+              response->print(endRow);
+              response->printf_P(h3printfFormatString, PSTR("Starting values"));
               //Starting hits
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"numberOfStartingHits\">Starting hits</label><input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingHits\" name=\"numberOfStartingHits\"></div></div>"), device[0].numberOfStartingHits);
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"numberOfStartingStunHits\">Starting stun hits</label><input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingStunHits\" name=\"numberOfStartingStunHits\"></div></div>"), device[0].numberOfStartingStunHits);
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"armourValue\">Armour value</label><input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"99\" step=\"1\" value=\"%u\" id=\"armourValue\" name=\"armourValue\"></div></div>"), armourValue);
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_numberOfStartingHits, PSTR("Starting hits"));
+              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingHits\" name=\"numberOfStartingHits\">"), device[0].numberOfStartingHits);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_numberOfStartingStunHits, PSTR("Starting stun hits"));
+              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingStunHits\" name=\"numberOfStartingStunHits\">"), device[0].numberOfStartingStunHits);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_armourValue, PSTR("Armour value"));
+              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"99\" step=\"1\" value=\"%u\" id=\"armourValue\" name=\"armourValue\">"), armourValue);
+              response->print(endColumn);
+              response->print(endRow);
               //Flags
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Sensor flags</h3></div></div>"));
+              response->printf_P(h3printfFormatString, PSTR("Sensor flags"));
               //Require EP
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"EP_flag\">Require EP to hit</label><select class=\"u-full-width\" id=\"EP_flag\" name=\"EP_flag\">"));
-              response->print(F("<option value=\"true\""));response->print(EP_flag == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(EP_flag == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_EP_flag, PSTR("Require EP to hit"));
+              response->printf_P(selectPrintfFormatString, string_EP_flag, string_EP_flag);
+              response->print(selectValueTrue);response->print(EP_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(EP_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Ignore healing
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ig_healing_flag\">Ignore healing</label><select class=\"u-full-width\" id=\"ig_healing_flag\" name=\"ig_healing_flag\">"));
-              response->print(F("<option value=\"true\""));response->print(ig_healing_flag == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(ig_healing_flag == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_ig_healing_flag, PSTR("Ignore healing"));
+              response->printf_P(selectPrintfFormatString, string_ig_healing_flag, string_ig_healing_flag);
+              response->print(selectValueTrue);response->print(ig_healing_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(ig_healing_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Ignore stun
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ig_stun_flag\">Ignore stun</label><select class=\"u-full-width\" id=\"ig_stun_flag\" name=\"ig_stun_flag\">"));
-              response->print(F("<option value=\"true\""));response->print(ig_stun_flag == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(ig_stun_flag == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_ig_stun_flag, PSTR("Ignore stun"));
+              response->printf_P(selectPrintfFormatString, string_ig_stun_flag, string_ig_stun_flag);
+              response->print(selectValueTrue);response->print(ig_stun_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(ig_stun_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Ignore ongoing
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ig_ongoing_flag\">Ignore ongoing</label><select class=\"u-full-width\" id=\"ig_ongoing_flag\" name=\"ig_ongoing_flag\">"));
-              response->print(F("<option value=\"true\""));response->print(ig_ongoing_flag == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(ig_ongoing_flag == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_ig_ongoing_flag, PSTR("Ignore ongoing"));
+              response->printf_P(selectPrintfFormatString, string_ig_ongoing_flag, string_ig_ongoing_flag);
+              response->print(selectValueTrue);response->print(ig_ongoing_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(ig_ongoing_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Regen while zero
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"regen_while_zero\">Regen while zero</label><select class=\"u-full-width\" id=\"regen_while_zero\" name=\"regen_while_zero\">"));
-              response->print(F("<option value=\"true\""));response->print(regen_while_zero == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(regen_while_zero == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_regen_while_zero, PSTR("Regen while zero"));
+              response->printf_P(selectPrintfFormatString, string_regen_while_zero, string_regen_while_zero);
+              response->print(selectValueTrue);response->print(regen_while_zero == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(regen_while_zero == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Treat damage as one
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"treat_as_one\">Treat damage as one hit</label><select class=\"u-full-width\" id=\"treat_as_one\" name=\"treat_as_one\">"));
-              response->print(F("<option value=\"true\""));response->print(treat_as_one == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(treat_as_one == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_treat_as_one, PSTR("Treat damage as one hit"));
+              response->printf_P(selectPrintfFormatString, string_treat_as_one, string_treat_as_one);
+              response->print(selectValueTrue);response->print(treat_as_one == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(treat_as_one == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Treat stun damage as one
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"treat_stun_as_one\">Treat stun as one hit</label><select class=\"u-full-width\" id=\"treat_stun_as_one\" name=\"treat_stun_as_one\">"));
-              response->print(F("<option value=\"true\""));response->print(treat_stun_as_one == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(treat_stun_as_one == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_treat_stun_as_one, PSTR("Treat stun as one hit"));
+              response->printf_P(selectPrintfFormatString, string_treat_stun_as_one, string_treat_stun_as_one);
+              response->print(selectValueTrue);response->print(treat_stun_as_one == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(treat_stun_as_one == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Ongoing is cumulative
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ongoing_is_cumulative\">Ongoing is cumulative</label><select class=\"u-full-width\" id=\"ongoing_is_cumulative\" name=\"ongoing_is_cumulative\">"));
-              response->print(F("<option value=\"true\""));response->print(ongoing_is_cumulative == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(ongoing_is_cumulative == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_ongoing_is_cumulative, PSTR("Ongoing is cumulative"));
+              response->printf_P(selectPrintfFormatString, string_ongoing_is_cumulative, string_ongoing_is_cumulative);
+              response->print(selectValueTrue);response->print(ongoing_is_cumulative == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(ongoing_is_cumulative == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //Ignore non-DOT
-              response->print(F("<div class=\"row\"><div class=\"six columns\"><label for=\"ig_non_dot\">Ignore non-DOT signals</label><select class=\"u-full-width\" id=\"ig_non_dot\" name=\"ig_non_dot\">"));
-              response->print(F("<option value=\"true\""));response->print(ig_non_dot == true ? " selected>":">");response->print(F("Enabled</option>"));
-              response->print(F("<option value=\"false\""));response->print(ig_non_dot == false ? " selected>":">");response->print(F("Disabled</option>"));
-              response->print(F("</select></div></div>"));
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_ig_non_dot, PSTR("Ignore non-DOT signals"));
+              response->printf_P(selectPrintfFormatString, string_ig_non_dot, string_ig_non_dot);
+              response->print(selectValueTrue);response->print(ig_non_dot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(ig_non_dot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
+              response->print(endColumn);
+              response->print(endRow);
               //End of form
-              response->print(F("</form>"));
+              response->print(formEnd);
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -2672,7 +3779,7 @@
           #endif
           });
           adminWebServer->on("/sensorConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -2683,27 +3790,7 @@
                   return request->requestAuthentication();  //Force basic authentication
               }
             #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
-              }
-            #endif
             //Read the submitted configuration
-            //Starting values
             if(request->hasParam("numberOfStartingHits", true))
             {
               device[0].numberOfStartingHits = request->getParam("numberOfStartingHits", true)->value().toInt();
@@ -2820,7 +3907,7 @@
             }
             saveSensorConfigurationSoon = millis();
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2833,7 +3920,7 @@
         #endif
       });
         adminWebServer->on("/sensorReset", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -2846,7 +3933,7 @@
             lastSensorStateChange = millis();
             currentSensorState = sensorState::resetting;
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2859,9 +3946,56 @@
         #endif
         });
       #endif
+      #if defined(SUPPORT_LVGL)
+        adminWebServer->on("/touchscreen", HTTP_GET, [](AsyncWebServerRequest *request){
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 5, "/admin");
+            response->printf_P(h2printfFormatString, PSTR("Touchscreen"));
+            //Top of page buttons
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->print(F("Touchscreen settings wiped"));
+            response->print(endColumn);
+            response->print(endRow);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+            touchScreenMinimumX = 0;
+            touchScreenMaximumX = 0;
+            touchScreenMinimumY = 0;
+            touchScreenMaximumY = 0;
+            saveConfigurationSoon = millis();
+            restartTimer = millis();
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            request->send(response);
+          }
+        #endif
+        });
+      #endif
       #if defined ENABLE_REMOTE_RESTART
         adminWebServer->on("/restart", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -2879,14 +4013,24 @@
             #endif
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 0, nullptr);
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Restart confirmation</h2></div></div>"));
-            response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><p>Are you sure you want to restart \"%s\"?</p></div></div>"),device[0].name);
-            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/restartConfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a></div>"));
-            response->print(F("<div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a></div></div>"));
+            response->printf_P(h2printfFormatString, PSTR("Restart confirmation"));
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(PSTR("<p>Are you sure you want to restart \"%s\"?</p>"),device[0].name);
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->print(F("<a href =\"/restartConfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a>"));
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a>"));
+            response->print(endColumn);
+            response->print(endRow);
             addPageFooter(response);
             //Send response
             request->send(response);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2899,7 +4043,7 @@
         #endif
         });
         adminWebServer->on("/restartConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -2913,15 +4057,23 @@
             localLogLn(request->client()->remoteIP().toString());
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 5, "/admin");
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Restart</h2></div></div>"));
+            response->printf_P(h2printfFormatString, PSTR("Restart"));
             //Top of page buttons
-            response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><p>This node is restarting in 10s</p></div></div>"));
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->print(F("<p>This node is restarting in 10s</p>"));
+            response->print(endColumn);
+            response->print(endRow);
             addPageFooter(response);
             //Send response
             request->send(response);
             restartTimer = millis();
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -2934,7 +4086,7 @@
         });
       #endif
       adminWebServer->on("/wipe", HTTP_GET, [](AsyncWebServerRequest *request){
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
@@ -2952,14 +4104,24 @@
           #endif
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 0, nullptr);
-          response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Setting wipe</h2></div></div>"));
-          response->printf_P(PSTR("<div class=\"row\"><div class=\"twelve columns\"><p>Are you sure you want to wipe all configuration of \"%s\"?</p></div></div>"),device[0].name);
-          response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/wipeconfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a></div>"));
-          response->print(F("<div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a></div></div>"));
+          response->printf_P(h2printfFormatString, PSTR("Setting wipe"));
+          response->print(startRow);
+          response->print(startTwelveColumns);
+          response->printf_P(PSTR("<p>Are you sure you want to wipe all configuration of \"%s\"?</p>"),device[0].name);
+          response->print(endColumn);
+          response->print(endRow);
+          response->print(startRow);
+          response->print(startFourColumns);
+          response->print(F("<a href =\"/wipeconfirmed\"><input class=\"button-primary\" type=\"button\" value=\"Yes\" style=\"width: 100%;\"></a>"));
+          response->print(endColumn);
+          response->print(startFourColumns);
+          response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"No\" style=\"width: 100%;\"></a>"));
+          response->print(endColumn);
+          response->print(endRow);
           addPageFooter(response);
           //Send response
           request->send(response);
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           xSemaphoreGive(webserverSemaphore);
         }
         else
@@ -2972,7 +4134,7 @@
       #endif
       });
       adminWebServer->on("/wipeconfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
       #endif
@@ -2986,15 +4148,23 @@
           localLogLn(request->client()->remoteIP().toString());
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 5, "/admin");
-          response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Wipe</h2></div></div>"));
+          response->printf_P(h2printfFormatString, PSTR("Wipe"));
           //Top of page buttons
-          response->print(F("<div class=\"row\"><div class=\"twelve columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div></div>"));
-          response->print(F("<div class=\"row\"><div class=\"twelve columns\"><p>This node is restarting in 10s</p></div></div>"));
+          response->print(startRow);
+          response->print(startTwelveColumns);
+          response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+          response->print(endColumn);
+          response->print(endRow);
+          response->print(startRow);
+          response->print(startTwelveColumns);
+          response->print(F("<p>This node is restarting in 10s</p>"));
+          response->print(endColumn);
+          response->print(endRow);
           addPageFooter(response);
           //Send response
           request->send(response);
           wipeTimer = millis();
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           xSemaphoreGive(webserverSemaphore);
         }
         else
@@ -3006,7 +4176,7 @@
       #endif
       });
       adminWebServer->on("/devices", HTTP_GET, [](AsyncWebServerRequest *request){
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
@@ -3019,11 +4189,21 @@
           AsyncResponseStream *response = request->beginResponseStream("text/html");
           addPageHeader(response, 90, "/devices");
           //Top of page buttons
-          response->print(F("<div class=\"row\"><div class=\"four columns\"><a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a></div>"));
-          #ifdef ACT_AS_TRACKER
-            response->print(F("<div class=\"four columns\"><a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\" style=\"width: 100%;\"></a></div>"));
-            response->print(F("<div class=\"four columns\"><a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\" style=\"width: 100%;\"></a></div></div>"));
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\">Tracking mode: "));
+          response->print(startRow);
+          response->print(startFourColumns);
+          response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+          response->print(endColumn);
+          #if defined(ACT_AS_TRACKER)
+            response->print(startFourColumns);
+            response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\" style=\"width: 100%;\"></a>"));
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->print(F("<a href =\"/furthest\"><input class=\"button-primary\" type=\"button\" value=\"Track furthest\" style=\"width: 100%;\"></a>"));
+            response->print(endColumn);
+            response->print(endRow);
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->print(F("Tracking mode: "));
             if(currentTrackingMode == trackingMode::nearest)
             {
               response->print(F("nearest"));
@@ -3051,46 +4231,64 @@
                 }
               }
             }
-            response->print(F("</div></div>"));
+            response->print(endColumn);
+            response->print(endRow);
           #else
-            response->print(F("</div>"));
+            response->print(divEnd);
           #endif
           if(numberOfDevices == maximumNumberOfDevices)
           {
-            response->print(F("<div class=\"row\"><div class=\"twelve columns\"><H3>Warning: maximum number of devices reached!</H3></div></div>"));
+            response->printf_P(h3printfFormatString, PSTR("Warning: maximum number of devices reached!"));
           }
-          response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h2>Devices</h2></div></div>"));
-          response->print(F("<div class=\"row\"><div class=\"twelve columns\">"));
+          response->printf_P(h2printfFormatString, PSTR("Devices"));
+          response->print(startRow);
+          response->print(startTwelveColumns);
+          /*
           #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
           response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>ESP-Now signal quality</th><th>LoRa signal quality</th><th>Info</th></tr></thead><tbody>"));
           #elif defined(SUPPORT_ESPNOW)
           response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>ESP-Now signal quality</th><th>Info</th></tr></thead><tbody>"));
           #elif defined(SUPPORT_LORA)
           response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>LoRa signal quality</th><th>Info</th></tr></thead><tbody>"));
+          */
+          #if defined(SUPPORT_TREACLE)
+          response->print(F("<table><thead><tr><th>Name</th><th>ID</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Speed</th><th>ESP-Now signal quality</th><th>LoRa signal quality</th><th>Last seen</th><th>Info</th></tr></thead><tbody>"));
           #endif
           for(uint8_t index = 0; index < numberOfDevices; index++)
           {
             if(index > 0)
             {
+              /*
               #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>%04x</td><td>"),
               #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
+              */
+              #if defined(SUPPORT_TREACLE)
+                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>%.1f</td><td>%.1f</td><td>%s</td><td>%04XrX %04XtX</td><td>%04XrX %04XtX</td><td>%s ago</td><td>"),
               #else
-                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td></td><td>"),
+                response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%s</td><td></td><td>"),
               #endif
                 (device[index].name == nullptr) ? "n/a" : device[index].name,
                 (device[index].icName == nullptr) ? "" : device[index].icName,
-                device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
+                /*
+                #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
+                  device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
+                */
+                #if defined(SUPPORT_TREACLE)
+                  device[index].id,
+                #endif
                 deviceFeatures(device[index].typeOfDevice).c_str(),
                 device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
-                (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
+                (index == 0) ? printableDuration(millis()/1000).c_str() : printableDuration(device[index].uptime/1000).c_str(),
                 device[index].supplyVoltage,
                 (device[index].hasGpsFix == true) ? PSTR("Yes") : PSTR("No"),
                 device[index].latitude,
                 device[index].longitude,
                 device[index].distanceTo,
                 device[index].courseTo,
+                ((device[index].moving == true) ? String(device[index].smoothedSpeed).c_str() : PSTR("Stationary")),
+                /*
                 #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                   device[index].espNowUpdateHistory,
                   device[index].loRaUpdateHistory);
@@ -3098,39 +4296,60 @@
                   device[index].espNowUpdateHistory);
                 #elif  defined(SUPPORT_LORA)
                   device[index].loRaUpdateHistory);
+                */
+                #if defined(SUPPORT_TREACLE)
+                  treacle.espNowRxReliability(device[index].id),
+                  treacle.espNowTxReliability(device[index].id),
+                  treacle.loRaRxReliability(device[index].id),
+                  treacle.loRaTxReliability(device[index].id),
+                  printableDuration(treacle.rxAge(device[index].id)/1000.0).c_str()
+                  );
                 #endif
             }
             else
             {
+              /*
               #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
-              response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>----</td><td>This device"),
+                response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>--</td><td>--</td><td>----</td><td>----</td><td>This device"),
               #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
-              response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>--</td><td>--</td><td>----</td><td>This device"),
+                response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>--</td><td>--</td><td>----</td><td>This device"),
+              */
+              #if defined(SUPPORT_TREACLE)
+                response->printf_P(PSTR("<tr><td>%s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>--</td><td>--</td><td>%s</td><td>----</td><td></td><td></td><td>This device"),
               #endif
+              (device[index].name == nullptr) ? "n/a" : device[index].name,
+              /*
               #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
-                (device[index].name == nullptr) ? "n/a" : device[index].name,
                 device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
-                deviceFeatures(device[index].typeOfDevice).c_str(),
-                device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
-                (index == 0) ? printableUptime(millis()/1000).c_str() : printableUptime(device[index].uptime/1000).c_str(),
-                device[index].supplyVoltage,
-                (device[index].hasGpsFix == true) ? PSTR("Yes") : PSTR("No"),
-                device[index].latitude,
-                device[index].longitude
-                );
+              */
+              #if defined(SUPPORT_TREACLE)
+                device[index].id,
               #endif
+              deviceFeatures(device[index].typeOfDevice).c_str(),
+              device[index].majorVersion,device[index].minorVersion,device[index].patchVersion,
+              (index == 0) ? printableDuration(millis()/1000).c_str() : printableDuration(device[index].uptime/1000).c_str(),
+              device[index].supplyVoltage,
+              (device[index].hasGpsFix == true) ? PSTR("Yes") : PSTR("No"),
+              device[index].latitude,
+              device[index].longitude,
+              ((device[index].moving == true) ? String(device[index].smoothedSpeed).c_str() : PSTR("Stationary"))
+              );
             }
-              #ifdef ACT_AS_TRACKER
+              #if defined(ACT_AS_TRACKER)
                 if(index == currentlyTrackedBeacon)
                 {
-                  response->print(F("Tracked"));
+                  response->print(F("Tracked "));
                 }
+                /*
                 #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                   else if(index != 0 && (device[index].loRaOnline == false && device[index].espNowOnline == false))
                 #elif defined(SUPPORT_ESPNOW)
                   else if(index != 0 && device[index].espNowOnline == false)
                 #elif defined(SUPPORT_LORA)
                   else if(index != 0 && device[index].loRaOnline == false)
+                */
+                #if defined(SUPPORT_TREACLE)
+                  if(index != 0 && treacle.online(device[index].id) == false)
                 #endif
                 {
                   response->print(F("Offline"));
@@ -3144,12 +4363,16 @@
                 {
                   response->print(F("Closest tracker"));
                 }
+                /*
                 #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                 else if(index != 0 && (device[index].loRaOnline == false && device[index].espNowOnline == false))
                 #elif defined(SUPPORT_ESPNOW)
                 else if(index != 0 && device[index].espNowOnline == false)
                 #elif defined(SUPPORT_LORA)
                 else if(index != 0 && device[index].loRaOnline == false)
+                */
+                #if defined(SUPPORT_TREACLE)
+                else if(index != 0 && treacle.online(device[index].id) == false)
                 #endif
                 {
                   response->print(F("Offline"));
@@ -3157,11 +4380,13 @@
               #endif
               response->print(F("</td></tr>"));
           }
-          response->print(F("</tbody></table></div></div>"));
+          response->print(F("</tbody></table>"));
+          response->print(endColumn);
+          response->print(endRow);
           addPageFooter(response);
           //Send response
           request->send(response);
-      #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           xSemaphoreGive(webserverSemaphore);
         }
         else
@@ -3173,9 +4398,9 @@
         }
       #endif
       });
-      #ifdef ACT_AS_TRACKER
+      #if defined(ACT_AS_TRACKER)
         adminWebServer->on("/nearest", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3193,7 +4418,7 @@
               #endif
               currentTrackingMode = trackingMode::nearest;
               request->redirect("/devices");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -3206,7 +4431,7 @@
           #endif
         });
         adminWebServer->on("/furthest", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3224,7 +4449,7 @@
               #endif
               currentTrackingMode = trackingMode::furthest;
               request->redirect("/devices");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -3237,7 +4462,7 @@
           #endif
         });
         adminWebServer->on("/track", HTTP_GET, [](AsyncWebServerRequest *request){
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3272,7 +4497,7 @@
                 }
               }
               request->redirect("/devices");
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -3285,9 +4510,9 @@
           #endif
         });
       #endif
-      #ifdef SUPPORT_HACKING
+      #if defined(SUPPORT_HACKING)
         adminWebServer->on("/gameConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3299,21 +4524,39 @@
               #endif
               AsyncResponseStream *response = request->beginResponseStream("text/html");
               addPageHeader(response, 0, nullptr);
-              response->print(F("<h2>Game configuration</h2>"));
+              response->printf_P(h2printfFormatString, PSTR("Game configuration"));
               //Start of form
-              response->print(F("<form method=\"POST\">"));
-              response->print(F("<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\" style=\"width: 100%;\"></a> <input class=\"button-primary\" type=\"submit\" value=\"Save\" style=\"width: 100%;\">"));
-              response->print(F("<div class=\"row\"><div class=\"twelve columns\"><h3>Starting values</h3></div></div>"));
+              response->print(formStart);
+              response->printf_P(h2printfEightColumnsFormatString, PSTR("Starting values"));
+              response->print(startFourColumns);
+              response->print(saveButton);
+              response->print(endColumn);
+              response->print(endRow);
               //Starting hits
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"gameLength\">Game length/win threshold</label><input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"gameLength\" name=\"gameLength\"></div></div>"), gameLength);
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"gameRetries\">Game retries</label><input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"99\" step=\"1\" value=\"%u\" id=\"gameRetries\" name=\"gameRetries\"></div></div>"), gameRetries);
-              response->printf_P(PSTR("<div class=\"row\"><div class=\"six columns\"><label for=\"gameSpeedup\">Game speedup(ms)</label><input class=\"u-full-width\" type=\"number\" min=\"100\" max=\"2000\" step=\"1\" value=\"%u\" id=\"gameSpeedup\" name=\"gameSpeedup\"></div></div>"), gameSpeedup);
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_gameLength, PSTR("Game length/win threshold"));
+              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"gameLength\" name=\"gameLength\">"), gameLength);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_gameRetries, PSTR("Game retries"));
+              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"99\" step=\"1\" value=\"%u\" id=\"gameRetries\" name=\"gameRetries\">"), gameRetries);
+              response->print(endColumn);
+              response->print(endRow);
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, string_gameSpeedup, PSTR("Game speedup(ms)"));
+              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"100\" max=\"2000\" step=\"1\" value=\"%u\" id=\"gameSpeedup\" name=\"gameSpeedup\">"), gameSpeedup);
+              response->print(endColumn);
+              response->print(endRow);
               //End of form
-              response->print(F("</form>"));
+              response->print(formEnd);
               addPageFooter(response);
               //Send response
               request->send(response);
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               xSemaphoreGive(webserverSemaphore);
             }
             else
@@ -3326,7 +4569,7 @@
           #endif
           });
           adminWebServer->on("/gameConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
           #endif
@@ -3337,44 +4580,22 @@
                   return request->requestAuthentication();  //Force basic authentication
               }
             #endif
-            #ifdef DEBUG_FORM_SUBMISSION
-              int params = request->params();
-              localLog(F("Submitted Configuration parameters: "));
-              localLogLn(params);
-              for(int i=0;i<params;i++){
-                AsyncWebParameter* p = request->getParam(i);
-                if(p->isFile()){ //p->isPost() is also true
-                  //SERIAL_DEBUG_PORT.printf("FILE[%s]: %s, size: %u\r\n", p->name().c_str(), p->value().c_str(), p->size());
-                } else if(p->isPost()){
-                  //SERIAL_DEBUG_PORT.printf("POST[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                  localLog(F("POST["));
-                  localLog(p->name().c_str());
-                  localLog(F("]: "));
-                  localLogLn(p->value().c_str());
-                } else {
-                  //SERIAL_DEBUG_PORT.printf("GET[%s]: %s\r\n", p->name().c_str(), p->value().c_str());
-                }
-              }
-            #endif
             //Read the submitted configuration
-            if(request->hasParam("gameLength", true))
+            if(request->hasParam(string_gameLength, true))
             {
-              gameLength = request->getParam("gameLength", true)->value().toInt();
+              gameLength = request->getParam(string_gameLength, true)->value().toInt();
             }
-            if(request->hasParam("gameRetries", true))
+            if(request->hasParam(string_gameRetries, true))
             {
-              gameRetries = request->getParam("gameRetries", true)->value().toInt();
+              gameRetries = request->getParam(string_gameRetries, true)->value().toInt();
             }
-            if(request->hasParam("gameSpeedup", true))
+            if(request->hasParam(string_gameSpeedup, true))
             {
-              gameSpeedup = request->getParam("gameSpeedup", true)->value().toInt();
+              gameSpeedup = request->getParam(string_gameSpeedup, true)->value().toInt();
             }
-            if(configurationChanged())
-            {
-              saveConfigurationSoon = millis();
-            }
+            saveConfigurationSoon = millis();
             request->redirect("/admin");
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -3388,13 +4609,13 @@
       });
       #endif
       adminWebServer->on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
             request->send_P(200, "text/css", normalize);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -3407,13 +4628,13 @@
         #endif
       });
       adminWebServer->on("/css/skeleton.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
         #endif
             lastWifiActivity = millis();
             request->send_P(200, "text/css", skeleton);
-        #ifdef ENABLE_LOCAL_WEBSERVER_SEMAPHORE
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             xSemaphoreGive(webserverSemaphore);
           }
           else
@@ -3425,7 +4646,7 @@
         adminWebServer->on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
           request->send(404); //There is no favicon!
         });
-        #ifdef SUPPORT_HACKING //ESPUI already does a redirect
+        #if defined(SUPPORT_HACKING) //ESPUI already does a redirect
         if(sensorReset == true)
         {
         #endif
@@ -3439,7 +4660,7 @@
               request->send(404, "text/plain", request->url() + " not found");
             }
           });
-        #ifdef SUPPORT_HACKING
+        #if defined(SUPPORT_HACKING)
         }
         #endif
       #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
@@ -3484,7 +4705,7 @@
           #endif
         #endif
       #endif
-      #ifdef SUPPORT_HACKING
+      #if defined(SUPPORT_HACKING)
         if(sensorReset == true)
         {
           adminWebServer->begin();

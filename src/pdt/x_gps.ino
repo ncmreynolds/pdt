@@ -3,7 +3,7 @@
  * This file contains functions related to the GPS module, for both location and time
  * 
  */
-#ifdef SUPPORT_GPS
+#if defined(SUPPORT_GPS)
   void setupGps()
   {
     GPS_PORT.setRxBufferSize(256);  //Set the largest possible buffer for GPS data so it can buffer then be ingested quickly. 9600 baud sucks
@@ -24,10 +24,17 @@
         if(millis() - lastGPSstatus > 10000)
         {
           lastGPSstatus = millis();
-          showGPSstatus();
+          #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
+          if(peripheralsEnabled)
+          {
+          #endif
+            showGPSstatus();
+          #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
+          }
+          #endif
         }
       #endif
-      if(updateLocation())  //Get the latest GPS location stored in device[0], if there's a fix
+      if(locationUpdated())  //Get the latest GPS location stored in device[0], if there's a fix
       {
         if(millis() - lastDistanceCalculation > distanceCalculationInterval)  //Recalculate distances on a short interval
         {
@@ -38,8 +45,8 @@
             calculateDistanceToTrackers();  //May need to change update frequency due to movement
           #endif
         }
-        #ifdef SUPPORT_BEEPER
-          #ifdef ACT_AS_TRACKER
+        #if defined(SUPPORT_BEEPER)
+          #if defined(ACT_AS_TRACKER)
             if(currentlyTrackedBeacon != maximumNumberOfDevices && device[currentlyTrackedBeacon].hasGpsFix == true && (distanceToCurrentBeaconChanged == true || millis() - lastDistanceChangeUpdate > 5000))  //Set beeper urgency based on current distance, if it has changed
             {
               //distanceToCurrentBeaconChanged 
@@ -51,7 +58,7 @@
             }
           #endif
         #endif
-        #ifdef SUPPORT_LVGL
+        #if defined(SUPPORT_LVGL)
         /*
         if(currentTrackingMode == trackingMode::furthest)
         {
@@ -62,7 +69,7 @@
           }
         }*/
         #endif
-        #ifdef SUPPORT_DISPLAY
+        #if defined(SUPPORT_DISPLAY)
           if(currentlyTrackedBeacon != maximumNumberOfDevices && device[currentlyTrackedBeacon].hasGpsFix == true && (distanceToCurrentBeaconChanged == true || millis() - lastDistanceChangeUpdate > 5000)) //Show distance if it changes
           {
             distanceToCurrentBeaconChanged = false;
@@ -100,18 +107,8 @@
             }
           }
         #endif
-        #ifdef SUPPORT_LVGL
-          if(millis() - lastLvglTabUpdate > lvglTabUpdateInterval)
-          {
-            lastLvglTabUpdate = millis();
-            updateHomeTab();
-            #ifdef LVGL_ADD_GPS_TAB
-              updateGpsTab();
-            #endif
-          }
-        #endif
       }
-      #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+      #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
       if(peripheralsEnabled)
       {
       #endif
@@ -120,7 +117,7 @@
           lastGpsTimeCheck = millis();
           updateTimeFromGps();
         }
-      #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+      #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
       }
       #endif
       xSemaphoreGive(gpsSemaphore);
@@ -161,85 +158,108 @@
       }
     }
   }
-  bool updateLocation() //True implies there's a GPS fix
+  bool locationUpdated() //True implies there's a GPS fix and it changed
   {
-    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
     if(peripheralsEnabled == true)
     {
     #endif
       if(gps.location.isValid() == true)
       {
+        bool updateOccured = false;
         if(device[0].hasGpsFix == false)
         {
           device[0].hasGpsFix = true;
           lastGPSstateChange = millis();
           localLogLn(F("GPS got fix"));
-          #ifdef SUPPORT_LED
+          #if defined(SUPPORT_LED)
             ledOff(0);
           #endif
         }
+        /*
         #if defined(SUPPORT_LORA)
           device[0].lastLoRaLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
         #endif
         #if defined(SUPPORT_ESPNOW)
           device[0].lastEspNowLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
         #endif
-        device[0].latitude = gps.location.lat();
-        device[0].longitude = gps.location.lng();
-        device[0].course = gps.course.deg();
-        device[0].speed = gps.speed.mps();
-        device[0].hdop = gps.hdop.hdop();
+        */
+        if(device[0].latitude != gps.location.lat())
+        {
+          device[0].latitude = gps.location.lat();
+          updateOccured = true;
+        }
+        if(device[0].longitude != gps.location.lng())
+        {
+          device[0].longitude = gps.location.lng();
+          updateOccured = true;
+        }
+        if(device[0].course != gps.course.deg())
+        {
+          device[0].course = gps.course.deg();
+          updateOccured = true;
+        }
+        if(device[0].speed != gps.speed.mps())
+        {
+          device[0].speed = gps.speed.mps();
+          updateOccured = true;
+        }
+        if(device[0].hdop != gps.hdop.hdop())
+        {
+          device[0].hdop = gps.hdop.hdop();
+          updateOccured = true;
+        }
         gpsSentences = gps.passedChecksum();
         gpsErrors = gps.failedChecksum();
-        #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
-          if(peripheralsEnabled == true)
+        if(device[0].hdop < normalHdopThreshold)
+        {
+          device[0].smoothedSpeed = (device[0].smoothedSpeed * smoothingFactor) + (device[0].speed * (1-smoothingFactor));
+          if(device[0].smoothedSpeed < movementThreshold)
           {
-            if(device[0].hdop < normalHdopThreshold)
+            if(device[0].moving == true)
             {
-              smoothedSpeed = (smoothedSpeed * 0.9) + (device[0].speed *0.1);
-              if(smoothedSpeed < stationaryThreshold)
-              {
-                if(moving == true)
-                {
-                  moving = false;
-                  lastGPSstateChange = millis();
-                  localLogLn(F("Device stationary"));
-                }
-              }
-              else
-              {
-                if(moving == false)
-                {
-                  moving = true;
-                  lastGPSstateChange = millis();
-                  localLogLn(F("Device moving"));
-                }
-              }
+              device[0].moving = false;
+              lastGPSstateChange = millis();
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+                SERIAL_DEBUG_PORT.println(F("Device stationary"));
+              #endif
             }
           }
-        #endif
-        return true;
+          else
+          {
+            if(device[0].moving == false)
+            {
+              device[0].moving = true;
+              lastGPSstateChange = millis();
+              #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
+                SERIAL_DEBUG_PORT.println(F("Device moving"));
+              #endif
+            }
+          }
+        }
+        return updateOccured;
       }
       else if(device[0].hasGpsFix == true)
       {
         device[0].hasGpsFix = false;
         lastGPSstateChange = millis();
-        #ifdef LVGL_ADD_SCAN_INFO_TAB
+        #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
           findableDevicesChanged = true;
         #endif
         localLogLn(F("GPS lost fix"));
-        #ifdef SUPPORT_LED
+        #if defined(SUPPORT_LED)
           ledSlowBlink();
         #endif
       }
       return false;
-    #ifdef SUPPORT_SOFT_PERIPHERAL_POWER_OFF
+    #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
     }
     else
     {
-      return true;
+      return false;
     }
     #endif
+    return false;
   }
   void processGpsSentences(void * parameter)
   {
@@ -370,7 +390,7 @@
               SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
-            #ifdef LVGL_ADD_SCAN_INFO_TAB
+            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
           }
@@ -384,7 +404,7 @@
               SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
             #endif
             currentTrackingMode = trackingMode::fixed;  //Switch to fixed as 'furthest' needs to fix once chose
-            #ifdef LVGL_ADD_SCAN_INFO_TAB
+            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
           }
@@ -404,7 +424,7 @@
       {
         distanceToCurrentBeacon = uint32_t(device[index].distanceTo);
         distanceToCurrentBeaconChanged = true;
-        #ifdef SUPPORT_DISPLAY
+        #if defined(SUPPORT_DISPLAY)
           if(currentDisplayState == displayState::distance) //Clear distance if showing
           {
             displayDistanceToBeacon();
@@ -418,12 +438,16 @@
       {
         return false;
       }
+      /*
       #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix == true && (device[1].espNowOnline || device[1].loRaOnline) && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_ESPNOW)
       else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].espNowOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].loRaOnline && rangeToIndicate(1) < maximumEffectiveRange)
+      */
+      #if defined(SUPPORT_TREACLE)
+        if(numberOfDevices == 2 && device[1].hasGpsFix == true && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
       #endif
       {
         if(currentlyTrackedBeacon != 1)  //Only assign this once
@@ -440,6 +464,7 @@
         uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
         for(uint8_t index = 1; index < numberOfDevices; index++)
         {
+          /*
           #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && (device[index].espNowOnline || device[index].loRaOnline) && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           #elif defined(SUPPORT_ESPNOW)
@@ -447,6 +472,8 @@
           #elif defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].loRaOnline && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           #endif
+          */
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           {
             nearestBeacon = index;
           }
@@ -468,12 +495,16 @@
       {
         return false;
       }
+      /*
       #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix && (device[1].espNowOnline || device[1].loRaOnline) && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_ESPNOW)
       else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].espNowOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].loRaOnline && rangeToIndicate(1) < maximumEffectiveRange)
+      */
+      #if defined(SUPPORT_TREACLE)
+        if(numberOfDevices == 2 && device[1].hasGpsFix && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
       #endif
       {
         if(currentlyTrackedBeacon != 1)
@@ -490,6 +521,7 @@
         uint8_t furthestBeacon = maximumNumberOfDevices;
         for(uint8_t index = 1; index < numberOfDevices; index++)
         {
+          /*
           #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && (device[index].espNowOnline || device[index].loRaOnline) && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           #elif defined(SUPPORT_ESPNOW)
@@ -497,6 +529,8 @@
           #elif defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].loRaOnline && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           #endif
+          */
+          if((device[index].typeOfDevice & 0x01) == 0x00 && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           {
             furthestBeacon = index;
           }
@@ -553,6 +587,7 @@
       distanceToClosestTracker = effectivelyUnreachable;
       for(uint8_t index = 1; index < numberOfDevices; index++)
       {
+        /*
         #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasGpsFix == true && (device[index].espNowOnline == true || device[index].loRaOnline == true))
         #elif defined(SUPPORT_ESPNOW)
@@ -560,6 +595,8 @@
         #elif defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasGpsFix == true && device[index].loRaOnline == true)
         #endif
+        */
+        if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasGpsFix == true)
         {
           device[index].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
           device[index].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
@@ -569,7 +606,7 @@
             closestTracker = index;
           }
           #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-            SERIAL_DEBUG_PORT.printf_P(PSTR("Tracker %u: distance %f course %f\r\n"), index, device[index].distanceTo, device[index].courseTo);
+            SERIAL_DEBUG_PORT.printf_P(PSTR("Found tracker %u: distance %.1f course %.1f\r\n"), index, device[index].distanceTo, device[index].courseTo);
           #endif
         }
       }

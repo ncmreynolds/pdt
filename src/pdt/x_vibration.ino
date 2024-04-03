@@ -1,4 +1,4 @@
-#ifdef SUPPORT_VIBRATION
+#if defined(SUPPORT_VIBRATION)
   void setupVibration()
   {
     pinMode(vibrationPin, OUTPUT);

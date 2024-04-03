@@ -1,4 +1,4 @@
-#ifdef SUPPORT_LVGL
+#if defined(SUPPORT_LVGL)
   void setupLvgl()
   {
     #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
@@ -28,6 +28,7 @@
     disp_drv.flush_cb = flushDisplay; //Assign callback to update the display itself
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register( &disp_drv );
+    localLogLn(F("OK"));
 
     #if defined(SUPPORT_TOUCHSCREEN) || defined(SUPPORT_TOUCHSCREEN_BITBANG)
       if(touchscreenInitialised == true)
@@ -42,7 +43,6 @@
     #endif
   
     //Create the tabs
-    localLogLn(F("OK"));
     createLVGLtabs();
   }
   void createLVGLtabs(void)
@@ -57,15 +57,32 @@
     lv_obj_set_style_text_color(tab_btns, lv_palette_lighten(LV_PALETTE_GREY, 5), 0);
     lv_obj_set_style_border_side(tab_btns, LV_BORDER_SIDE_RIGHT, LV_PART_ITEMS | LV_STATE_CHECKED);
     
-    
-    createHomeTab();
-    #ifdef LVGL_ADD_SCAN_INFO_TAB
-      createScanInfoTab();
+    if(enableHomeTab)
+    {
+      createHomeTab();
+    }
+    #if defined(LVGL_SUPPORT_MAP_TAB)
+      if(enableMapTab)
+      {
+        createMapTab();
+      }
     #endif
-    #ifdef LVGL_ADD_GPS_TAB
-      createGpsTab();
+    #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+      if(enableInfoTab)
+      {
+        createScanInfoTab();
+      }
     #endif
-    createSettingsTab();
+    #if defined(LVGL_SUPPORT_GPS_TAB)
+      if(enableGpsTab)
+      {
+        createGpsTab();
+      }
+    #endif
+    if(enableSettingsTab)
+    {
+      createSettingsTab();
+    }
     
     lv_obj_clear_flag(lv_tabview_get_content(tabview), LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_clear_flag(homeTab, LV_OBJ_FLAG_SCROLLABLE);
@@ -104,36 +121,46 @@
     
     //Create meters
     meter0 = lv_meter_create(homeTab); //Direction
+    meter0withoutNeedle = lv_meter_create(homeTab); //Direction
     meter1 = lv_meter_create(homeTab); //Range
     //meter2 = lv_meter_create(homeTab);
     //meter3 = lv_meter_create(homeTab);
   
     //Scale the meters
     lv_obj_set_size(meter0, meterDiameter, meterDiameter);
+    lv_obj_set_size(meter0withoutNeedle, meterDiameter, meterDiameter);
     lv_obj_set_size(meter1, meterDiameter, meterDiameter);
     //lv_obj_set_size(meter2, meterDiameter, meterDiameter);
     //lv_obj_set_size(meter3, meterDiameter, meterDiameter);
     
     //Lay out the meters
     lv_obj_align(meter0, LV_ALIGN_CENTER, -meterDiameter/2-meterSpacing, -meterDiameter/2-meterSpacing);
+    lv_obj_align(meter0withoutNeedle, LV_ALIGN_CENTER, -meterDiameter/2-meterSpacing, -meterDiameter/2-meterSpacing);
     lv_obj_align(meter1, LV_ALIGN_CENTER, meterDiameter/2+meterSpacing, -meterDiameter/2-meterSpacing);
   
     //Assign style to all meters
     lv_obj_add_style(meter0, &style_meter, 0); //Default style for meters
+    lv_obj_add_style(meter0withoutNeedle, &style_meter, 0); //Default style for meters
     lv_obj_add_style(meter1, &style_meter, 0); //Default style for meters
   
     //Meter 0 scale
     lv_meter_scale_t * meter0Scale0 = lv_meter_add_scale(meter0);
     lv_meter_set_scale_ticks(meter0, meter0Scale0, 5, 2, 10, lv_palette_main(LV_PALETTE_RED));
-    //lv_meter_set_scale_major_ticks(meter0, meter0Scale0, 8, 4, 10, lv_color_black(), 10);
     lv_meter_set_scale_range(meter0, meter0Scale0, 0, 360, 360, -90);
-    lv_meter_scale_t * scale2 = lv_meter_add_scale(meter0);
-    lv_meter_set_scale_ticks(meter0, scale2, 17, 4, 5, lv_palette_main(LV_PALETTE_GREY));
-    //lv_meter_set_scale_major_ticks(meter0, scale2, 8, 4, 10, lv_color_black(), 10);
-    lv_meter_set_scale_range(meter0, scale2, 0, 360, 360, -90);
+    lv_meter_scale_t * meter0Scale0withoutNeedle = lv_meter_add_scale(meter0withoutNeedle);
+    lv_meter_set_scale_ticks(meter0withoutNeedle, meter0Scale0withoutNeedle, 5, 2, 10, lv_palette_main(LV_PALETTE_RED));
+    lv_meter_set_scale_range(meter0withoutNeedle, meter0Scale0withoutNeedle, 0, 360, 360, -90);
+    
+    lv_meter_scale_t * scale1 = lv_meter_add_scale(meter0);
+    lv_meter_set_scale_ticks(meter0, scale1, 17, 4, 5, lv_palette_main(LV_PALETTE_GREY));
+    lv_meter_set_scale_range(meter0, scale1, 0, 360, 360, -90);
+    lv_meter_scale_t * scale1withoutTicks = lv_meter_add_scale(meter0withoutNeedle);
+    lv_meter_set_scale_ticks(meter0withoutNeedle, scale1withoutTicks, 17, 4, 5, lv_palette_main(LV_PALETTE_GREY));
+    lv_meter_set_scale_range(meter0withoutNeedle, scale1withoutTicks, 0, 360, 360, -90);
   
     //Meter 1 scale
     lv_meter_scale_t * meter1Scale0 = lv_meter_add_scale(meter1);
+    lv_meter_set_scale_range(meter1, meter1Scale0, 0, maximumEffectiveRange, 300, 120);
     lv_meter_set_scale_ticks(meter1, meter1Scale0, 41, 2/*width*/, 4/*length*/, lv_palette_main(LV_PALETTE_GREY));
     lv_meter_set_scale_major_ticks(meter1, meter1Scale0, 8, 4/*width*/, 7/*length*/, lv_color_black(), 10);
   
@@ -142,22 +169,22 @@
     //Red arc
     colourArcs = lv_meter_add_arc(meter1, meter1Scale0, 2/*width*/, lv_palette_main(LV_PALETTE_RED), 0);
     lv_meter_set_indicator_start_value(meter1, colourArcs, 0);
-    lv_meter_set_indicator_end_value(meter1, colourArcs, 20);
+    lv_meter_set_indicator_end_value(meter1, colourArcs, (20*maximumEffectiveRange)/100);
   
     //Red tics
     colourArcs = lv_meter_add_scale_lines(meter1, meter1Scale0, lv_palette_main(LV_PALETTE_RED), lv_palette_main(LV_PALETTE_RED), false, 0);
     lv_meter_set_indicator_start_value(meter1, colourArcs, 0);
-    lv_meter_set_indicator_end_value(meter1, colourArcs, 20);
+    lv_meter_set_indicator_end_value(meter1, colourArcs, (20*maximumEffectiveRange)/100);
   
     //Green arc
     colourArcs = lv_meter_add_arc(meter1, meter1Scale0, 2/*width*/, lv_palette_main(LV_PALETTE_GREEN), 0);
-    lv_meter_set_indicator_start_value(meter1, colourArcs, 80);
-    lv_meter_set_indicator_end_value(meter1, colourArcs, 100);
+    lv_meter_set_indicator_start_value(meter1, colourArcs, (80*maximumEffectiveRange)/100);
+    lv_meter_set_indicator_end_value(meter1, colourArcs, maximumEffectiveRange);
   
     //Green tics
     colourArcs = lv_meter_add_scale_lines(meter1, meter1Scale0, lv_palette_main(LV_PALETTE_GREEN), lv_palette_main(LV_PALETTE_GREEN), false, 0);
-    lv_meter_set_indicator_start_value(meter1, colourArcs, 80);
-    lv_meter_set_indicator_end_value(meter1, colourArcs, 100);
+    lv_meter_set_indicator_start_value(meter1, colourArcs, (80*maximumEffectiveRange)/100);
+    lv_meter_set_indicator_end_value(meter1, colourArcs, maximumEffectiveRange);
   
     //Meter 0 needle
     needle0 = lv_meter_add_needle_line(meter0, meter0Scale0, 4, lv_color_black(), -10);
@@ -170,6 +197,7 @@
   
     //Hide the meters
     lv_obj_add_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(meter1, LV_OBJ_FLAG_HIDDEN);
   
     //Meter 0 label
@@ -194,14 +222,14 @@
     lv_chart_set_update_mode(chart0, LV_CHART_UPDATE_MODE_SHIFT);
     chart0ser0 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_range(chart0, LV_CHART_AXIS_PRIMARY_Y, 0, 16);
-    #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+    #if defined(SUPPORT_TREACLE) || (defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA))
       chart0ser1 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
       lv_chart_set_range(chart0, LV_CHART_AXIS_SECONDARY_Y, 0, 16);
     #endif
     uint32_t i;
     for(i = 0; i < chartPoints; i++) {
       chart0ser0->y_points[i] = 0;
-      #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
+      #if defined(SUPPORT_TREACLE) || (defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA))
         chart0ser1->y_points[i] = 0;
       #endif
     }
@@ -237,7 +265,7 @@
   
     chart1label0 = lv_label_create(homeTab);
     lv_obj_align(chart1label0, LV_ALIGN_CENTER, 0, chartY + chartY/2 + chartLabelSpacing);
-    lv_label_set_text(chart1label0, "Anomaly amplitude");
+    lv_label_set_text(chart1label0, "Interference level");
     lv_obj_add_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
   }
   void showStatusSpinner()
@@ -252,7 +280,7 @@
   }
   void showMeters()
   {
-    lv_obj_clear_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(meter0label0, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(meter1, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(meter1label0, LV_OBJ_FLAG_HIDDEN);
@@ -264,6 +292,7 @@
   void hideMeters()
   {
     lv_obj_add_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(meter0label0, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(meter1, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(meter1label0, LV_OBJ_FLAG_HIDDEN);
@@ -274,13 +303,14 @@
   }
   void updateHomeTab()
   {
-    if(currentlyTrackedBeacon != maximumNumberOfDevices)
+    if(currentlyTrackedBeacon != maximumNumberOfDevices && currentLvglUiState == deviceState::tracking)
     {
       //Course to tracked beacon
-      //if(device[0].speed > 1)
+      if(device[0].moving == true)
       {
-        //lv_obj_clear_flag(needle0, LV_OBJ_FLAG_HIDDEN);
-        uint16_t courseToIndicate = device[currentlyTrackedBeacon].courseTo - device[0].courseTo;
+        lv_obj_clear_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
+        uint16_t courseToIndicate = device[currentlyTrackedBeacon].courseTo - device[0].course;
         if(courseToIndicate > 360)
         {
           courseToIndicate -= 360;
@@ -291,19 +321,18 @@
         }
         lv_meter_set_indicator_value(meter0, needle0, courseToIndicate);
       }
-      /*
       else
       {
-        lv_obj_add_flag(needle0, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(meter0, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
       }
-      */
-      if(rangeToIndicate(currentlyTrackedBeacon) < 100) //Limit is 100m on dial
+      if(rangeToIndicate(currentlyTrackedBeacon) < maximumEffectiveRange) //Limit is 100m on dial
       {
         lv_meter_set_indicator_value(meter1, needle1, rangeToIndicate(currentlyTrackedBeacon));
       }
       else
       {
-        lv_meter_set_indicator_value(meter1, needle1, 100);
+        lv_meter_set_indicator_value(meter1, needle1, maximumEffectiveRange);
       }
     }
     else
@@ -312,6 +341,7 @@
       //lv_obj_add_flag(needle1, LV_OBJ_FLAG_HIDDEN);
     }
     //Signal graph
+    /*
     #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
       if(currentlyTrackedBeacon != maximumNumberOfDevices)
       {
@@ -341,19 +371,36 @@
       {
         lv_chart_set_next_value(chart0, chart0ser0, 0);
       }
+    */
+    #if defined(SUPPORT_TREACLE)
+      if(currentlyTrackedBeacon != maximumNumberOfDevices)
+      {
+        lv_chart_set_next_value(chart0, chart0ser0, countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)));
+        lv_chart_set_next_value(chart0, chart0ser1, countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)));
+        //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)>>12));
+        //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)>>12));
+        //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id));
+        //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id));
+      }
+      else
+      {
+        lv_chart_set_next_value(chart0, chart0ser0, 0);
+        lv_chart_set_next_value(chart0, chart0ser1, 0);
+      }
+      //Random junk
+      if(currentlyTrackedBeacon != maximumNumberOfDevices)
+      {
+        lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id))/16);
+        lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id))/16);
+      }
+      else
+      {
+        lv_chart_set_next_value(chart1, chart1ser0, 0);
+        lv_chart_set_next_value(chart1, chart1ser1, 0);
+      }
     #endif
-    if(currentlyTrackedBeacon != maximumNumberOfDevices)
-    {
-      lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].espNowUpdateHistory)/16);
-      lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(device[currentlyTrackedBeacon].loRaUpdateHistory)/16);
-    }
-    else
-    {
-      lv_chart_set_next_value(chart1, chart1ser0, 0);
-      lv_chart_set_next_value(chart1, chart1ser1, 0);
-    }
   }
-  #ifdef LVGL_ADD_GPS_TAB
+  #if defined(LVGL_SUPPORT_GPS_TAB)
     void createGpsTab(void)
     {
       //Create the tab
@@ -556,7 +603,7 @@
     lv_obj_align(label, LV_ALIGN_TOP_MID, leftColumnX, objectY);
   
     //Beeper label
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       label = lv_label_create(settingsTab);
       lv_label_set_text(label, "Beeper");
       lv_obj_align(label, LV_ALIGN_TOP_MID, rightColumnX, objectY);
@@ -582,7 +629,7 @@
     lv_dropdown_set_selected(displayTimeout_dd, displayTimeout);
   
     //Beeper dropdown
-    #ifdef SUPPORT_BEEPER
+    #if defined(SUPPORT_BEEPER)
       beeper_dd = lv_dropdown_create(settingsTab);
       lv_dropdown_set_options(beeper_dd, "Off\n"
                                           "On"
@@ -709,7 +756,7 @@
       #endif
     }
   }
-  #ifdef SUPPORT_BEEPER
+  #if defined(SUPPORT_BEEPER)
     static void beeper_dd_event_handler(lv_event_t * e)
     {
       lv_event_code_t code = lv_event_get_code(e);
@@ -768,7 +815,14 @@
       #endif
     }
   }
-  #ifdef LVGL_ADD_SCAN_INFO_TAB
+  #if defined(LVGL_SUPPORT_MAP_TAB)
+    void createMapTab()
+    {
+      //Create the tab
+      mapTab = lv_tabview_add_tab(tabview, mapTabLabel);
+    }
+  #endif
+  #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
     void createScanInfoTab(void)
     {
       uint16_t objectY = 0;
@@ -904,7 +958,7 @@
           }
           else
           {
-            lv_label_set_text(icDescription_label, "No information available on anomaly");
+            lv_label_set_text(icDescription_label, "No information available");
             #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
               //SERIAL_DEBUG_PORT.print(F("CALLBACK icDescription == nullptr -> Nothing useful detected"));
             #endif
@@ -978,6 +1032,7 @@
       String tempDropdownString = "";
       for(uint8_t index = 1; index < numberOfDevices; index++)
       {
+        /*
         #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
         if((device[index].loRaOnline == true || device[index].espNowOnline == true) && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
         #elif defined(SUPPORT_ESPNOW)
@@ -985,6 +1040,7 @@
         #elif defined(SUPPORT_LORA)
         else if(device[index].loRaOnline == true && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
         #endif
+        */
         {
           if(index == currentlyTrackedBeacon) //Continue tracking after update
           {
@@ -1041,9 +1097,9 @@
         }
         else
         {
-          lv_label_set_text(icDescription_label, "No information available on anomaly");
+          lv_label_set_text(icDescription_label, "No information available");
           #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-            //SERIAL_DEBUG_PORT.print(F(" icDescription == nullptr -> No information available on anomaly"));
+            //SERIAL_DEBUG_PORT.print(F(" icDescription == nullptr -> No information available"));
           #endif
         }
       }
@@ -1068,6 +1124,9 @@
       {
         lv_label_set_text(status_label, statusLabel_1);
         currentLvglUiState = deviceState::detectingGpsPins;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::detectingGpsPins"));
+        #endif
       }
     }
     else if(currentLvglUiState == deviceState::detectingGpsPins)
@@ -1078,11 +1137,17 @@
         {
           lv_label_set_text(status_label, statusLabel_3);
           currentLvglUiState = deviceState::calibrateScreen;
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F("deviceState::calibrateScreen"));
+          #endif
         }
         else
         {
           lv_label_set_text(status_label, statusLabel_2);
           currentLvglUiState = deviceState::detectingGpsBaudRate;
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F("deviceState::detectingGpsBaudRate"));
+          #endif
         }
       }
     }
@@ -1092,6 +1157,9 @@
       {
         lv_label_set_text(status_label, statusLabel_3);
         currentLvglUiState = deviceState::detectingGpsBaudRate;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::detectingGpsBaudRate"));
+        #endif
       }
     }
     else if(currentLvglUiState == deviceState::detectingGpsBaudRate)
@@ -1100,6 +1168,9 @@
       {
         lv_label_set_text(status_label, statusLabel_4);
         currentLvglUiState = deviceState::gpsDetected;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsDetected"));
+        #endif
       }
     }
     else if(currentLvglUiState == deviceState::gpsDetected)
@@ -1108,6 +1179,9 @@
       {
         lv_label_set_text(status_label, statusLabel_5);
         currentLvglUiState = deviceState::gpsLocked;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsLocked"));
+        #endif
       }
     }
     else if(currentLvglUiState == deviceState::gpsLocked)
@@ -1116,6 +1190,9 @@
       {
         lv_label_set_text(status_label, statusLabel_4);
         currentLvglUiState == deviceState::gpsDetected;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsDetected"));
+        #endif
       }
       else
       {
@@ -1124,31 +1201,59 @@
           hideStatusSpinner();
           showMeters();
           currentLvglUiState = deviceState::tracking;
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.println(F("deviceState::tracking"));
+          #endif
         }
       }
     }
     else if(currentLvglUiState == deviceState::tracking)
     {
+      if(millis() - lastLvglTabUpdate > lvglTabUpdateInterval)
+      {
+        lastLvglTabUpdate = millis();
+        #if defined(LVGL_SUPPORT_HOME_TAB)
+          if(enableHomeTab)
+          {
+            updateHomeTab();
+          }
+        #endif
+        #if defined(LVGL_SUPPORT_GPS_TAB)
+          if(enableGpsTab)
+          {
+            updateGpsTab();
+          }
+        #endif
+      }
       if(device[0].hasGpsFix == false)  //Lost location
       {
         hideMeters();
         showStatusSpinner();
         lv_label_set_text(status_label, statusLabel_3);
         currentLvglUiState = deviceState::gpsDetected;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsDetected"));
+        #endif
       }
       else if(currentlyTrackedBeacon == maximumNumberOfDevices) //Lost all beacons
       {
         hideMeters();
         showStatusSpinner();
         currentLvglUiState = deviceState::gpsLocked;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+          SERIAL_DEBUG_PORT.println(F("deviceState::gpsLocked"));
+        #endif
       }
     }
-    #ifdef LVGL_ADD_SCAN_INFO_TAB
-      if(millis() - lastScanInfoTabUpdate > 10E3 && findableDevicesChanged == true)
+    #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+      if(enableInfoTab)
       {
-        lastScanInfoTabUpdate = millis();
-        findableDevicesChanged = false;
-        updateScanInfoTab();
+        if(millis() - lastScanInfoTabUpdate > 10E3)// && findableDevicesChanged == true)
+        {
+          lastScanInfoTabUpdate = millis();
+          findableDevicesChanged = false;
+          updateScanInfoTab();
+        }
       }
     #endif
     if(displayTimeouts[displayTimeout] > 0)
@@ -1176,40 +1281,49 @@
     }
     lv_task_handler();
   }
-  void setupBacklight()
-  {
-    pinMode(LDR_PIN, INPUT);
-    ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_12_BIT);
-    ledcAttachPin(LCD_BACK_LIGHT_PIN, LEDC_CHANNEL_0);
-  }
-  void manageBacklight()
-  {
-    if(millis() - backlightLastSet > backlightChangeInterval)
+  #if defined(LVGL_MANAGE_BACKLIGHT)
+    void setupBacklight()
     {
-      backlightLastSet = millis();
-      uint8_t wantedBrightnessLevel = map(1024 - analogRead(LDR_PIN), 0, 1024, minimumBrightnessLevel, maximumBrightnessLevel);
-      if(abs((int16_t)currentBrightnessLevel - (int16_t)wantedBrightnessLevel) > 20)
+      pinMode(ldrPin, INPUT);
+      ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_12_BIT);
+      ledcAttachPin(lcdBacklightPin, LEDC_CHANNEL_0);
+    }
+    void manageBacklight()
+    {
+      if(millis() - backlightLastSet > backlightChangeInterval)
       {
-        if(wantedBrightnessLevel > currentBrightnessLevel)
+        backlightLastSet = millis();
+        uint8_t wantedBrightnessLevel = map(1024 - analogRead(ldrPin), 0, 1024, minimumBrightnessLevel, maximumBrightnessLevel);
+        if(abs((int16_t)currentBrightnessLevel - (int16_t)wantedBrightnessLevel) > 20)
         {
-          currentBrightnessLevel++;
+          if(wantedBrightnessLevel > currentBrightnessLevel)
+          {
+            currentBrightnessLevel++;
+          }
+          else if(wantedBrightnessLevel < currentBrightnessLevel)
+          {
+            currentBrightnessLevel--;
+          }
         }
-        else if(wantedBrightnessLevel < currentBrightnessLevel)
+        if(uiActive == true)
         {
-          currentBrightnessLevel--;
+          ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * currentBrightnessLevel);
         }
-      }
-      if(uiActive == true)
-      {
-        ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * currentBrightnessLevel);
-      }
-      else
-      {
-        ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * uiInactiveBrightnessLevel);
+        else
+        {
+          ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * uiInactiveBrightnessLevel);
+        }
       }
     }
-  }
-  #ifdef SUPPORT_TOUCHSCREEN
+  #else
+    void setupBacklight()
+    {
+      pinMode(ldrPin, INPUT); //Maybe it could get used for something
+      pinMode(lcdBacklightPin, OUTPUT);
+      digitalWrite(lcdBacklightPin, HIGH); //Just set it full on all the time
+    }
+  #endif
+  #if defined(SUPPORT_TOUCHSCREEN)
     #if defined(SUPPORT_TOUCHSCREEN_BITBANG)
       void setupTouchscreen()
       {
@@ -1221,7 +1335,7 @@
         pinMode(XPT2046_IRQ, INPUT);
         digitalWrite(XPT2046_CS, HIGH);
         digitalWrite(XPT2046_CLK, LOW);
-        localLog(F("OK"));
+        localLogLn(F("OK"));
         touchscreenInitialised = true;
       }
     #else

@@ -1,4 +1,5 @@
-#ifdef SUPPORT_ESPNOW
+#if defined(SUPPORT_ESPNOW)
+/*
   void calculateEspNowDutyCycle()
   {
     calculatedEspNowDutyCycle = ((float)espNowTxTime/(float)millis())*100;
@@ -199,7 +200,7 @@
           device[index].lastEspNowLocationUpdate = millis();  //A failed update is an 'update'
           device[index].espNowUpdateHistory = device[index].espNowUpdateHistory >> 1; //Reduce update history quality
           //device[index].nextEspNowLocationUpdate = device[index].nextEspNowLocationUpdate >> 1; //Halve the timeout
-          #ifdef ACT_AS_TRACKER
+          #if defined(ACT_AS_TRACKER)
             if(index == currentlyTrackedBeacon)
             {
               localLog(F("Currently tracked beacon "));
@@ -220,19 +221,19 @@
           {
             localLogLn(F(" ESPNow gone offline"));
             device[index].espNowOnline = false;
-            #ifdef LVGL_ADD_SCAN_INFO_TAB
+            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
               findableDevicesChanged = true;
             #endif
-            #ifdef ACT_AS_TRACKER
+            #if defined(ACT_AS_TRACKER)
               if(index == currentlyTrackedBeacon) //Need to stop tracking this beacon
               {
                 currentlyTrackedBeacon = maximumNumberOfDevices;
                 distanceToCurrentBeacon = effectivelyUnreachable;
                 distanceToCurrentBeaconChanged = true;
-                #ifdef SUPPORT_BEEPER
+                #if defined(SUPPORT_BEEPER)
                   endRepeatingBeep();
                 #endif
-                #ifdef SUPPORT_DISPLAY
+                #if defined(SUPPORT_DISPLAY)
                   if(currentDisplayState == displayState::distance) //Clear distance if showing
                   {
                     displayDistanceToBeacon();
@@ -299,14 +300,6 @@
   }
   void processEspNowPacket()
   {
-    /*
-    #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
-      if(waitForBufferSpace(30))
-      {
-        SERIAL_DEBUG_PORT.println(F("Processing received packet..."));
-      }
-    #endif
-    */
     MsgPack::Unpacker unpacker;
     unpacker.feed(espNowReceiveBuffer, espNowReceiveBufferSize);
     uint8_t _remoteMacAddress[6] = {0, 0, 0, 0, 0, 0};  //MAC address of the remote device
@@ -364,7 +357,7 @@
                             }
                           #endif
                           device[deviceIndex].hasGpsFix = true;
-                          #ifdef LVGL_ADD_SCAN_INFO_TAB
+                          #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                             findableDevicesChanged = true;
                           #endif
                         }
@@ -378,7 +371,7 @@
                           }
                         #endif
                         device[deviceIndex].hasGpsFix = false;
-                        #ifdef LVGL_ADD_SCAN_INFO_TAB
+                        #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                           findableDevicesChanged = true;
                         #endif
                       }
@@ -402,11 +395,11 @@
                         localLog(deviceIndex);
                         localLogLn(F(" EspNow gone online"));
                         device[deviceIndex].espNowOnline = true;
-                        #ifdef LVGL_ADD_SCAN_INFO_TAB
+                        #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                           findableDevicesChanged = true;
                         #endif
                       }
-                      #ifdef LVGL_ADD_SCAN_INFO_TAB
+                      #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                         findableDevicesChanged = true;
                       #endif
                     }
@@ -457,7 +450,7 @@
                                           device[deviceIndex].minorVersion,
                                           device[deviceIndex].patchVersion,
                                           device[deviceIndex].name,
-                                          printableUptime(device[deviceIndex].uptime/1000).c_str(),
+                                          printableDuration(device[deviceIndex].uptime/1000).c_str(),
                                           device[deviceIndex].supplyVoltage
                                           );
                                       }
@@ -726,7 +719,7 @@
                         {
                           device[deviceIndex].icName = new char[receivedIcName.length() + 1];
                           receivedIcName.toCharArray(device[deviceIndex].icName, receivedIcName.length() + 1);
-                          #ifdef LVGL_ADD_SCAN_INFO_TAB
+                          #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                             findableDevicesChanged = true;
                           #endif
                         }
@@ -747,7 +740,7 @@
                           {
                             device[deviceIndex].icDescription = new char[receivedIcDescription.length() + 1];
                             receivedIcDescription.toCharArray(device[deviceIndex].icDescription, receivedIcDescription.length() + 1);
-                            #ifdef LVGL_ADD_SCAN_INFO_TAB
+                            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
                               findableDevicesChanged = true;
                             #endif
                           }
@@ -940,19 +933,6 @@
   }
   bool shareLocationByEspNow()
   {
-    /*
-    if(espNowTxBusy)
-    {
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
-        if(waitForBufferSpace(80))
-        {
-          SERIAL_DEBUG_PORT.println(F("Cannot share location, EspNow busy"));
-        }
-      #endif
-      return;
-    }
-    espNowTxBusy = true;
-    */
     MsgPack::Packer packer;
     packer.pack(device[0].id[0]);
     packer.pack(device[0].id[1]);
@@ -1014,7 +994,7 @@
     packer.pack(millis());
     packer.pack(device[0].supplyVoltage);
     packer.pack(device[0].name);
-    #ifdef ACT_AS_SENSOR
+    #if defined(ACT_AS_SENSOR)
       packer.pack(device[0].numberOfStartingHits);
       packer.pack(device[0].numberOfStartingStunHits);
       packer.pack(device[0].currentNumberOfHits);
@@ -1037,14 +1017,14 @@
         #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
           if(waitForBufferSpace(80))
           {
-            #ifdef ACT_AS_SENSOR
+            #if defined(ACT_AS_SENSOR)
             SERIAL_DEBUG_PORT.printf("ESPNow TX %02x:%02x:%02x:%02x:%02x:%02x device info type:%02X, version: %u.%u.%u name: '%s', uptime:%s, supply:%.1fv Hits:%u/%u Stun:%u/%u\r\n",device[0].id[0],device[0].id[1],device[0].id[2],device[0].id[3],device[0].id[4],device[0].id[5],
               device[0].typeOfDevice,
               device[0].majorVersion,
               device[0].minorVersion,
               device[0].patchVersion,
               device[0].name,
-              printableUptime(millis()/1000).c_str(),
+              printableDuration(millis()/1000).c_str(),
               device[0].supplyVoltage,
               device[0].currentNumberOfHits,
               device[0].numberOfStartingHits,
@@ -1058,7 +1038,7 @@
               device[0].minorVersion,
               device[0].patchVersion,
               device[0].name,
-              printableUptime(millis()/1000).c_str(),
+              printableDuration(millis()/1000).c_str(),
               device[0].supplyVoltage,
               defaultEspNowLocationInterval/1000,
               espNowPerimiter1,
@@ -1116,4 +1096,5 @@
     }
     return false;
   }
+*/
 #endif
