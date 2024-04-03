@@ -68,24 +68,30 @@
             if(effectiveHits >= device[0].currentNumberOfStunHits)
             {
               device[0].currentNumberOfStunHits = 0;
+              /*
               #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
               currentSensorState = sensorState::stunned;
               sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
               lastSensorStateChange = millis();
+              /*
               #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
               localLogLn(F("Sensor: stunned"));
               sensor.pause();
             }
             else
             {
               device[0].currentNumberOfStunHits -= effectiveHits;
+              /*
               #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
               sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
               currentSensorState = sensorState::takenHit;
               localLogLn(F("Sensor: takenHit"));
@@ -108,9 +114,11 @@
             {
               device[0].currentNumberOfStunHits = device[0].numberOfStartingStunHits;
             }
+            /*
             #if defined(SUPPORT_LORA)
               scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
             #endif
+            */
             sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
             sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
             message += " " + String(effectiveHits) + " healing received, now " + String(device[0].currentNumberOfHits) + "/" + String(device[0].numberOfStartingHits) + " hits";
@@ -135,9 +143,11 @@
               device[0].currentNumberOfHits = 0;
               bleedOutCounter = 0;
               currentSensorState = sensorState::dead;
+              /*
               #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
               sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
               sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
               //sensorPersitentData.putUChar(currentSensorStateKey, (uint8_t)currentSensorState);
@@ -147,9 +157,11 @@
               #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
                 xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, 2, NULL);
               #endif
+              /*
               #if defined(SUPPORT_LORA)
                 scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
               #endif
+              */
             }
             else
             {
@@ -161,9 +173,11 @@
                 xTaskCreate(playHitAnimation, "playHitAnimation", 1000, (void*)&effectiveHits, 2, NULL);
               #endif
             }
+            /*
             #if defined(SUPPORT_LORA)
               scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
             #endif
+            */
             message += " " + String(effectiveHits) + " damage received, now " + String(device[0].currentNumberOfHits) + "/" + String(device[0].numberOfStartingHits) + " hits";
             localLogLn(message);
           }
@@ -461,9 +475,11 @@
     sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
     sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits);
     sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
+    /*
     #if defined(SUPPORT_LORA)
       scheduleDeviceInfoShareSoon(); //Force the sensor to update any trackers soon
     #endif
+    */
   }
   void playCountOutMinutesAnimation(void * parameter)
   {

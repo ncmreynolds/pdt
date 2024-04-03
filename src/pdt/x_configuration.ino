@@ -82,6 +82,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   configuration[string_icDescription] = device[0].icDescription;
   configuration[string_diameter] = device[0].diameter;
   configuration[string_diameter] = device[0].height;
+  /*
   #if defined(SUPPORT_ESPNOW)
     configuration[string_espNowEnabled] = espNowEnabled;
     configuration["espNowPreferredChannel"] = espNowPreferredChannel;
@@ -94,12 +95,14 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration["espNowLocationInterval3"] = espNowLocationInterval3;
     configuration["espNowPerimiter3"] = espNowPerimiter3;
   #endif
+  */
   #if defined(SUPPORT_FTM)
     configuration["ftmEnabled"] = ftmEnabled;
     configuration["ftmSSID"] = ftmSSID;
     configuration["ftmHideSSID"] = ftmHideSSID;
     configuration["ftmPSK"] = ftmPSK;
   #endif
+  /*
   #if defined(SUPPORT_LORA)
     configuration[string_loRaEnabled] = loRaEnabled;
     configuration["loRaDeviceInfoInterval"] = loRaDeviceInfoInterval;
@@ -116,6 +119,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
       configuration["rssiAttenuationBaseline"] = rssiAttenuationBaseline;
     #endif
   #endif
+  */
   #if defined(SUPPORT_TREACLE)
     configuration[string_id] = device[0].id;
     configuration[string_treacleEncryptionEnabled] = treacleEncryptionEnabled;
@@ -272,6 +276,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         strlcpy(ftmPSK,default_ftmWiFi_PSK,strlen(default_ftmWiFi_PSK) + 1);
       }
     #endif
+    /*
     #if defined(SUPPORT_ESPNOW)
       espNowEnabled = configuration[string_espNowEnabled] | true;
       espNowPreferredChannel = configuration["espNowPreferredChannel"] | 1;
@@ -300,6 +305,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         rssiAttenuationBaseline = configuration["rssiAttenuationBaseline"];
       #endif
     #endif
+    */
     #if defined(SUPPORT_TREACLE)
       device[0].id = configuration[string_id] | 0;
       treacleEncryptionEnabled = configuration[string_treacleEncryptionEnabled] | false;
@@ -329,9 +335,11 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     else
     {
       device[0].name = new char[strlen(default_deviceName) + 5];
+      /*
       #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
         sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
-      #elif defined(SUPPORT_TREACLE)
+      */
+      #if defined(SUPPORT_TREACLE)
         sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
       #endif
     }
@@ -388,9 +396,11 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       else
       {
         APSSID = new char[strlen(default_deviceName) + 5];
+        /*
         #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
           sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
-        #elif defined(SUPPORT_TREACLE)
+        */
+        #if defined(SUPPORT_TREACLE)
           sprintf_P(APSSID, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
         #endif
         APPSK = new char[strlen(default_AP_PSK) + 1];
@@ -495,9 +505,11 @@ bool loadDefaultConfiguration()
 {
   localLogLn(F("Loading default configuration"));
   device[0].name = new char[strlen(default_deviceName) + 5];
+  /*
   #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
     sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, device[0].id[4], device[0].id[5]);  //Add some hex from the MAC address on the end
-  #elif defined(SUPPORT_TREACLE)
+  */
+  #if defined(SUPPORT_TREACLE)
     sprintf_P(device[0].name, PSTR("%s%02X%02X"), default_deviceName, localMacAddress[4], localMacAddress[5]);  //Add some hex from the MAC address on the end
   #endif
   #if defined(ENABLE_LOCAL_WEBSERVER)
@@ -726,6 +738,7 @@ void printConfiguration()
     localLog(F("espNowPerimiter3: ")); localLogLn(espNowPerimiter3);
     localLog(F("espNowLocationInterval3: ")); localLogLn(espNowLocationInterval3);
   #endif
+  /*
   #if defined(SUPPORT_LORA)
     localLog(F("loRaEnabled: ")); localLogLn(loRaEnabled);
     localLog(F("loRaDeviceInfoInterval: ")); localLogLn(loRaDeviceInfoInterval);
@@ -742,6 +755,7 @@ void printConfiguration()
       localLog(F("rssiAttenuationPerimeter: ")); localLogLn(rssiAttenuationPerimeter);
     #endif
   #endif
+  */
   #if defined(SUPPORT_TREACLE)
     localLog(string_id); localLog(string_colonSpace); localLogLn(device[0].id);
     localLog(string_treacleEncryptionEnabled); localLog(string_colonSpace); localLogLn(treacleEncryptionEnabled);

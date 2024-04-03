@@ -341,6 +341,7 @@
       //lv_obj_add_flag(needle1, LV_OBJ_FLAG_HIDDEN);
     }
     //Signal graph
+    /*
     #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
       if(currentlyTrackedBeacon != maximumNumberOfDevices)
       {
@@ -370,7 +371,8 @@
       {
         lv_chart_set_next_value(chart0, chart0ser0, 0);
       }
-    #elif defined(SUPPORT_TREACLE)
+    */
+    #if defined(SUPPORT_TREACLE)
       if(currentlyTrackedBeacon != maximumNumberOfDevices)
       {
         lv_chart_set_next_value(chart0, chart0ser0, countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)));
@@ -1030,6 +1032,7 @@
       String tempDropdownString = "";
       for(uint8_t index = 1; index < numberOfDevices; index++)
       {
+        /*
         #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
         if((device[index].loRaOnline == true || device[index].espNowOnline == true) && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
         #elif defined(SUPPORT_ESPNOW)
@@ -1037,6 +1040,7 @@
         #elif defined(SUPPORT_LORA)
         else if(device[index].loRaOnline == true && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
         #endif
+        */
         {
           if(index == currentlyTrackedBeacon) //Continue tracking after update
           {

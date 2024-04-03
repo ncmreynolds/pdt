@@ -27,6 +27,7 @@
       {
         if(wifiClientConnected == false)
         {
+          /*
           #if defined(SUPPORT_ESPNOW)
             if(espNowEnabled)
             {
@@ -37,8 +38,9 @@
               espBoilerplate.setApChannel(softApChannel);
             }
           #else
+          */
             espBoilerplate.setApChannel(softApChannel);
-          #endif
+          //#endif
           wifiApStarted = espBoilerplate.beginAp(APSSID, APPSK);
         }
         else

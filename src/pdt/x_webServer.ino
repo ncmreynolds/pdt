@@ -175,9 +175,11 @@
               #endif
             #endif
             response->print(F("</b></li>"));
+            /*
             #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
               response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), device[0].id[0], device[0].id[1], device[0].id[2], device[0].id[3], device[0].id[4], device[0].id[5]);
-            #elif defined(SUPPORT_TREACLE)
+            */
+            #if defined(SUPPORT_TREACLE)
               response->printf_P(PSTR("<li>MAC address: <b>%02x:%02x:%02x:%02x:%02x:%02x</b></li>"), localMacAddress[0], localMacAddress[1], localMacAddress[2], localMacAddress[3], localMacAddress[4], localMacAddress[5]);            
             #endif
             if(filesystemMounted == true)
@@ -480,6 +482,7 @@
                 response->printf_P(h3printfFormatString, PSTR("Initialisation failed!"));
               }
             #endif
+            /*
             #if defined(SUPPORT_ESPNOW)
               response->printf_P(h2printfFormatString, PSTR("ESP-Now"));
               response->print(ulStart);
@@ -519,6 +522,8 @@
               response->print(endColumn);
               response->print(endRow);
             #endif
+            */
+            /*
             #if defined(SUPPORT_LORA)
               response->printf_P(h2printfFormatString, PSTR("LoRa"));
               response->print(ulStart);
@@ -554,6 +559,7 @@
               response->print(endColumn);
               response->print(endRow);
             #endif
+            */
             #if defined(SUPPORT_FTM)
               response->printf_P(h2printfFormatString, PSTR("FTM (time-of-flight) measurements"));
               response->print(ulStart);
@@ -1748,6 +1754,7 @@
         #endif
       });
       //ESP-Now
+      /*
       #if defined(SUPPORT_ESPNOW)
           adminWebServer->on("/espnowconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
@@ -2058,6 +2065,8 @@
         #endif
       });
       #endif
+      */
+      /*
       #if defined(SUPPORT_LORA)
         adminWebServer->on("/loraconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
@@ -2394,6 +2403,7 @@
           #endif
         });
       #endif
+      */
       #if defined(SUPPORT_TREACLE)
         adminWebServer->on("/treacleconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
@@ -4233,33 +4243,39 @@
           response->printf_P(h2printfFormatString, PSTR("Devices"));
           response->print(startRow);
           response->print(startTwelveColumns);
+          /*
           #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
           response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>ESP-Now signal quality</th><th>LoRa signal quality</th><th>Info</th></tr></thead><tbody>"));
           #elif defined(SUPPORT_ESPNOW)
           response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>ESP-Now signal quality</th><th>Info</th></tr></thead><tbody>"));
           #elif defined(SUPPORT_LORA)
           response->print(F("<table><thead><tr><th>Name</th><th>MAC address</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>LoRa signal quality</th><th>Info</th></tr></thead><tbody>"));
-          #elif defined(SUPPORT_TREACLE)
+          */
+          #if defined(SUPPORT_TREACLE)
           response->print(F("<table><thead><tr><th>Name</th><th>ID</th><th>Features</th><th>Version</th><th>Uptime</th><th>Battery</th><th>Fix</th><th>Lat</th><th>Lon</th><th>Distance</th><th>Course</th><th>Speed</th><th>ESP-Now signal quality</th><th>LoRa signal quality</th><th>Last seen</th><th>Info</th></tr></thead><tbody>"));
           #endif
           for(uint8_t index = 0; index < numberOfDevices; index++)
           {
             if(index > 0)
             {
+              /*
               #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>%04x</td><td>"),
               #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%.1f</td><td>%04x</td><td>"),
-              #elif defined(SUPPORT_TREACLE)
+              */
+              #if defined(SUPPORT_TREACLE)
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>%.1f</td><td>%.1f</td><td>%s</td><td>%04XrX %04XtX</td><td>%04XrX %04XtX</td><td>%s ago</td><td>"),
               #else
                 response->printf_P(PSTR("<tr><td>%s %s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%f</td><td>%f</td><td>%.1f</td><td>%s</td><td></td><td>"),
               #endif
                 (device[index].name == nullptr) ? "n/a" : device[index].name,
                 (device[index].icName == nullptr) ? "" : device[index].icName,
+                /*
                 #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                   device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
-                #elif defined(SUPPORT_TREACLE)
+                */
+                #if defined(SUPPORT_TREACLE)
                   device[index].id,
                 #endif
                 deviceFeatures(device[index].typeOfDevice).c_str(),
@@ -4272,6 +4288,7 @@
                 device[index].distanceTo,
                 device[index].courseTo,
                 ((device[index].moving == true) ? String(device[index].smoothedSpeed).c_str() : PSTR("Stationary")),
+                /*
                 #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                   device[index].espNowUpdateHistory,
                   device[index].loRaUpdateHistory);
@@ -4279,29 +4296,33 @@
                   device[index].espNowUpdateHistory);
                 #elif  defined(SUPPORT_LORA)
                   device[index].loRaUpdateHistory);
-                #elif defined(SUPPORT_TREACLE)
+                */
+                #if defined(SUPPORT_TREACLE)
                   treacle.espNowRxReliability(device[index].id),
                   treacle.espNowTxReliability(device[index].id),
                   treacle.loRaRxReliability(device[index].id),
                   treacle.loRaTxReliability(device[index].id),
                   printableDuration(treacle.rxAge(device[index].id)/1000.0).c_str()
                   );
-                #else
                 #endif
             }
             else
             {
+              /*
               #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>--</td><td>--</td><td>----</td><td>----</td><td>This device"),
               #elif defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                 response->printf_P(PSTR("<tr><td>%s</td><td>%02x:%02x:%02x:%02x:%02x:%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>--</td><td>--</td><td>----</td><td>This device"),
-              #elif defined(SUPPORT_TREACLE)
+              */
+              #if defined(SUPPORT_TREACLE)
                 response->printf_P(PSTR("<tr><td>%s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%.1fv</td><td>%s</td><td>%.3f</td><td>%.3f</td><td>--</td><td>--</td><td>%s</td><td>----</td><td></td><td></td><td>This device"),
               #endif
               (device[index].name == nullptr) ? "n/a" : device[index].name,
+              /*
               #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
                 device[index].id[0],device[index].id[1],device[index].id[2],device[index].id[3],device[index].id[4],device[index].id[5],
-              #elif defined(SUPPORT_TREACLE)
+              */
+              #if defined(SUPPORT_TREACLE)
                 device[index].id,
               #endif
               deviceFeatures(device[index].typeOfDevice).c_str(),
@@ -4319,14 +4340,16 @@
                 {
                   response->print(F("Tracked "));
                 }
+                /*
                 #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                   else if(index != 0 && (device[index].loRaOnline == false && device[index].espNowOnline == false))
                 #elif defined(SUPPORT_ESPNOW)
                   else if(index != 0 && device[index].espNowOnline == false)
                 #elif defined(SUPPORT_LORA)
                   else if(index != 0 && device[index].loRaOnline == false)
-                #elif defined(SUPPORT_TREACLE)
-                  else if(index != 0 && treacle.online(device[index].id) == false)
+                */
+                #if defined(SUPPORT_TREACLE)
+                  if(index != 0 && treacle.online(device[index].id) == false)
                 #endif
                 {
                   response->print(F("Offline"));
@@ -4340,13 +4363,15 @@
                 {
                   response->print(F("Closest tracker"));
                 }
+                /*
                 #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
                 else if(index != 0 && (device[index].loRaOnline == false && device[index].espNowOnline == false))
                 #elif defined(SUPPORT_ESPNOW)
                 else if(index != 0 && device[index].espNowOnline == false)
                 #elif defined(SUPPORT_LORA)
                 else if(index != 0 && device[index].loRaOnline == false)
-                #elif defined(SUPPORT_TREACLE)
+                */
+                #if defined(SUPPORT_TREACLE)
                 else if(index != 0 && treacle.online(device[index].id) == false)
                 #endif
                 {

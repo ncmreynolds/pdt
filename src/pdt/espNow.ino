@@ -1,4 +1,5 @@
 #if defined(SUPPORT_ESPNOW)
+/*
   void calculateEspNowDutyCycle()
   {
     calculatedEspNowDutyCycle = ((float)espNowTxTime/(float)millis())*100;
@@ -299,14 +300,6 @@
   }
   void processEspNowPacket()
   {
-    /*
-    #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
-      if(waitForBufferSpace(30))
-      {
-        SERIAL_DEBUG_PORT.println(F("Processing received packet..."));
-      }
-    #endif
-    */
     MsgPack::Unpacker unpacker;
     unpacker.feed(espNowReceiveBuffer, espNowReceiveBufferSize);
     uint8_t _remoteMacAddress[6] = {0, 0, 0, 0, 0, 0};  //MAC address of the remote device
@@ -940,19 +933,6 @@
   }
   bool shareLocationByEspNow()
   {
-    /*
-    if(espNowTxBusy)
-    {
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_ESPNOW)
-        if(waitForBufferSpace(80))
-        {
-          SERIAL_DEBUG_PORT.println(F("Cannot share location, EspNow busy"));
-        }
-      #endif
-      return;
-    }
-    espNowTxBusy = true;
-    */
     MsgPack::Packer packer;
     packer.pack(device[0].id[0]);
     packer.pack(device[0].id[1]);
@@ -1116,4 +1096,5 @@
     }
     return false;
   }
+*/
 #endif

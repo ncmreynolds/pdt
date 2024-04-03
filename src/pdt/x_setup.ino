@@ -33,9 +33,11 @@ void setup() {
       }
     #endif
   #endif
+  /*
   #if defined(SUPPORT_ESPNOW) || defined(SUPPORT_LORA)
     WiFi.macAddress(device[0].id); //Copy in local MAC address as 'device 0'
-  #elif defined(SUPPORT_TREACLE)
+  */
+  #if defined(SUPPORT_TREACLE)
     WiFi.macAddress(localMacAddress); //Copy in local MAC address
   #endif
   #if defined(ACT_AS_TRACKER)
@@ -82,9 +84,11 @@ void setup() {
   #if defined(SUPPORT_WIFI)
     setupNetwork();
   #endif
+  /*
   #if defined(SUPPORT_ESPNOW)
     setupEspNow();
   #endif
+  */
   #if defined(SUPPORT_DISPLAY) && defined(SUPPORT_LORA)
     setupLoRa();  //Needs to be before SPI display!
   #endif

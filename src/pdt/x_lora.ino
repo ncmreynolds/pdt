@@ -4,6 +4,7 @@
  * 
  */
 #if defined(SUPPORT_LORA)
+/*
   void calculateLoRaDutyCycle()
   {
     calculatedLoRaDutyCycle = ((float)loRaTxTime/(float)millis())*100;
@@ -86,36 +87,10 @@
     }
     else if(packetSize <= maxLoRaBufferSize)
     {
-      /*
-      #if defined(SERIAL_DEBUG)
-      if(waitForBufferSpace(48))
-      {
-        SERIAL_DEBUG_PORT.print(F("Packet received, length: "));
-        SERIAL_DEBUG_PORT.println(packetSize);
-        SERIAL_DEBUG_PORT.print(F("Packet: "));
-      }
-      #endif
-      */
       for(uint8_t index = 0; index < packetSize; index++)
       {
         loRaReceiveBuffer[index] = LoRa.read();
-        /*
-        #if defined(SERIAL_DEBUG)
-        if(waitForBufferSpace(3))
-        {
-          SERIAL_DEBUG_PORT.printf_P("%02x ",loRaReceiveBuffer[index]);
-        }
-        #endif
-        */
       }
-      /*
-      #if defined(SERIAL_DEBUG)
-      if(waitForBufferSpace(1))
-      {
-        SERIAL_DEBUG_PORT.println();
-      }
-      #endif
-      */
       lastLoRaRssi = LoRa.packetRssi();
       loRaReceiveBufferSize = packetSize;
     }
@@ -144,9 +119,6 @@
     #endif
   }
   #if defined(LORA_ASYNC_METHODS)
-    /*
-     * Interrupt service routines for LoRa, which need some care when there are other async things in use
-     */
     #if defined(ESP32)
       void IRAM_ATTR onSend()
     #elif defined(ESP8266)
@@ -689,14 +661,6 @@
   }
   void processLoRaPacket()
   {
-    /*
-    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-      if(waitForBufferSpace(30))
-      {
-        SERIAL_DEBUG_PORT.println(F("Processing received packet..."));
-      }
-    #endif
-    */
     uint8_t _remoteMacAddress[6] = {0, 0, 0, 0, 0, 0};  //MAC address of the remote device
     MsgPack::Unpacker unpacker;
     unpacker.feed(loRaReceiveBuffer, loRaReceiveBufferSize);
@@ -1260,11 +1224,6 @@
         }
       #endif
     }
-    #if defined(SERIAL_DEBUG) && defined(DEBUG_LORA)
-      //if(waitForBufferSpace(40))
-      //{
-        //SERIAL_DEBUG_PORT.println(F("Processing received packet done"));
-      //}
-    #endif
   }
+*/
 #endif

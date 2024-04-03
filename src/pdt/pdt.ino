@@ -31,12 +31,12 @@
 //#define HARDWARE_VARIANT C3PDTasBeacon
 //#define HARDWARE_VARIANT C3TrackedSensor
 //#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
-#define HARDWARE_VARIANT C3LoRaBeacon
-//#define HARDWARE_VARIANT CYDTracker
+//#define HARDWARE_VARIANT C3LoRaBeacon
+#define HARDWARE_VARIANT CYDTracker
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 5
-#define PDT_PATCH_VERSION 1
+#define PDT_PATCH_VERSION 2
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -223,7 +223,7 @@
  * LoRa support
  * 
  */
-#if defined(SUPPORT_LORA) || defined(SUPPORT_TREACLE)
+#if defined(SUPPORT_TREACLE)
   #if HARDWARE_VARIANT == C3PDT || HARDWARE_VARIANT == C3PDTasBeacon
     static const int8_t loRaCsPin = 7;          // LoRa radio chip select
     static const int8_t loRaResetPin = 8;       // LoRa radio reset
@@ -448,7 +448,7 @@
    Includes for SPI peripherals
 
 */
-#if defined(SUPPORT_LORA) || defined(SUPPORT_DISPLAY)
+#if defined(SUPPORT_DISPLAY)
   #include <SPI.h>
 #endif
 /*
@@ -509,12 +509,16 @@
   static const uint8_t locationUpdateId = 0x00;           //LoRa packet contains location info from a beacon
   static const uint8_t deviceStatusUpdateId = 0x10;       //LoRa packet contains device info, shared infrequently
   static const uint8_t deviceIcInfoId = 0x11;             //LoRa packet contains IC game info, shared very infrequently
-  
+
+  /*
   #if defined(SUPPORT_LORA)
     uint8_t typeOfLastLoRaUpdate = deviceIcInfoId;      //Use to cycle through update types
   #endif
+  */
   #if defined(SUPPORT_ESPNOW)
+    /*
     uint8_t typeOfLastEspNowUpdate = deviceIcInfoId;      //Use to cycle through update types
+    */
   #endif
   #if defined(SUPPORT_TREACLE)
     uint32_t lastTreacleDeviceInfoSendTime = 0;       //Track the last time of updates
@@ -530,6 +534,7 @@
  * 
  */
 #if defined(SUPPORT_ESPNOW)
+  /*
   extern "C" {
     #include <esp_now.h>
     //#include <esp_wifi.h> // only for esp_wifi_set_channel()
@@ -563,12 +568,14 @@
   uint32_t espNowDeviceInfoInterval = 60000;    // Send info every 60s
   uint32_t lastEspNowLocationSendTime = 0;
   uint8_t broadcastMacAddress[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+  */
 #endif
 /*
  *
  *  LoRa support
  *
  */
+/*
 #if defined(SUPPORT_LORA)
   #include <LoRa.h>
   //#define LORA_ASYNC_METHODS //Uncomment to use callbacks, rather than polling for LoRa events
@@ -633,6 +640,7 @@
     float rssiAttenuationPerimeter = 10;
   #endif
 #endif
+*/
 /*
  * 
  * Treacle multi-protocol wireless library
@@ -914,6 +922,7 @@ static const uint16_t loggingYieldTime = 100;
     uint8_t majorVersion = 0; //Software version
     uint8_t minorVersion = 0;
     uint8_t patchVersion = 0;
+    /*
     #if defined(SUPPORT_ESPNOW)
       bool espNowOnline = false;
       uint32_t lastEspNowLocationUpdate = 0;  // Used to track packet loss
@@ -926,6 +935,7 @@ static const uint16_t loggingYieldTime = 100;
       uint16_t nextLoRaLocationUpdate = 60E3;  // Used to track packet loss
       uint16_t loRaUpdateHistory = 0x0000;  // Rolling bitmask of packets received/not received based on expected arrival times
     #endif
+    */
     double latitude = 0;  //Location info
     double longitude = 0;
     float course = 0;
@@ -935,9 +945,11 @@ static const uint16_t loggingYieldTime = 100;
     float courseTo = 0;
     float smoothedSpeed = 1;
     bool moving = true;
+    /*
     #if defined(SUPPORT_LORA)
       float lastLoRaRssi = 0; // Can also be used to estimate distance
     #endif
+    */
     uint8_t numberOfStartingHits = 0;
     uint8_t numberOfStartingStunHits = 0;
     uint8_t currentNumberOfHits = 0;

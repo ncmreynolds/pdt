@@ -176,12 +176,14 @@
             ledOff(0);
           #endif
         }
+        /*
         #if defined(SUPPORT_LORA)
           device[0].lastLoRaLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
         #endif
         #if defined(SUPPORT_ESPNOW)
           device[0].lastEspNowLocationUpdate = millis(); //Record when the last location update happened, so GPS updates are more resilient than pure isValid test
         #endif
+        */
         if(device[0].latitude != gps.location.lat())
         {
           device[0].latitude = gps.location.lat();
@@ -436,14 +438,16 @@
       {
         return false;
       }
+      /*
       #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix == true && (device[1].espNowOnline || device[1].loRaOnline) && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_ESPNOW)
       else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].espNowOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix == true && device[1].loRaOnline && rangeToIndicate(1) < maximumEffectiveRange)
-      #elif defined(SUPPORT_TREACLE)
-      else if(numberOfDevices == 2 && device[1].hasGpsFix == true && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
+      */
+      #if defined(SUPPORT_TREACLE)
+        if(numberOfDevices == 2 && device[1].hasGpsFix == true && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
       #endif
       {
         if(currentlyTrackedBeacon != 1)  //Only assign this once
@@ -460,6 +464,7 @@
         uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
         for(uint8_t index = 1; index < numberOfDevices; index++)
         {
+          /*
           #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && (device[index].espNowOnline || device[index].loRaOnline) && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           #elif defined(SUPPORT_ESPNOW)
@@ -467,6 +472,8 @@
           #elif defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].loRaOnline && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           #endif
+          */
+          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           {
             nearestBeacon = index;
           }
@@ -488,14 +495,16 @@
       {
         return false;
       }
+      /*
       #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix && (device[1].espNowOnline || device[1].loRaOnline) && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_ESPNOW)
       else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].espNowOnline && rangeToIndicate(1) < maximumEffectiveRange)
       #elif defined(SUPPORT_LORA)
       else if(numberOfDevices == 2 && device[1].hasGpsFix && device[1].loRaOnline && rangeToIndicate(1) < maximumEffectiveRange)
-      #elif defined(SUPPORT_TREACLE)
-      else if(numberOfDevices == 2 && device[1].hasGpsFix && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
+      */
+      #if defined(SUPPORT_TREACLE)
+        if(numberOfDevices == 2 && device[1].hasGpsFix && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
       #endif
       {
         if(currentlyTrackedBeacon != 1)
@@ -512,6 +521,7 @@
         uint8_t furthestBeacon = maximumNumberOfDevices;
         for(uint8_t index = 1; index < numberOfDevices; index++)
         {
+          /*
           #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && (device[index].espNowOnline || device[index].loRaOnline) && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           #elif defined(SUPPORT_ESPNOW)
@@ -519,6 +529,8 @@
           #elif defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && device[index].loRaOnline && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           #endif
+          */
+          if((device[index].typeOfDevice & 0x01) == 0x00 && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           {
             furthestBeacon = index;
           }
@@ -575,6 +587,7 @@
       distanceToClosestTracker = effectivelyUnreachable;
       for(uint8_t index = 1; index < numberOfDevices; index++)
       {
+        /*
         #if defined(SUPPORT_ESPNOW) && defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasGpsFix == true && (device[index].espNowOnline == true || device[index].loRaOnline == true))
         #elif defined(SUPPORT_ESPNOW)
@@ -582,6 +595,8 @@
         #elif defined(SUPPORT_LORA)
           if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasGpsFix == true && device[index].loRaOnline == true)
         #endif
+        */
+        if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasGpsFix == true)
         {
           device[index].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
           device[index].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
