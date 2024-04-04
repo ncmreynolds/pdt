@@ -47,6 +47,7 @@
 #define SERIAL_LOG
 
 #define USE_LITTLEFS
+#define TREACLE_SEND_FAST
 
 #if HARDWARE_VARIANT == C3PDT
   #define ACT_AS_TRACKER
@@ -110,18 +111,18 @@
   #define SUPPORT_WIFI
   #define SUPPORT_GPS
   #define SUPPORT_LVGL
+  #define LVGL_MANAGE_BACKLIGHT
   #define LVGL_SUPPORT_HOME_TAB
-  #define LVGL_SUPPORT_GPS_TAB
+  //#define LVGL_SUPPORT_MAP_TAB
   #define LVGL_SUPPORT_SCAN_INFO_TAB
-  #define LVGL_SUPPORT_MAP_TAB
+  #define LVGL_SUPPORT_GPS_TAB
   #define LVGL_SUPPORT_SETTINGS_TAB
   #define SUPPORT_TOUCHSCREEN
   #define SUPPORT_TOUCHSCREEN_BITBANG //Use bitbang code
-  #define LVGL_MANAGE_BACKLIGHT
   #define ENABLE_LOCAL_WEBSERVER
   //#define DEBUG_GPS
-  //#define DEBUG_BEACON_SELECTION
-  //#define DEBUG_TREACLE
+  #define DEBUG_BEACON_SELECTION
+  #define DEBUG_TREACLE
   #define DEBUG_UPDATES
   //#define DEBUG_LVGL
 #endif
@@ -512,14 +513,15 @@ uint32_t lastTreacleDeviceInfoSendTime = 0;       //Track the last time of updat
 uint32_t treacleDeviceInfoInterval = 10E3;        //Send device info every 60s
 uint8_t typeOfLastTreacleUpdate = 0;              //Use to cycle through update types
 //ESP-Now
-bool espNowEnabled =  true;
+bool espNowEnabled =  false;
 const char string_espNowEnabled[] PROGMEM = "espNowEnabled";
 uint8_t espNowPhyMode =  0; //0 = BGN, 1 = B, 2 = LR
 const char string_espNowPhyMode[] PROGMEM = "espNowPhyMode";
 uint32_t espNowTickInterval = 10e3;
 const char string_espNowTickInterval[] PROGMEM = "espNowTickInterval";
+bool espNowInitialised =  false;
 //LoRa
-bool loRaEnabled  = true;
+bool loRaEnabled  = false;
 const char string_loRaEnabled[] PROGMEM = "loRaEnabled";
 uint32_t loRaTickInterval = 45e3;
 const char string_loRaTickInterval[] PROGMEM = "loRaTickInterval";
@@ -534,6 +536,7 @@ const char string_loRaSpreadingFactor[] PROGMEM = "loRaSpreadingFactor";
 uint32_t loRaSignalBandwidth = 62.5E3;
 const char string_loRaSignalBandwidth[] PROGMEM = "loRaSignalBandwidth";
 uint32_t validLoRaSignalBandwidth[] = {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000};
+bool loRaInitialised = false;
 //MQTT
 //COBS
 /*
@@ -935,9 +938,15 @@ static const uint16_t loggingYieldTime = 100;
   static lv_obj_t * tabview;
   uint8_t tabHeight = 40;
 
+  #if defined(LVGL_SUPPORT_HOME_TAB) || defined(LVGL_SUPPORT_GPS_TAB)
+    uint32_t lastLvglTabUpdate = 0;
+    uint32_t lvglTabUpdateInterval = 500;
+  #endif
+
   //Home tab
   #if defined(LVGL_SUPPORT_HOME_TAB)
     bool enableHomeTab = true;
+    bool homeTabInitialised = false;
     const char string_enableHomeTab[] PROGMEM = "enableHomeTab";
     lv_obj_t * homeTab = nullptr;
     static const char homeTabLabel[] = "Home";
@@ -984,11 +993,10 @@ static const uint16_t loggingYieldTime = 100;
   //GPS tab
   #if defined(LVGL_SUPPORT_GPS_TAB)
     bool enableGpsTab = true;
+    bool gpsTabInitialised = false;
     const char string_enableGpsTab[] PROGMEM = "enableGpsTab";
     lv_obj_t * gpsTab = nullptr;
     static const char gpsTabLabel[] = "GPS";
-    uint32_t lastLvglTabUpdate = 0;
-    uint32_t lvglTabUpdateInterval = 500;
     lv_obj_t * gpsTabtable = nullptr;
     static const char statusTableLabel_0[] PROGMEM = "Date";
     static const char statusTableLabel_1[] PROGMEM = "Time";

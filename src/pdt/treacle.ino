@@ -50,40 +50,49 @@ void setupTreacle()
       localLogLn(device[0].id);
     }
   #endif
-  if(treacle.espNowInitialised())
+  if(treacleIntialised)
   {
-    treacleDeviceInfoInterval = 10E3;
-    treacle.setEspNowTickInterval(espNowTickInterval);
-  }
-  else if(treacle.loRaInitialised())
-  {
-    treacleDeviceInfoInterval = 30E3;
-    treacle.setLoRaTickInterval(loRaTickInterval);
-  }
-  if(treacle.espNowInitialised())
-  {
-    if(espNowPhyMode == 1)
+    if(treacle.espNowInitialised())
     {
-      localLog(F("Enabling ESP-Now 11B mode:"));
-      if(treacle.enableEspNow11bMode())
+      espNowInitialised = true;
+      treacleDeviceInfoInterval = 10E3;
+      treacle.setEspNowTickInterval(espNowTickInterval);
+      if(treacle.loRaInitialised())
       {
-        localLogLn(F("OK"));
-      }
-      else
-      {
-        localLogLn(F("failed"));
+        loRaInitialised = true;
       }
     }
-    else if(espNowPhyMode == 2)
+    else if(treacle.loRaInitialised())
     {
-      localLog(F("Enabling ESP-Now LR mode:"));
-      if(treacle.enableEspNowLrMode())
+      loRaInitialised = true;
+      treacleDeviceInfoInterval = 30E3;
+      treacle.setLoRaTickInterval(loRaTickInterval);
+    }
+    if(espNowInitialised)
+    {
+      if(espNowPhyMode == 1)
       {
-        localLogLn(F("OK"));
+        localLog(F("Enabling ESP-Now 11B mode:"));
+        if(treacle.enableEspNow11bMode())
+        {
+          localLogLn(F("OK"));
+        }
+        else
+        {
+          localLogLn(F("failed"));
+        }
       }
-      else
+      else if(espNowPhyMode == 2)
       {
-        localLogLn(F("failed"));
+        localLog(F("Enabling ESP-Now LR mode:"));
+        if(treacle.enableEspNowLrMode())
+        {
+          localLogLn(F("OK"));
+        }
+        else
+        {
+          localLogLn(F("failed"));
+        }
       }
     }
   }
@@ -102,25 +111,28 @@ void manageTreacle()
       device[0].id = treacle.getNodeId();
       saveConfigurationSoon = millis();
     }
-    if(typeOfLastTreacleUpdate%6 == 0)       //Every 6th update
+    if(treacleIntialised)
     {
-      if(shareDeviceInfo())
+      if(typeOfLastTreacleUpdate%6 == 0)       //Every 6th update
       {
-        typeOfLastTreacleUpdate++;
+        if(shareDeviceInfo())
+        {
+          typeOfLastTreacleUpdate++;
+        }
       }
-    }
-    else if(typeOfLastTreacleUpdate%3 == 0)  //Every 3rd update
-    {
-      if(shareIcInfo())
+      else if(typeOfLastTreacleUpdate%3 == 0)  //Every 3rd update
       {
-        typeOfLastTreacleUpdate++;
+        if(shareIcInfo())
+        {
+          typeOfLastTreacleUpdate++;
+        }
       }
-    }
-    else                                     //All other updates
-    {
-      if(shareLocation())
+      else                                     //All other updates
       {
-        typeOfLastTreacleUpdate++;
+        if(shareLocation())
+        {
+          typeOfLastTreacleUpdate++;
+        }
       }
     }
     lastTreacleDeviceInfoSendTime = millis();
@@ -139,7 +151,11 @@ bool shareLocation()
   packer.pack(device[0].hdop);
   if(packer.size() < treacle.maxPayloadSize())
   {
+    #if defined(TREACLE_SEND_FAST)
     if(treacle.sendMessage(packer.data(), packer.size()))
+    #else
+    if(treacle.queueMessage(packer.data(), packer.size()))
+    #endif
     {
       #if defined(SERIAL_DEBUG) && defined(DEBUG_UPDATES)
         if(waitForBufferSpace(80))
@@ -178,7 +194,11 @@ bool shareDeviceInfo()
   #endif
   if(packer.size() < treacle.maxPayloadSize())
   {
+    #if defined(TREACLE_SEND_FAST)
     if(treacle.sendMessage(packer.data(), packer.size()))
+    #else
+    if(treacle.queueMessage(packer.data(), packer.size()))
+    #endif
     {  
       #if defined(SERIAL_DEBUG) && defined(DEBUG_UPDATES)
         if(waitForBufferSpace(80))
@@ -229,7 +249,11 @@ bool shareIcInfo()
     packer.pack(device[0].icDescription);
     if(packer.size() < treacle.maxPayloadSize())
     {
+      #if defined(TREACLE_SEND_FAST)
       if(treacle.sendMessage(packer.data(), packer.size()))
+      #else
+      if(treacle.queueMessage(packer.data(), packer.size()))
+      #endif
       {  
         #if defined(SERIAL_DEBUG) && defined(DEBUG_UPDATES)
           if(waitForBufferSpace(80))

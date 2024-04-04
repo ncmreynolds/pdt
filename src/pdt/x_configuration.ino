@@ -107,11 +107,21 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration[string_minimumBrightnessLevel] = minimumBrightnessLevel;
     configuration[string_maximumBrightnessLevel] = maximumBrightnessLevel;
     configuration[string_screenRotation] = screenRotation;
-    configuration[string_enableHomeTab] = enableHomeTab;
-    configuration[string_enableMapTab] = enableMapTab;
-    configuration[string_enableInfoTab] = enableInfoTab;
-    configuration[string_enableGpsTab] = enableGpsTab;
-    configuration[string_enableSettingsTab] = enableSettingsTab;
+    #if defined(LVGL_SUPPORT_HOME_TAB)
+      configuration[string_enableHomeTab] = enableHomeTab;
+    #endif
+    #if defined(LVGL_SUPPORT_MAP_TAB)
+      configuration[string_enableMapTab] = enableMapTab;
+    #endif
+    #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+      configuration[string_enableInfoTab] = enableInfoTab;
+    #endif
+    #if defined(LVGL_SUPPORT_GPS_TAB)
+      configuration[string_enableGpsTab] = enableGpsTab;
+    #endif
+    #if defined(LVGL_SUPPORT_SETTINGS_TAB)
+      configuration[string_enableSettingsTab] = enableSettingsTab;
+    #endif
     #if defined(SUPPORT_TOUCHSCREEN)
       configuration[string_touchScreenMinimumX] = touchScreenMinimumX;
       configuration[string_touchScreenMaximumX] = touchScreenMaximumX;
@@ -245,11 +255,11 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     #endif
     device[0].id = configuration[string_id] | 0;
     treacleEncryptionEnabled = configuration[string_treacleEncryptionEnabled] | false;
-    espNowEnabled = configuration[string_espNowEnabled] | true;
+    espNowEnabled = configuration[string_espNowEnabled] | false;
     espNowPhyMode = configuration[string_espNowPhyMode] | 0;
     espNowTickInterval = configuration[string_espNowTickInterval] | 10e3;
     loRaTickInterval = configuration[string_loRaTickInterval] | 45e3;
-    loRaEnabled = configuration[string_loRaEnabled] | true;
+    loRaEnabled = configuration[string_loRaEnabled] | false;
     loRaFrequency = configuration[string_loRaFrequency] | 868E6;
     loRaTxPower = configuration[string_loRaTxPower] | 17;
     loRaRxGain = configuration[string_loRaRxGain] | 0;
@@ -403,11 +413,21 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       minimumBrightnessLevel = configuration[string_minimumBrightnessLevel] | absoluteMinimumBrightnessLevel;
       maximumBrightnessLevel = configuration[string_maximumBrightnessLevel] | absoluteMaximumBrightnessLevel;
       screenRotation = configuration[string_screenRotation];
-      enableHomeTab = configuration[string_enableHomeTab] | true;
-      enableMapTab = configuration[string_enableMapTab] | true;
-      enableInfoTab = configuration[string_enableInfoTab] | true;
-      enableGpsTab = configuration[string_enableGpsTab] | true;
-      enableSettingsTab = configuration[string_enableSettingsTab] | true;
+      #if defined(LVGL_SUPPORT_HOME_TAB)
+        enableHomeTab = configuration[string_enableHomeTab] | true;
+      #endif
+      #if defined(LVGL_SUPPORT_MAP_TAB)
+        enableMapTab = configuration[string_enableMapTab] | true;
+      #endif
+      #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+        enableInfoTab = configuration[string_enableInfoTab] | true;
+      #endif
+      #if defined(LVGL_SUPPORT_GPS_TAB)
+        enableGpsTab = configuration[string_enableGpsTab] | true;
+      #endif
+      #if defined(LVGL_SUPPORT_SETTINGS_TAB)
+        enableSettingsTab = configuration[string_enableSettingsTab] | true;
+      #endif
     #endif
     #if defined(SUPPORT_HACKING)
       gameLength = configuration[string_gameLength] | 10 ;
@@ -684,11 +704,21 @@ void printConfiguration()
     localLog(string_minimumBrightnessLevel); localLog(string_colonSpace); localLogLn(minimumBrightnessLevel);
     localLog(string_maximumBrightnessLevel); localLog(string_colonSpace); localLogLn(maximumBrightnessLevel);
     localLog(string_screenRotation); localLog(string_colonSpace); localLogLn(screenRotation);
-    localLog(string_enableHomeTab); localLog(string_colonSpace); localLogLn(enableHomeTab);
-    localLog(string_enableMapTab); localLog(string_colonSpace); localLogLn(enableMapTab);
-    localLog(string_enableInfoTab); localLog(string_colonSpace); localLogLn(enableInfoTab);
-    localLog(string_enableGpsTab); localLog(string_colonSpace); localLogLn(enableGpsTab);
-    localLog(string_enableSettingsTab); localLog(string_colonSpace); localLogLn(enableSettingsTab);
+    #if defined(LVGL_SUPPORT_HOME_TAB)
+      localLog(string_enableHomeTab); localLog(string_colonSpace); localLogLn(enableHomeTab);
+    #endif
+    #if defined(LVGL_SUPPORT_MAP_TAB)
+      localLog(string_enableMapTab); localLog(string_colonSpace); localLogLn(enableMapTab);
+    #endif
+    #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+      localLog(string_enableInfoTab); localLog(string_colonSpace); localLogLn(enableInfoTab);
+    #endif
+    #if defined(LVGL_SUPPORT_GPS_TAB)
+      localLog(string_enableGpsTab); localLog(string_colonSpace); localLogLn(enableGpsTab);
+    #endif
+    #if defined(LVGL_SUPPORT_SETTINGS_TAB)
+      localLog(string_enableSettingsTab); localLog(string_colonSpace); localLogLn(enableSettingsTab);
+    #endif
   #endif
   localLog(string_loggingBufferSize); localLog(string_colonSpace); localLogLn(loggingBufferSize);
   localLog(string_logFlushThreshold); localLog(string_colonSpace); localLogLn(logFlushThreshold);

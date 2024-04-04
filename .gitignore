@@ -32,3 +32,4 @@
 *.app
 src/pdt/credentials.h
 src/pdt/pdt.ino.esp32c3.bin
+*.tmp

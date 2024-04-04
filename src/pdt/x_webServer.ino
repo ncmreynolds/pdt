@@ -123,7 +123,7 @@
               }
             #endif
             AsyncResponseStream *response = request->beginResponseStream("text/html");
-            addPageHeader(response, 90, nullptr);
+            addPageHeader(response, 0, nullptr);
             //Top of page buttons
             // ROW 1
             response->printf_P(h2printfFormatString, PSTR("Info"));
@@ -142,6 +142,11 @@
             response->print(startFourColumns);
             response->printf_P(buttonPrintfFormatString, PSTR("icInfo"), PSTR("IC Info"));
             response->print(endColumn);
+            #if defined(SUPPORT_LVGL)
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("gui"), PSTR("Gui"));
+              response->print(endColumn);
+            #endif
             response->print(startFourColumns);
             response->printf_P(buttonPrintfFormatString, PSTR("tracking"), PSTR("Tracking"));
             response->print(endColumn);
@@ -164,11 +169,6 @@
             response->print(endRow);
             // ROW 4
             response->print(startRow);
-            #if defined(SUPPORT_LVGL)
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("gui"), PSTR("Gui"));
-              response->print(endColumn);
-            #endif
             #if defined(SUPPORT_FTM)
               response->print(startFourColumns);
               response->printf_P(buttonPrintfFormatString, PSTR("ftm"), PSTR("FTM"));
@@ -411,7 +411,7 @@
               }
             #endif
             AsyncResponseStream *response = request->beginResponseStream("text/html");
-            addPageHeader(response, 90, nullptr);
+            addPageHeader(response, 0, nullptr);
             //General
             response->printf_P(h2printfEightColumnsFormatString, PSTR("IC Info"));
             response->print(startFourColumns);
@@ -469,7 +469,7 @@
                 }
               #endif
               AsyncResponseStream *response = request->beginResponseStream("text/html");
-              addPageHeader(response, 90, nullptr);
+              addPageHeader(response, 0, nullptr);
               response->printf_P(h2printfEightColumnsFormatString, PSTR("WiFi"));
               response->print(startFourColumns);
               response->printf_P(buttonPrintfFormatString, PSTR("configureWifi"), labelConfigure);
@@ -541,7 +541,7 @@
               }
             #endif
             AsyncResponseStream *response = request->beginResponseStream("text/html");
-            addPageHeader(response, 90, nullptr);
+            addPageHeader(response, 0, nullptr);
             response->printf_P(h2printfEightColumnsFormatString, PSTR("Tracking"));
             response->print(startFourColumns);
             response->printf_P(buttonPrintfFormatString, PSTR("configureTracking"), labelConfigure);
@@ -601,7 +601,7 @@
                 }
               #endif
               AsyncResponseStream *response = request->beginResponseStream("text/html");
-              addPageHeader(response, 90, nullptr);
+              addPageHeader(response, 0, nullptr);
               response->printf_P(h2printfEightColumnsFormatString, PSTR("GUI"));
               response->print(startFourColumns);
               response->printf_P(buttonPrintfFormatString, PSTR("configureGui"), labelConfigure);
@@ -668,7 +668,7 @@
               if(treacle.espNowEnabled() == true)
               {
                 response->print(F("<ul>"));
-                if(treacle.espNowInitialised() == true)
+                if(espNowInitialised == true)
                 {
                   if(espNowPhyMode == 1)
                   {
@@ -755,7 +755,7 @@
                 }
               #endif
               AsyncResponseStream *response = request->beginResponseStream("text/html");
-              addPageHeader(response, 90, nullptr);
+              addPageHeader(response, 0, nullptr);
               response->printf_P(h2printfFormatString, PSTR("FTM (time-of-flight) measurements"));
               response->print(ulStart);
               response->printf_P(liStringPrintfFormatString, PSTR("FTM beacon"), (ftmEnabled) ? labelOn : labelOff);
@@ -870,7 +870,7 @@
                 }
               #endif
               AsyncResponseStream *response = request->beginResponseStream("text/html");
-              addPageHeader(response, 90, nullptr);
+              addPageHeader(response, 0, nullptr);
               response->printf_P(h2printfEightColumnsFormatString, PSTR("Sensor"));
               response->printf_P(buttonPrintfFormatString, PSTR("configureSensor"), labelConfigure);
               response->print(endColumn);
@@ -951,7 +951,7 @@
                 }
               #endif
               AsyncResponseStream *response = request->beginResponseStream("text/html");
-              addPageHeader(response, 90, nullptr);
+              addPageHeader(response, 0, nullptr);
               response->printf_P(h2printfFormatString, PSTR("Game"));
               response->print(startRow);
               response->print(startFourColumns);
@@ -990,7 +990,7 @@
               }
             #endif
             AsyncResponseStream *response = request->beginResponseStream("text/html");
-            addPageHeader(response, 90, nullptr);
+            addPageHeader(response, 0, nullptr);
             response->printf_P(h2printfEightColumnsFormatString, PSTR("Logging"));
             response->print(startFourColumns);
             response->printf_P(buttonPrintfFormatString, PSTR("configureLogging"), labelConfigure);
@@ -1032,11 +1032,13 @@
             }
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 0, nullptr);
+            /*
             response->print(startRow);
             response->print(startFourColumns);
             response->print(backButton);
             response->print(endColumn);
             response->print(endRow);
+            */
             response->printf_P(h2printfFormatString, PSTR("Log files"));
             response->print(F("<table class=\"u-full-width\"><thead><tr><th>File</th><th>Size</th></tr></thead><tbody>"));
             #if defined(USE_SPIFFS)
@@ -2387,55 +2389,67 @@
               response->print(startEightColumns);
               response->print(F("&nbsp;"));
               response->print(endColumn);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("touchscreen"), PSTR("Reset touchscreen"));
-              response->print(endColumn);
+              #if defined(SUPPORT_TOUCHSCREEN)
+                response->print(startFourColumns);
+                response->printf_P(buttonPrintfFormatString, PSTR("touchscreen"), PSTR("Reset touchscreen"));
+                response->print(endColumn);
+              #endif
               response->print(endRow);
               response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_enableHomeTab, PSTR("Home tab"));
-              response->printf_P(selectPrintfFormatString, string_enableHomeTab, string_enableHomeTab);
-              response->print(selectValueTrue);response->print(enableHomeTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(enableHomeTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(endRow);
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_enableMapTab, PSTR("Map tab"));
-              response->printf_P(selectPrintfFormatString, string_enableMapTab, string_enableMapTab);
-              response->print(selectValueTrue);response->print(enableMapTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(enableMapTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(endRow);
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_enableInfoTab, PSTR("Info tab"));
-              response->printf_P(selectPrintfFormatString, string_enableInfoTab, string_enableInfoTab);
-              response->print(selectValueTrue);response->print(enableInfoTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(enableInfoTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(endRow);
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_enableGpsTab, PSTR("GPS tab"));
-              response->printf_P(selectPrintfFormatString, string_enableGpsTab, string_enableGpsTab);
-              response->print(selectValueTrue);response->print(enableGpsTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(enableGpsTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(endRow);
-              response->print(startRow);
-              response->print(startTwelveColumns);
-              response->printf_P(labelForPrintfFormatString, string_enableSettingsTab, PSTR("Settings tab"));
-              response->printf_P(selectPrintfFormatString, string_enableSettingsTab, string_enableSettingsTab);
-              response->print(selectValueTrue);response->print(enableSettingsTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
-              response->print(selectValueFalse);response->print(enableSettingsTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
-              response->print(endSelect);
-              response->print(endColumn);
-              response->print(endRow);
+              #if defined(LVGL_SUPPORT_HOME_TAB)
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_enableHomeTab, PSTR("Home tab"));
+                response->printf_P(selectPrintfFormatString, string_enableHomeTab, string_enableHomeTab);
+                response->print(selectValueTrue);response->print(enableHomeTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(enableHomeTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+              #endif
+              #if defined(LVGL_SUPPORT_MAP_TAB)
+                response->print(startRow);
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_enableMapTab, PSTR("Map tab"));
+                response->printf_P(selectPrintfFormatString, string_enableMapTab, string_enableMapTab);
+                response->print(selectValueTrue);response->print(enableMapTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(enableMapTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+              #endif
+              #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+                response->print(startRow);
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_enableInfoTab, PSTR("Info tab"));
+                response->printf_P(selectPrintfFormatString, string_enableInfoTab, string_enableInfoTab);
+                response->print(selectValueTrue);response->print(enableInfoTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(enableInfoTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+              #endif
+              #if defined(LVGL_SUPPORT_GPS_TAB)
+                response->print(startRow);
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_enableGpsTab, PSTR("GPS tab"));
+                response->printf_P(selectPrintfFormatString, string_enableGpsTab, string_enableGpsTab);
+                response->print(selectValueTrue);response->print(enableGpsTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(enableGpsTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+              #endif
+              #if defined(LVGL_SUPPORT_SETTINGS_TAB)
+                response->print(startRow);
+                response->print(startTwelveColumns);
+                response->printf_P(labelForPrintfFormatString, string_enableSettingsTab, PSTR("Settings tab"));
+                response->printf_P(selectPrintfFormatString, string_enableSettingsTab, string_enableSettingsTab);
+                response->print(selectValueTrue);response->print(enableSettingsTab == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+                response->print(selectValueFalse);response->print(enableSettingsTab == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+                response->print(endSelect);
+                response->print(endColumn);
+                response->print(endRow);
+              #endif
               //End of form
               response->print(formEnd);
               addPageFooter(response);
@@ -2466,101 +2480,111 @@
             #endif
             //Read the submitted configuration
             bool lvglConfigurationChanged = false;
-            if(request->hasParam(string_enableHomeTab, true))
-            {
-              if(request->getParam(string_enableHomeTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            #if defined(LVGL_SUPPORT_HOME_TAB)
+              if(request->hasParam(string_enableHomeTab, true))
               {
-                if(enableHomeTab == false)
+                if(request->getParam(string_enableHomeTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
-                  enableHomeTab = true;
-                  lvglConfigurationChanged = true;
+                  if(enableHomeTab == false)
+                  {
+                    enableHomeTab = true;
+                    lvglConfigurationChanged = true;
+                  }
+                }
+                else
+                {
+                  if(enableHomeTab == true)
+                  {
+                    enableHomeTab = false;
+                    lvglConfigurationChanged = true;
+                  }
                 }
               }
-              else
+            #endif
+            #if defined(LVGL_SUPPORT_MAP_TAB)
+              if(request->hasParam(string_enableMapTab, true))
               {
-                if(enableHomeTab == true)
+                if(request->getParam(string_enableMapTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
-                  enableHomeTab = false;
-                  lvglConfigurationChanged = true;
+                  if(enableMapTab == false)
+                  {
+                    enableMapTab = true;
+                    lvglConfigurationChanged = true;
+                  }
+                }
+                else
+                {
+                  if(enableMapTab == true)
+                  {
+                    enableMapTab = false;
+                    lvglConfigurationChanged = true;
+                  }
                 }
               }
-            }
-            if(request->hasParam(string_enableMapTab, true))
-            {
-              if(request->getParam(string_enableMapTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            #endif
+            #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
+              if(request->hasParam(string_enableInfoTab, true))
               {
-                if(enableMapTab == false)
+                if(request->getParam(string_enableInfoTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
-                  enableMapTab = true;
-                  lvglConfigurationChanged = true;
+                  if(enableInfoTab == false)
+                  {
+                    enableInfoTab = true;
+                    lvglConfigurationChanged = true;
+                  }
+                }
+                else
+                {
+                  if(enableInfoTab == true)
+                  {
+                    enableInfoTab = false;
+                    lvglConfigurationChanged = true;
+                  }
                 }
               }
-              else
+            #endif
+            #if defined(LVGL_SUPPORT_GPS_TAB)
+              if(request->hasParam(string_enableGpsTab, true))
               {
-                if(enableMapTab == true)
+                if(request->getParam(string_enableGpsTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
-                  enableMapTab = false;
-                  lvglConfigurationChanged = true;
+                  if(enableGpsTab == false)
+                  {
+                    enableGpsTab = true;
+                    lvglConfigurationChanged = true;
+                  }
+                }
+                else
+                {
+                  if(enableGpsTab == true)
+                  {
+                    enableGpsTab = false;
+                    lvglConfigurationChanged = true;
+                  }
                 }
               }
-            }
-            if(request->hasParam(string_enableInfoTab, true))
-            {
-              if(request->getParam(string_enableInfoTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            #endif
+            #if defined(LVGL_SUPPORT_SETTINGS_TAB)
+              if(request->hasParam(string_enableSettingsTab, true))
               {
-                if(enableInfoTab == false)
+                if(request->getParam(string_enableSettingsTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
-                  enableInfoTab = true;
-                  lvglConfigurationChanged = true;
+                  if(enableSettingsTab == false)
+                  {
+                    enableSettingsTab = true;
+                    lvglConfigurationChanged = true;
+                  }
+                }
+                else
+                {
+                  if(enableSettingsTab == true)
+                  {
+                    enableSettingsTab = false;
+                    lvglConfigurationChanged = true;
+                  }
                 }
               }
-              else
-              {
-                if(enableInfoTab == true)
-                {
-                  enableInfoTab = false;
-                  lvglConfigurationChanged = true;
-                }
-              }
-            }
-            if(request->hasParam(string_enableGpsTab, true))
-            {
-              if(request->getParam(string_enableGpsTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                if(enableGpsTab == false)
-                {
-                  enableGpsTab = true;
-                  lvglConfigurationChanged = true;
-                }
-              }
-              else
-              {
-                if(enableGpsTab == true)
-                {
-                  enableGpsTab = false;
-                  lvglConfigurationChanged = true;
-                }
-              }
-            }
-            if(request->hasParam(string_enableSettingsTab, true))
-            {
-              if(request->getParam(string_enableSettingsTab, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                if(enableSettingsTab == false)
-                {
-                  enableSettingsTab = true;
-                  lvglConfigurationChanged = true;
-                }
-              }
-              else
-              {
-                if(enableSettingsTab == true)
-                {
-                  enableSettingsTab = false;
-                  lvglConfigurationChanged = true;
-                }
-              }
-            }
+            #endif
             if(lvglConfigurationChanged == true)
             {
               saveConfigurationSoon = millis();
@@ -3024,9 +3048,11 @@
               response->print(F("<form method=\"POST\" action=\"/update\" enctype=\"multipart/form-data\">"));
               response->print(F("<input class=\"button-primary\" type=\"file\" name=\"update\"><br />"));
               response->print(startRow);
+              /*
               response->print(startFourColumns);
               response->print(backButton);
               response->print(endColumn);
+              */
               response->print(startFourColumns);
               repsonse->print(F("<input class=\"button-primary\" type=\"submit\" value=\"Update\" style=\"width: 100%;\">"));
               response->print(endColumn);
@@ -3080,11 +3106,13 @@
                   response->print(startRow);
                   response->print(F("<p>The software update failed!</p>"));
                   response->print(endRow);
+                  /*
                   response->print(startRow);
                   response->print(startFourColumns);
                   response->print(backButton);
                   response->print(endColumn);
                   response->print(endRow);
+                  */
                   addPageFooter(response);
                   //Send response
                   request->send(response);
@@ -3179,11 +3207,13 @@
             addPageHeader(response, 20, "/admin"); //This sends the page to / after 20s
             response->printf_P(h2printfFormatString, PSTR("Software update successful"));
             response->print(F("<p>The software update was successful and this node will restart in roughly 10 seconds.</p>"));
+            /*
             response->print(startRow);
             response->print(startFourColumns);
             response->print(backButton);
             response->print(endColumn);
             response->print(endRow);
+            */
             addPageFooter(response);
             //Send response
             request->send(response);
@@ -3639,11 +3669,13 @@
             addPageHeader(response, 5, "/admin");
             response->printf_P(h2printfFormatString, PSTR("Touchscreen"));
             //Top of page buttons
+            /*
             response->print(startRow);
             response->print(startFourColumns);
             response->print(backButton);
             response->print(endColumn);
             response->print(endRow);
+            */
             response->print(startRow);
             response->print(startTwelveColumns);
             response->print(F("Touchscreen settings wiped"));
@@ -3736,11 +3768,13 @@
             addPageHeader(response, 5, "/admin");
             response->printf_P(h2printfFormatString, PSTR("Restart"));
             //Top of page buttons
+            /*
             response->print(startRow);
             response->print(startFourColumns);
             response->print(backButton);
             response->print(endColumn);
             response->print(endRow);
+            */
             response->print(startRow);
             response->print(startTwelveColumns);
             response->print(F("<p>This node is restarting in 10s</p>"));
@@ -3827,11 +3861,13 @@
           addPageHeader(response, 5, "/admin");
           response->printf_P(h2printfFormatString, PSTR("Wipe"));
           //Top of page buttons
+          /*
           response->print(startRow);
           response->print(startTwelveColumns);
           response->print(backButton);
           response->print(endColumn);
           response->print(endRow);
+          */
           response->print(startRow);
           response->print(startTwelveColumns);
           response->print(F("<p>This node is restarting in 10s</p>"));
@@ -3864,12 +3900,14 @@
             }
           #endif
           AsyncResponseStream *response = request->beginResponseStream("text/html");
-          addPageHeader(response, 90, "/devices");
+          addPageHeader(response, 90, "/listDevices");
           //Top of page buttons
+          /*
           response->print(startRow);
           response->print(startFourColumns);
           response->print(backButton);
           response->print(endColumn);
+          */
           #if defined(ACT_AS_TRACKER)
             response->print(startFourColumns);
             response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\" style=\"width: 100%;\"></a>"));

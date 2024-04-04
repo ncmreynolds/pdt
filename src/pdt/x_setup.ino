@@ -82,8 +82,9 @@ void setup() {
     setupTreacle();
     setupDisplay();  //Needs to be after Treacle!
   #elif defined(SUPPORT_LVGL)
-    setupLvgl();    //Need to be before Treacle!
+    setupLvgl();     //Need to be before Treacle!
     setupTreacle();
+    createLVGLtabs();
   #else
     setupTreacle();
   #endif
