@@ -29,6 +29,7 @@
   const char* endRow = divEnd;
   const char buttonPrintfFormatString[] PROGMEM =             "<a href =\"/%s\"><input class=\"button-primary\" type=\"button\" value=\"%s\"></a>";
   const char saveButton[] PROGMEM =                           "<input class=\"button-primary\" type=\"submit\" value=\"Save\">";
+  const char backButton[] PROGMEM =                           "<a href =\"/admin\"><input class=\"button-primary\" type=\"button\" value=\"Back\"></a>";
   const char startTwelveColumns[] PROGMEM =                   "<div class=\"twelve columns\">";
   const char startEightColumns[] PROGMEM =                    "<div class=\"eight columns\">";
   const char startSixColumns[] PROGMEM =                      "<div class=\"six columns\">";
@@ -47,7 +48,7 @@
   const char labelOff[] PROGMEM =                             "Off";
   const char labelConfigure[] PROGMEM =                       "Configure";
   const char labelBack[] PROGMEM =                            "Back";
-
+  //Default header addition
   void addPageHeader(AsyncResponseStream *response, uint8_t refresh, const char* refreshTo)
   {
     lastWifiActivity = millis();
@@ -81,10 +82,12 @@
       response->print(hr);
     }
   }
+  //Default footer addition
   void addPageFooter(AsyncResponseStream *response)
   {
     response->print(F("</div></body></html>"));
   }
+  //Add all the many many callback functions
   void setupWebServer()
   {
     if(filesystemMounted == true)
@@ -108,7 +111,7 @@
         adminWebServer = new AsyncWebServer(80);
       #endif
       localLog(F("Configuring web server callbacks: "));
-      adminWebServer->on("/admin", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+      adminWebServer->on(PSTR("/admin"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -122,29 +125,132 @@
             AsyncResponseStream *response = request->beginResponseStream("text/html");
             addPageHeader(response, 90, nullptr);
             //Top of page buttons
+            // ROW 1
+            response->printf_P(h2printfFormatString, PSTR("Info"));
             response->print(startRow);
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("devices"), PSTR("Devices"));
+            response->printf_P(buttonPrintfFormatString, PSTR("listDevices"), PSTR("Devices"));
             response->print(endColumn);
             response->print(startFourColumns);
             response->printf_P(buttonPrintfFormatString, PSTR("listLogs"), PSTR("Logs"));
             response->print(endColumn);
-            #if defined(ENABLE_REMOTE_RESTART)
+            response->print(endRow);
+            // ROW 2
+            response->print(hr);
+            response->printf_P(h2printfFormatString, PSTR("Configuration"));
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("icInfo"), PSTR("IC Info"));
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("tracking"), PSTR("Tracking"));
+            response->print(endColumn);
+            response->print(endRow);
+            // ROW 3
+            response->print(hr);
+            response->printf_P(h2printfFormatString, PSTR("Hardware"));
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("hardware"), PSTR("Hardware"));
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("treacle"), PSTR("Treacle"));
+            response->print(endColumn);
+            #if defined(SUPPORT_WIFI)
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("restart"), PSTR("Restart"));
+              response->printf_P(buttonPrintfFormatString, PSTR("wifi"), PSTR("Wi-Fi"));
               response->print(endColumn);
             #endif
+            response->print(endRow);
+            // ROW 4
+            response->print(startRow);
+            #if defined(SUPPORT_LVGL)
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("gui"), PSTR("Gui"));
+              response->print(endColumn);
+            #endif
+            #if defined(SUPPORT_FTM)
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("ftm"), PSTR("FTM"));
+              response->print(endColumn);
+            #endif
+            #if defined(SUPPORT_GPS)
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("gps"), PSTR("GPS"));
+              response->print(endColumn);
+            #endif
+            #if defined(ACT_AS_SENSOR)
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("sensor"), PSTR("Sensor"));
+              response->print(endColumn);
+            #endif
+            #if defined(SUPPORT_HACKING)
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("game"), PSTR("Game"));
+              response->print(endColumn);
+            #endif
+            response->print(endRow);
+            // ROW 5
+            response->print(hr);
+            response->printf_P(h2printfFormatString, PSTR("Logs"));
+            response->print(startRow);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("logging"), PSTR("Log settings"));
+            response->print(endColumn);
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("listLogs"), PSTR("List logs"));
+            response->print(endColumn);
+            response->print(endRow);
+            // ROW 6
+            response->print(hr);
+            response->printf_P(h2printfFormatString, PSTR("Admin"));
+            response->print(startRow);
             #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
               response->print(startFourColumns);
               response->printf_P(buttonPrintfFormatString, PSTR("update"), PSTR("Software Update"));
               response->print(endColumn);
             #endif
+            #if defined(ENABLE_REMOTE_RESTART)
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("restart"), PSTR("Restart"));
+              response->print(endColumn);
+            #endif
+            response->print(startFourColumns);
+            response->printf_P(buttonPrintfFormatString, PSTR("wipe"), PSTR("Wipe"));
+            response->print(endColumn);
             response->print(endRow);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      adminWebServer->on(PSTR("/hardware"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 90, nullptr);
             //Status information
-            response->print(hr);
             response->printf_P(h2printfEightColumnsFormatString, PSTR("Hardware"));
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("hardware"), labelConfigure);
+            response->printf_P(buttonPrintfFormatString, PSTR("configureHardware"), labelConfigure);
             response->print(endColumn);
             response->print(ulStart);
             #if defined(ACT_AS_TRACKER)
@@ -277,16 +383,39 @@
                 response->printf_P(liStringPrintfFormatString, PSTR("Configuration comment"), configurationComment);
               }
             }
-            response->print(ulEnd);
-            response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("wipe"), PSTR("Wipe"));
-            response->print(endColumn);
-            response->print(endRow);
+            response->print(ulEndRow);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      adminWebServer->on(PSTR("/icInfo"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 90, nullptr);
             //General
-            response->print(hr);
-            response->printf_P(h2printfEightColumnsFormatString, PSTR("General"));
+            response->printf_P(h2printfEightColumnsFormatString, PSTR("IC Info"));
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("general"), labelConfigure);
+            response->printf_P(buttonPrintfFormatString, PSTR("configureIcInfo"), labelConfigure);
             response->print(endColumn);
             response->print(ulStart);
             response->printf_P(liStringPrintfFormatString, PSTR("Name"), (device[0].name != nullptr) ? device[0].name : labelNotSet);
@@ -312,11 +441,38 @@
             response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("IC Diameter"), device[0].diameter, PSTR("m"));
             response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("IC Height"), device[0].height, PSTR("m"));
             response->print(ulEndRow);
-            #if defined(SUPPORT_WIFI)
-              response->print(hr);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      #if defined(SUPPORT_WIFI)
+        adminWebServer->on(PSTR("/wifi"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              AsyncResponseStream *response = request->beginResponseStream("text/html");
+              addPageHeader(response, 90, nullptr);
               response->printf_P(h2printfEightColumnsFormatString, PSTR("WiFi"));
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("wifi"), labelConfigure);
+              response->printf_P(buttonPrintfFormatString, PSTR("configureWifi"), labelConfigure);
               response->print(endColumn);
               response->print(ulStart);
               response->printf_P(liStringPrintfFormatString, PSTR("WiFi client"), (startWiFiClientOnBoot) ? labelOn : labelOff);
@@ -356,12 +512,39 @@
                 response->print(F("</ul>"));
               }
               response->print(ulEndRow);
+              addPageFooter(response);
+              //Send response
+              request->send(response);
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+        });
+      #endif
+      //Tracking information
+      adminWebServer->on(PSTR("/tracking"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
             #endif
-            //Status information
-            response->print(hr);
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 90, nullptr);
             response->printf_P(h2printfEightColumnsFormatString, PSTR("Tracking"));
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("tracking"), labelConfigure);
+            response->printf_P(buttonPrintfFormatString, PSTR("configureTracking"), labelConfigure);
             response->print(endColumn);
             response->print(ulStart);
             response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Effective range"), maximumEffectiveRange, PSTR("m"));
@@ -390,11 +573,38 @@
             }
             response->print(F("</b></li>"));
             response->print(ulEndRow);
-            #if defined(SUPPORT_LVGL)
-              response->print(hr);
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      #if defined(SUPPORT_LVGL)
+        adminWebServer->on(PSTR("/gui"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              AsyncResponseStream *response = request->beginResponseStream("text/html");
+              addPageHeader(response, 90, nullptr);
               response->printf_P(h2printfEightColumnsFormatString, PSTR("GUI"));
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("gui"), labelConfigure);
+              response->printf_P(buttonPrintfFormatString, PSTR("configureGui"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
               response->print(ulStart);
@@ -414,11 +624,38 @@
                 response->printf_P(liStringPrintfFormatString, PSTR("Settings tab"), (enableSettingsTab) ? labelOn : labelOff);
               #endif
               response->print(ulEndRow);
+              addPageFooter(response);
+              //Send response
+              request->send(response);
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+        });
+      #endif
+      adminWebServer->on(PSTR("/treacle"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
             #endif
-            response->print(hr);
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 90, nullptr);
             response->printf_P(h2printfEightColumnsFormatString, PSTR("Treacle"));
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("treacleconfiguration"), labelConfigure);
+            response->printf_P(buttonPrintfFormatString, PSTR("configureTreacle"), labelConfigure);
             response->print(endColumn);
             response->print(endRow);
             response->print(ulStart);
@@ -490,22 +727,77 @@
               response->print(F("<li><b>Not initialised</b></li>"));
             }
             response->print(ulEndRow);
-            #if defined(SUPPORT_FTM)
+            addPageFooter(response);
+            //Send response
+            request->send(response);
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
+      #if defined(SUPPORT_FTM)
+        adminWebServer->on(PSTR("/ftm"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              AsyncResponseStream *response = request->beginResponseStream("text/html");
+              addPageHeader(response, 90, nullptr);
               response->printf_P(h2printfFormatString, PSTR("FTM (time-of-flight) measurements"));
               response->print(ulStart);
               response->printf_P(liStringPrintfFormatString, PSTR("FTM beacon"), (ftmEnabled) ? labelOn : labelOff);
               response->print(ulEndRow);
               response->print(startRow);
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("ftm"), labelConfigure);
+              response->printf_P(buttonPrintfFormatString, PSTR("configureFtm"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
-            #endif
-            #if defined(SUPPORT_GPS)
-              response->print(hr);
+              addPageFooter(response);
+              //Send response
+              request->send(response);
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+        });
+      #endif
+      #if defined(SUPPORT_GPS)
+        adminWebServer->on(PSTR("/gps"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              AsyncResponseStream *response = request->beginResponseStream("text/html");
+              addPageHeader(response, 90, nullptr);
               response->printf_P(h2printfEightColumnsFormatString, PSTR("GPS"));
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("gps"), labelConfigure);
+              response->printf_P(buttonPrintfFormatString, PSTR("configureGps"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
               response->print(ulStart);
@@ -549,11 +841,38 @@
               response->printf_P(liIntegerPrintfFormatString, PSTR("Sentences"), gpsSentences);
               response->printf_P(liIntegerPrintfFormatString, PSTR("Errors"), gpsErrors);
               response->print(ulEndRow);
-            #endif
-            #if defined(ACT_AS_SENSOR)
-              response->print(hr);
+              addPageFooter(response);
+              //Send response
+              request->send(response);
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+        });
+      #endif
+      #if defined(ACT_AS_SENSOR)
+        adminWebServer->on(PSTR("/sensor"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              AsyncResponseStream *response = request->beginResponseStream("text/html");
+              addPageHeader(response, 90, nullptr);
               response->printf_P(h2printfEightColumnsFormatString, PSTR("Sensor"));
-              response->printf_P(buttonPrintfFormatString, PSTR("sensorConfiguration"), labelConfigure);
+              response->printf_P(buttonPrintfFormatString, PSTR("configureSensor"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
               response->print(startRow);
@@ -602,24 +921,79 @@
               {
                 response->print(F("<li>Ignore non-DOT: <b>true</b></li>"));
               }
-            #endif
-            response->print(ulEndRow);
-            #if defined(SUPPORT_HACKING)
+              response->print(ulEndRow);
+              addPageFooter(response);
+              //Send response
+              request->send(response);
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+        });
+      #endif
+      #if defined(SUPPORT_HACKING)
+        adminWebServer->on(PSTR("/game"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+            {
+          #endif
+              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+                {
+                    return request->requestAuthentication();  //Force basic authentication
+                }
+              #endif
+              AsyncResponseStream *response = request->beginResponseStream("text/html");
+              addPageHeader(response, 90, nullptr);
               response->printf_P(h2printfFormatString, PSTR("Game"));
               response->print(startRow);
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("gameConfiguration"), labelConfigure);
+              response->printf_P(buttonPrintfFormatString, PSTR("configureGame"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
               response->print(ulStart);
               response->printf_P(PSTR("<li>Game length: <b>%u</b></li><li>Game retries: <b>%u</b> (0=infinite)</li><li>Game speedup: <b>%u</b>(ms)</li>"), gameLength, gameRetries, gameSpeedup);
               response->print(ulEndRow);
+              addPageFooter(response);
+              //Send response
+              request->send(response);
+          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+              xSemaphoreGive(webserverSemaphore);
+            }
+            else
+            {
+              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+              response->addHeader("Retry-After","5"); //Ask it to wait 5s
+              //Send response
+              request->send(response);
+            }
+          #endif
+        });
+      #endif
+      //Logging
+      adminWebServer->on(PSTR("/logging"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
             #endif
-            //Logging
-            response->print(hr);
+            AsyncResponseStream *response = request->beginResponseStream("text/html");
+            addPageHeader(response, 90, nullptr);
             response->printf_P(h2printfEightColumnsFormatString, PSTR("Logging"));
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("logging"), labelConfigure);
+            response->printf_P(buttonPrintfFormatString, PSTR("configureLogging"), labelConfigure);
             response->print(endColumn);
             response->print(ulStart);
             response->printf_P(liIntegerPrintfFormatString, PSTR("Buffer size"), loggingBufferSize);
@@ -641,7 +1015,7 @@
           }
         #endif
       });
-      adminWebServer->on("/listLogs", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows a list of all the log files
+      adminWebServer->on(PSTR("/listLogs"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows a list of all the log files
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -660,7 +1034,7 @@
             addPageHeader(response, 0, nullptr);
             response->print(startRow);
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+            response->print(backButton);
             response->print(endColumn);
             response->print(endRow);
             response->printf_P(h2printfFormatString, PSTR("Log files"));
@@ -716,7 +1090,7 @@
         #endif
       });
       #if defined(ENABLE_LOG_DELETION)
-        adminWebServer->on("/deleteLog", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/deleteLog"), HTTP_GET, [](AsyncWebServerRequest *request){
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -755,7 +1129,7 @@
           }
         #endif
         });
-        adminWebServer->on("/deleteLogConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/deleteLogConfirmed"), HTTP_GET, [](AsyncWebServerRequest *request){
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -804,7 +1178,7 @@
         #endif
         });
       #endif
-      adminWebServer->on("/hardware", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      adminWebServer->on(PSTR("/configureHardware"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -943,7 +1317,7 @@
           }
         #endif
         });
-        adminWebServer->on("/hardware", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on(PSTR("/configureHardware"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -1093,7 +1467,7 @@
       });
       //WiFi configuration
       #if defined(SUPPORT_WIFI)
-        adminWebServer->on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/configureWifi"), HTTP_GET, [](AsyncWebServerRequest *request){
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -1222,7 +1596,7 @@
           }
         #endif
         });
-        adminWebServer->on("/wifi", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on(PSTR("/configureWifi"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -1384,7 +1758,7 @@
         #endif
       });
       #endif      
-      adminWebServer->on("/general", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      adminWebServer->on(PSTR("/configureIcInfo"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -1473,109 +1847,109 @@
           }
         #endif
         });
-        adminWebServer->on("/general", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+      adminWebServer->on(PSTR("/configureIcInfo"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
+          {
+        #endif
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
             {
+                return request->requestAuthentication();  //Force basic authentication
+            }
           #endif
-            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-              {
-                  return request->requestAuthentication();  //Force basic authentication
-              }
-            #endif
-            //Read the submitted configuration
-            if(request->hasParam(string_deviceName, true))
+          //Read the submitted configuration
+          if(request->hasParam(string_deviceName, true))
+          {
+            if(device[0].name != nullptr)
             {
-              if(device[0].name != nullptr)
-              {
-                delete [] device[0].name;
-              }
-              device[0].name = new char[request->getParam(string_deviceName, true)->value().length() + 1];
-              strlcpy(device[0].name,request->getParam(string_deviceName, true)->value().c_str(),request->getParam(string_deviceName, true)->value().length() + 1);
+              delete [] device[0].name;
             }
-            if(request->hasParam(string_deviceUsuallyStatic, true))
+            device[0].name = new char[request->getParam(string_deviceName, true)->value().length() + 1];
+            strlcpy(device[0].name,request->getParam(string_deviceName, true)->value().c_str(),request->getParam(string_deviceName, true)->value().length() + 1);
+          }
+          if(request->hasParam(string_deviceUsuallyStatic, true))
+          {
+            if(request->getParam(string_deviceUsuallyStatic, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
             {
-              if(request->getParam(string_deviceUsuallyStatic, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              if(deviceUsuallyStatic != true)
               {
-                if(deviceUsuallyStatic != true)
-                {
-                  deviceUsuallyStatic = true;
-                }
+                deviceUsuallyStatic = true;
               }
-              else
-              {
-                if(deviceUsuallyStatic != false)
-                {
-                  deviceUsuallyStatic = false;
-                }
-              }
-            }
-            if(request->hasParam(string_configurationComment, true))
-            {
-              if(configurationComment != nullptr)
-              {
-                delete [] configurationComment;
-              }
-              configurationComment = new char[request->getParam(string_configurationComment, true)->value().length() + 1];
-              strlcpy(configurationComment,request->getParam(string_configurationComment, true)->value().c_str(),request->getParam(string_configurationComment, true)->value().length() + 1);
             }
             else
             {
-              if(configurationComment != nullptr)
+              if(deviceUsuallyStatic != false)
               {
-                delete [] configurationComment;
+                deviceUsuallyStatic = false;
               }
-              configurationComment = new char[strlen(default_configurationComment) + 1];  //Assign space on heap
-              strlcpy(configurationComment,default_configurationComment,strlen(default_configurationComment) + 1);  //Copy in default
             }
-            if(request->hasParam(string_icName, true))
+          }
+          if(request->hasParam(string_configurationComment, true))
+          {
+            if(configurationComment != nullptr)
             {
-              if(device[0].icName != nullptr)
-              {
-                delete [] device[0].icName;
-              }
-              device[0].icName = new char[request->getParam(string_icName, true)->value().length() + 1];
-              strlcpy(device[0].icName,request->getParam(string_icName, true)->value().c_str(),request->getParam(string_icName, true)->value().length() + 1);
+              delete [] configurationComment;
             }
-            if(request->hasParam(string_icName, true))
-            {
-              if(device[0].icDescription != nullptr)
-              {
-                delete [] device[0].icDescription;
-              }
-              device[0].icDescription = new char[request->getParam(string_icDescription, true)->value().length() + 1];
-              strlcpy(device[0].icDescription,request->getParam(string_icDescription, true)->value().c_str(),request->getParam(string_icDescription, true)->value().length() + 1);
-            }
-            if(request->hasParam(string_diameter, true))
-            {
-              if(device[0].diameter != request->getParam(string_diameter, true)->value().toInt())
-              {
-                device[0].diameter = request->getParam(string_diameter, true)->value().toInt();
-              }
-            }
-            if(request->hasParam(string_height, true))
-            {
-              if(device[0].height != request->getParam(string_height, true)->value().toInt())
-              {
-                device[0].height = request->getParam(string_height, true)->value().toInt();
-              }
-            }
-            saveConfigurationSoon = millis();
-            request->redirect("/admin");
-        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            xSemaphoreGive(webserverSemaphore);
+            configurationComment = new char[request->getParam(string_configurationComment, true)->value().length() + 1];
+            strlcpy(configurationComment,request->getParam(string_configurationComment, true)->value().c_str(),request->getParam(string_configurationComment, true)->value().length() + 1);
           }
           else
           {
-            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-            response->addHeader("Retry-After","5"); //Ask it to wait 5s
-            //Send response
-            request->send(response);
+            if(configurationComment != nullptr)
+            {
+              delete [] configurationComment;
+            }
+            configurationComment = new char[strlen(default_configurationComment) + 1];  //Assign space on heap
+            strlcpy(configurationComment,default_configurationComment,strlen(default_configurationComment) + 1);  //Copy in default
           }
-        #endif
-      });
-      adminWebServer->on("/tracking", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          if(request->hasParam(string_icName, true))
+          {
+            if(device[0].icName != nullptr)
+            {
+              delete [] device[0].icName;
+            }
+            device[0].icName = new char[request->getParam(string_icName, true)->value().length() + 1];
+            strlcpy(device[0].icName,request->getParam(string_icName, true)->value().c_str(),request->getParam(string_icName, true)->value().length() + 1);
+          }
+          if(request->hasParam(string_icName, true))
+          {
+            if(device[0].icDescription != nullptr)
+            {
+              delete [] device[0].icDescription;
+            }
+            device[0].icDescription = new char[request->getParam(string_icDescription, true)->value().length() + 1];
+            strlcpy(device[0].icDescription,request->getParam(string_icDescription, true)->value().c_str(),request->getParam(string_icDescription, true)->value().length() + 1);
+          }
+          if(request->hasParam(string_diameter, true))
+          {
+            if(device[0].diameter != request->getParam(string_diameter, true)->value().toInt())
+            {
+              device[0].diameter = request->getParam(string_diameter, true)->value().toInt();
+            }
+          }
+          if(request->hasParam(string_height, true))
+          {
+            if(device[0].height != request->getParam(string_height, true)->value().toInt())
+            {
+              device[0].height = request->getParam(string_height, true)->value().toInt();
+            }
+          }
+          saveConfigurationSoon = millis();
+          request->redirect("/admin");
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          xSemaphoreGive(webserverSemaphore);
+        }
+        else
+        {
+          AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+          response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
+          request->send(response);
+        }
+      #endif
+    });
+      adminWebServer->on(PSTR("/configureTracking"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -1652,47 +2026,47 @@
           }
         #endif
         });
-        adminWebServer->on("/tracking", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
-            {
-          #endif
-            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-              {
-                  return request->requestAuthentication();  //Force basic authentication
-              }
-            #endif
-            //Read the submitted configuration
-            if(request->hasParam(string_trackingSensitivity, true))
-            {
-              trackingSensitivity = request->getParam(string_trackingSensitivity, true)->value().toInt();
-            }
-            #if defined(ACT_AS_TRACKER)
-              if(request->hasParam(string_trackerPriority, true))
-              {
-                trackerPriority = request->getParam(string_trackerPriority, true)->value().toInt();
-              }
-            #endif
-            if(request->hasParam(string_maximumEffectiveRange, true))
-            {
-              maximumEffectiveRange = request->getParam(string_maximumEffectiveRange, true)->value().toInt();
-            }
-            saveConfigurationSoon = millis();
-            request->redirect("/admin");
+      adminWebServer->on(PSTR("/configureTracking"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            xSemaphoreGive(webserverSemaphore);
-          }
-          else
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
-            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-            response->addHeader("Retry-After","5"); //Ask it to wait 5s
-            //Send response
-            request->send(response);
-          }
         #endif
-      });
-      adminWebServer->on("/treacleconfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            {
+                return request->requestAuthentication();  //Force basic authentication
+            }
+          #endif
+          //Read the submitted configuration
+          if(request->hasParam(string_trackingSensitivity, true))
+          {
+            trackingSensitivity = request->getParam(string_trackingSensitivity, true)->value().toInt();
+          }
+          #if defined(ACT_AS_TRACKER)
+            if(request->hasParam(string_trackerPriority, true))
+            {
+              trackerPriority = request->getParam(string_trackerPriority, true)->value().toInt();
+            }
+          #endif
+          if(request->hasParam(string_maximumEffectiveRange, true))
+          {
+            maximumEffectiveRange = request->getParam(string_maximumEffectiveRange, true)->value().toInt();
+          }
+          saveConfigurationSoon = millis();
+          request->redirect("/admin");
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          xSemaphoreGive(webserverSemaphore);
+        }
+        else
+        {
+          AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+          response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
+          request->send(response);
+        }
+      #endif
+    });
+      adminWebServer->on(PSTR("/configureTreacle"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -1862,7 +2236,7 @@
           }
         #endif
         });
-      adminWebServer->on("/treacleconfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      adminWebServer->on(PSTR("/configureTreacle"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -1989,7 +2363,7 @@
       #endif
     });
       #if defined(SUPPORT_LVGL)
-        adminWebServer->on("/gui", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on(PSTR("/configureGui"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -2079,7 +2453,7 @@
             }
           #endif
           });
-        adminWebServer->on("/gui", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on(PSTR("/configureGui"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -2206,7 +2580,7 @@
       });
       #endif
       #if defined(SUPPORT_FTM)
-        adminWebServer->on("/ftm", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on(PSTR("/configureFtm"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -2331,114 +2705,114 @@
             }
           #endif
           });
-          adminWebServer->on("/ftm", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-              if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
-              {
-            #endif
-              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-                {
-                    return request->requestAuthentication();  //Force basic authentication
-                }
-              #endif
-              bool ftmConfigurationChanged = false;
-              if(request->hasParam("ftmEnabled", true))
-              {
-                if(request->getParam("ftmEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  if(ftmEnabled != true)
-                  {
-                    ftmEnabled = true;
-                    ftmConfigurationChanged = true;
-                    localLog(F("ftmEnabled: "));
-                    localLogLn(ftmEnabled);
-                  }
-                }
-                else
-                {
-                  if(ftmEnabled != false)
-                  {
-                    ftmEnabled = false;
-                    ftmConfigurationChanged = true;
-                    localLog(F("ftmEnabled: "));
-                    localLogLn(ftmEnabled);
-                  }
-                }
-              }
-              if(request->hasParam("ftmSSID", true))
-              {
-                if(request->getParam("ftmSSID", true)->value().equals(String(ftmSSID)) == false)
-                {
-                  if(ftmSSID != nullptr)
-                  {
-                    delete [] ftmSSID;
-                  }
-                  ftmSSID = new char[request->getParam("ftmSSID", true)->value().length() + 1];
-                  strlcpy(ftmSSID,request->getParam("ftmSSID", true)->value().c_str(),request->getParam("ftmSSID", true)->value().length() + 1);
-                  localLog(F("ftmSSID: "));
-                  localLogLn(ftmSSID);
-                  ftmConfigurationChanged = true;
-                }
-              }
-              if(request->hasParam("ftmHideSSID", true))
-              {
-                if(request->getParam("ftmHideSSID", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  if(ftmHideSSID != true)
-                  {
-                    ftmHideSSID = true;
-                    ftmConfigurationChanged = true;
-                    localLog(F("ftmHideSSID: "));
-                    localLogLn(ftmHideSSID);
-                  }
-                }
-                else
-                {
-                  if(ftmHideSSID != false)
-                  {
-                    ftmHideSSID = false;
-                    ftmConfigurationChanged = true;
-                    localLog(F("ftmHideSSID: "));
-                    localLogLn(ftmHideSSID);
-                  }
-                }
-              }
-              if(request->hasParam("ftmPSK", true))
-              {
-                if(request->getParam("ftmPSK", true)->value().length() > 0)
-                {
-                  if(ftmPSK != nullptr)
-                  {
-                    delete [] ftmPSK;
-                  }
-                  ftmPSK = new char[request->getParam("ftmPSK", true)->value().length() + 1];
-                  strlcpy(ftmPSK,request->getParam("ftmPSK", true)->value().c_str(),request->getParam("ftmPSK", true)->value().length() + 1);
-                  localLog(F("ftmPSK: "));
-                  localLogLn(ftmPSK);
-                  ftmConfigurationChanged = true;
-                }
-              }
-              if(ftmConfigurationChanged == true)
-              {
-                saveConfigurationSoon = millis();
-              }
-              request->redirect("/admin");
+        adminWebServer->on(PSTR("/configureFtm"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-              xSemaphoreGive(webserverSemaphore);
-            }
-            else
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
-              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-              response->addHeader("Retry-After","5"); //Ask it to wait 5s
-              //Send response
-              request->send(response);
-            }
           #endif
-        });
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            bool ftmConfigurationChanged = false;
+            if(request->hasParam("ftmEnabled", true))
+            {
+              if(request->getParam("ftmEnabled", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(ftmEnabled != true)
+                {
+                  ftmEnabled = true;
+                  ftmConfigurationChanged = true;
+                  localLog(F("ftmEnabled: "));
+                  localLogLn(ftmEnabled);
+                }
+              }
+              else
+              {
+                if(ftmEnabled != false)
+                {
+                  ftmEnabled = false;
+                  ftmConfigurationChanged = true;
+                  localLog(F("ftmEnabled: "));
+                  localLogLn(ftmEnabled);
+                }
+              }
+            }
+            if(request->hasParam("ftmSSID", true))
+            {
+              if(request->getParam("ftmSSID", true)->value().equals(String(ftmSSID)) == false)
+              {
+                if(ftmSSID != nullptr)
+                {
+                  delete [] ftmSSID;
+                }
+                ftmSSID = new char[request->getParam("ftmSSID", true)->value().length() + 1];
+                strlcpy(ftmSSID,request->getParam("ftmSSID", true)->value().c_str(),request->getParam("ftmSSID", true)->value().length() + 1);
+                localLog(F("ftmSSID: "));
+                localLogLn(ftmSSID);
+                ftmConfigurationChanged = true;
+              }
+            }
+            if(request->hasParam("ftmHideSSID", true))
+            {
+              if(request->getParam("ftmHideSSID", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(ftmHideSSID != true)
+                {
+                  ftmHideSSID = true;
+                  ftmConfigurationChanged = true;
+                  localLog(F("ftmHideSSID: "));
+                  localLogLn(ftmHideSSID);
+                }
+              }
+              else
+              {
+                if(ftmHideSSID != false)
+                {
+                  ftmHideSSID = false;
+                  ftmConfigurationChanged = true;
+                  localLog(F("ftmHideSSID: "));
+                  localLogLn(ftmHideSSID);
+                }
+              }
+            }
+            if(request->hasParam("ftmPSK", true))
+            {
+              if(request->getParam("ftmPSK", true)->value().length() > 0)
+              {
+                if(ftmPSK != nullptr)
+                {
+                  delete [] ftmPSK;
+                }
+                ftmPSK = new char[request->getParam("ftmPSK", true)->value().length() + 1];
+                strlcpy(ftmPSK,request->getParam("ftmPSK", true)->value().c_str(),request->getParam("ftmPSK", true)->value().length() + 1);
+                localLog(F("ftmPSK: "));
+                localLogLn(ftmPSK);
+                ftmConfigurationChanged = true;
+              }
+            }
+            if(ftmConfigurationChanged == true)
+            {
+              saveConfigurationSoon = millis();
+            }
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
       #endif
       #if defined(SUPPORT_GPS)
-        adminWebServer->on("/gps", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on(PSTR("/configureGps"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -2520,105 +2894,104 @@
             }
           #endif
           });
-          adminWebServer->on("/gps", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-            #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-              if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
-              {
-            #endif
-              #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-                if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-                {
-                    return request->requestAuthentication();  //Force basic authentication
-                }
-              #endif
-              //Read the submitted configuration
-              bool gpsConfigurationChanged = false;
-              if(request->hasParam(string_useGpsForTimeSync, true))
-              {
-                if(request->getParam(string_useGpsForTimeSync, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-                {
-                  if(useGpsForTimeSync != true)
-                  {
-                    useGpsForTimeSync = true;
-                    localLog(F("useGpsForTimeSync: "));
-                    localLogLn(useGpsForTimeSync);
-                    gpsConfigurationChanged = true;
-                  }
-                }
-                else
-                {
-                  if(useGpsForTimeSync != false)
-                  {
-                    useGpsForTimeSync = false;
-                    localLog(F("useGpsForTimeSync: "));
-                    localLogLn(useGpsForTimeSync);
-                    gpsConfigurationChanged = true;
-                  }
-                }
-              }
-              if(request->hasParam(string_movementThreshold, true))
-              {
-                if(movementThreshold != request->getParam(string_movementThreshold, true)->value().toFloat())
-                {
-                  movementThreshold = request->getParam(string_movementThreshold, true)->value().toFloat();
-                  localLog(F("movementThreshold: "));
-                  localLogLn(movementThreshold);
-                  gpsConfigurationChanged = true;
-                }
-              }
-              if(request->hasParam(string_smoothingFactor, true))
-              {
-                if(smoothingFactor != request->getParam(string_smoothingFactor, true)->value().toFloat())
-                {
-                  smoothingFactor = request->getParam(string_smoothingFactor, true)->value().toFloat();
-                  localLog(F("smoothingFactor: "));
-                  localLogLn(smoothingFactor);
-                  gpsConfigurationChanged = true;
-                }
-              }
-              #if defined(SUPPORT_SOFT_POWER_OFF)
-                if(request->hasParam("gpsStationaryTimeout", true))
-                {
-                  if(gpsStationaryTimeout != request->getParam("gpsStationaryTimeout", true)->value().toInt())
-                  {
-                    gpsStationaryTimeout = request->getParam("gpsStationaryTimeout", true)->value().toInt();
-                    localLog(F("gpsStationaryTimeout: "));
-                    localLogLn(gpsStationaryTimeout);
-                    gpsConfigurationChanged = true;
-                  }
-                }
-                if(request->hasParam(string_gpsCheckInterval, true))
-                {
-                  if(gpsCheckInterval != request->getParam(string_gpsCheckInterval, true)->value().toInt())
-                  {
-                    gpsCheckInterval = request->getParam(string_gpsCheckInterval, true)->value().toInt();
-                    localLog(F("gpsCheckInterval: "));
-                    localLogLn(gpsCheckInterval);
-                    gpsConfigurationChanged = true;
-                  }
-                }
-              #endif
-              if(gpsConfigurationChanged == true)
-              {
-                saveConfigurationSoon = millis();
-              }
-              request->redirect("/admin");
+        adminWebServer->on(PSTR("/configureGps"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-              xSemaphoreGive(webserverSemaphore);
-            }
-            else
+            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
-              AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-              response->addHeader("Retry-After","5"); //Ask it to wait 5s
-              //Send response
-              request->send(response);
-            }
           #endif
-        });
+            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+              {
+                  return request->requestAuthentication();  //Force basic authentication
+              }
+            #endif
+            //Read the submitted configuration
+            bool gpsConfigurationChanged = false;
+            if(request->hasParam(string_useGpsForTimeSync, true))
+            {
+              if(request->getParam(string_useGpsForTimeSync, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                if(useGpsForTimeSync != true)
+                {
+                  useGpsForTimeSync = true;
+                  localLog(F("useGpsForTimeSync: "));
+                  localLogLn(useGpsForTimeSync);
+                  gpsConfigurationChanged = true;
+                }
+              }
+              else
+              {
+                if(useGpsForTimeSync != false)
+                {
+                  useGpsForTimeSync = false;
+                  localLog(F("useGpsForTimeSync: "));
+                  localLogLn(useGpsForTimeSync);
+                  gpsConfigurationChanged = true;
+                }
+              }
+            }
+            if(request->hasParam(string_movementThreshold, true))
+            {
+              if(movementThreshold != request->getParam(string_movementThreshold, true)->value().toFloat())
+              {
+                movementThreshold = request->getParam(string_movementThreshold, true)->value().toFloat();
+                localLog(F("movementThreshold: "));
+                localLogLn(movementThreshold);
+                gpsConfigurationChanged = true;
+              }
+            }
+            if(request->hasParam(string_smoothingFactor, true))
+            {
+              if(smoothingFactor != request->getParam(string_smoothingFactor, true)->value().toFloat())
+              {
+                smoothingFactor = request->getParam(string_smoothingFactor, true)->value().toFloat();
+                localLog(F("smoothingFactor: "));
+                localLogLn(smoothingFactor);
+                gpsConfigurationChanged = true;
+              }
+            }
+            #if defined(SUPPORT_SOFT_POWER_OFF)
+              if(request->hasParam("gpsStationaryTimeout", true))
+              {
+                if(gpsStationaryTimeout != request->getParam("gpsStationaryTimeout", true)->value().toInt())
+                {
+                  gpsStationaryTimeout = request->getParam("gpsStationaryTimeout", true)->value().toInt();
+                  localLog(F("gpsStationaryTimeout: "));
+                  localLogLn(gpsStationaryTimeout);
+                  gpsConfigurationChanged = true;
+                }
+              }
+              if(request->hasParam(string_gpsCheckInterval, true))
+              {
+                if(gpsCheckInterval != request->getParam(string_gpsCheckInterval, true)->value().toInt())
+                {
+                  gpsCheckInterval = request->getParam(string_gpsCheckInterval, true)->value().toInt();
+                  localLog(F("gpsCheckInterval: "));
+                  localLogLn(gpsCheckInterval);
+                  gpsConfigurationChanged = true;
+                }
+              }
+            #endif
+            if(gpsConfigurationChanged == true)
+            {
+              saveConfigurationSoon = millis();
+            }
+            request->redirect("/admin");
+        #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+            xSemaphoreGive(webserverSemaphore);
+          }
+          else
+          {
+            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+            response->addHeader("Retry-After","5"); //Ask it to wait 5s
+            //Send response
+            request->send(response);
+          }
+        #endif
+      });
       #endif
-      
       #if defined(ENABLE_LOCAL_WEBSERVER_FIRMWARE_UPDATE)
-        adminWebServer->on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/update"), HTTP_GET, [](AsyncWebServerRequest *request){
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -2652,7 +3025,7 @@
               response->print(F("<input class=\"button-primary\" type=\"file\" name=\"update\"><br />"));
               response->print(startRow);
               response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+              response->print(backButton);
               response->print(endColumn);
               response->print(startFourColumns);
               repsonse->print(F("<input class=\"button-primary\" type=\"submit\" value=\"Update\" style=\"width: 100%;\">"));
@@ -2674,7 +3047,7 @@
           }
         #endif
         });
-        adminWebServer->on("/update", HTTP_POST,[](AsyncWebServerRequest *request)
+        adminWebServer->on(PSTR("/update"), HTTP_POST,[](AsyncWebServerRequest *request)
           { //This lambda function is called when the update is complete
             #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
               if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
@@ -2709,7 +3082,7 @@
                   response->print(endRow);
                   response->print(startRow);
                   response->print(startFourColumns);
-                  response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+                  response->print(backButton);
                   response->print(endColumn);
                   response->print(endRow);
                   addPageFooter(response);
@@ -2791,7 +3164,7 @@
               restartAllTasks();
             }
           });
-        adminWebServer->on("/postUpdateRestart", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/postUpdateRestart"), HTTP_GET, [](AsyncWebServerRequest *request){
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -2808,7 +3181,7 @@
             response->print(F("<p>The software update was successful and this node will restart in roughly 10 seconds.</p>"));
             response->print(startRow);
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+            response->print(backButton);
             response->print(endColumn);
             response->print(endRow);
             addPageFooter(response);
@@ -2828,7 +3201,7 @@
         #endif
         });
       #endif
-      adminWebServer->on("/logging", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+      adminWebServer->on(PSTR("/configureLogging"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -2885,56 +3258,55 @@
           }
         #endif
         });
-        adminWebServer->on("/logging", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
-            {
-          #endif
-            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-              {
-                  return request->requestAuthentication();  //Force basic authentication
-              }
-            #endif
-            //Read the submitted configuration
-            if(request->hasParam(string_loggingBufferSize, true))
-            {
-              if(loggingBufferSize != request->getParam(string_loggingBufferSize, true)->value().toInt())
-              {
-                loggingBufferSize = request->getParam(string_loggingBufferSize, true)->value().toInt();
-              }
-            }
-            if(request->hasParam(string_logFlushThreshold, true))
-            {
-              if(logFlushThreshold != request->getParam(string_logFlushThreshold, true)->value().toInt())
-              {
-                logFlushThreshold = request->getParam(string_logFlushThreshold, true)->value().toInt();
-              }
-            }
-            if(request->hasParam(string_logFlushInterval, true))
-            {
-              if(logFlushInterval != request->getParam(string_logFlushInterval, true)->value().toInt())
-              {
-                logFlushInterval = request->getParam(string_logFlushInterval, true)->value().toInt();
-              }
-            }
-            saveConfigurationSoon = millis();
-            request->redirect("/admin");
+      adminWebServer->on(PSTR("/configureLogging"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            xSemaphoreGive(webserverSemaphore);
-          }
-          else
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
-            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-            response->addHeader("Retry-After","5"); //Ask it to wait 5s
-            //Send response
-            request->send(response);
-          }
         #endif
-      });
-        
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            {
+                return request->requestAuthentication();  //Force basic authentication
+            }
+          #endif
+          //Read the submitted configuration
+          if(request->hasParam(string_loggingBufferSize, true))
+          {
+            if(loggingBufferSize != request->getParam(string_loggingBufferSize, true)->value().toInt())
+            {
+              loggingBufferSize = request->getParam(string_loggingBufferSize, true)->value().toInt();
+            }
+          }
+          if(request->hasParam(string_logFlushThreshold, true))
+          {
+            if(logFlushThreshold != request->getParam(string_logFlushThreshold, true)->value().toInt())
+            {
+              logFlushThreshold = request->getParam(string_logFlushThreshold, true)->value().toInt();
+            }
+          }
+          if(request->hasParam(string_logFlushInterval, true))
+          {
+            if(logFlushInterval != request->getParam(string_logFlushInterval, true)->value().toInt())
+            {
+              logFlushInterval = request->getParam(string_logFlushInterval, true)->value().toInt();
+            }
+          }
+          saveConfigurationSoon = millis();
+          request->redirect("/admin");
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          xSemaphoreGive(webserverSemaphore);
+        }
+        else
+        {
+          AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+          response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
+          request->send(response);
+        }
+      #endif
+    });
       #if defined(ACT_AS_SENSOR)
-        adminWebServer->on("/sensorConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on(PSTR("/configureSensor"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -3083,148 +3455,148 @@
             }
           #endif
           });
-          adminWebServer->on("/sensorConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
-            {
-          #endif
-            lastWifiActivity = millis();
-            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-              {
-                  return request->requestAuthentication();  //Force basic authentication
-              }
-            #endif
-            //Read the submitted configuration
-            if(request->hasParam("numberOfStartingHits", true))
-            {
-              device[0].numberOfStartingHits = request->getParam("numberOfStartingHits", true)->value().toInt();
-              device[0].currentNumberOfHits = device[0].numberOfStartingHits;
-            }
-            if(request->hasParam("numberOfStartingStunHits", true))
-            {
-              device[0].numberOfStartingStunHits = request->getParam("numberOfStartingStunHits", true)->value().toInt();
-              device[0].currentNumberOfStunHits = device[0].numberOfStartingStunHits ;
-            }
-            if(request->hasParam("armourValue", true))
-            {
-              armourValue = request->getParam("armourValue", true)->value().toInt();
-            }
-            //Sensor flags
-            if(request->hasParam("EP_flag", true))
-            {
-              if(request->getParam("EP_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                EP_flag = true;
-              }
-              else
-              {
-                EP_flag = false;
-              }
-            }
-            if(request->hasParam("ig_healing_flag", true))
-            {
-              if(request->getParam("ig_healing_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                ig_healing_flag = true;
-              }
-              else
-              {
-                ig_healing_flag = false;
-              }
-            }
-            if(request->hasParam("EP_flag", true))
-            {
-              if(request->getParam("ig_stun_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                ig_stun_flag = true;
-              }
-              else
-              {
-                ig_stun_flag = false;
-              }
-            }
-            if(request->hasParam("ig_ongoing_flag", true))
-            {
-              if(request->getParam("ig_ongoing_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                ig_ongoing_flag = true;
-              }
-              else
-              {
-                ig_ongoing_flag = false;
-              }
-            }
-            if(request->hasParam("regen_while_zero", true))
-            {
-              if(request->getParam("regen_while_zero", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                regen_while_zero = true;
-              }
-              else
-              {
-                regen_while_zero = false;
-              }
-            }
-            if(request->hasParam("treat_as_one", true))
-            {
-              if(request->getParam("treat_as_one", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                treat_as_one = true;
-              }
-              else
-              {
-                treat_as_one = false;
-              }
-            }
-            if(request->hasParam("treat_stun_as_one", true))
-            {
-              if(request->getParam("treat_stun_as_one", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                treat_stun_as_one = true;
-              }
-              else
-              {
-                treat_stun_as_one = false;
-              }
-            }
-            if(request->hasParam("ongoing_is_cumulative", true))
-            {
-              if(request->getParam("ongoing_is_cumulative", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                ongoing_is_cumulative = true;
-              }
-              else
-              {
-                ongoing_is_cumulative = false;
-              }
-            }
-            if(request->hasParam("ig_non_dot", true))
-            {
-              if(request->getParam("ig_non_dot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
-              {
-                ig_non_dot = true;
-              }
-              else
-              {
-                ig_non_dot = false;
-              }
-            }
-            saveSensorConfigurationSoon = millis();
-            request->redirect("/admin");
+        adminWebServer->on(PSTR("/configureSensor"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            xSemaphoreGive(webserverSemaphore);
-          }
-          else
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
-            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-            response->addHeader("Retry-After","5"); //Ask it to wait 5s
-            //Send response
-            request->send(response);
-          }
         #endif
-      });
-        adminWebServer->on("/sensorReset", HTTP_GET, [](AsyncWebServerRequest *request){
+          lastWifiActivity = millis();
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            {
+                return request->requestAuthentication();  //Force basic authentication
+            }
+          #endif
+          //Read the submitted configuration
+          if(request->hasParam("numberOfStartingHits", true))
+          {
+            device[0].numberOfStartingHits = request->getParam("numberOfStartingHits", true)->value().toInt();
+            device[0].currentNumberOfHits = device[0].numberOfStartingHits;
+          }
+          if(request->hasParam("numberOfStartingStunHits", true))
+          {
+            device[0].numberOfStartingStunHits = request->getParam("numberOfStartingStunHits", true)->value().toInt();
+            device[0].currentNumberOfStunHits = device[0].numberOfStartingStunHits ;
+          }
+          if(request->hasParam("armourValue", true))
+          {
+            armourValue = request->getParam("armourValue", true)->value().toInt();
+          }
+          //Sensor flags
+          if(request->hasParam("EP_flag", true))
+          {
+            if(request->getParam("EP_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              EP_flag = true;
+            }
+            else
+            {
+              EP_flag = false;
+            }
+          }
+          if(request->hasParam("ig_healing_flag", true))
+          {
+            if(request->getParam("ig_healing_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ig_healing_flag = true;
+            }
+            else
+            {
+              ig_healing_flag = false;
+            }
+          }
+          if(request->hasParam("EP_flag", true))
+          {
+            if(request->getParam("ig_stun_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ig_stun_flag = true;
+            }
+            else
+            {
+              ig_stun_flag = false;
+            }
+          }
+          if(request->hasParam("ig_ongoing_flag", true))
+          {
+            if(request->getParam("ig_ongoing_flag", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ig_ongoing_flag = true;
+            }
+            else
+            {
+              ig_ongoing_flag = false;
+            }
+          }
+          if(request->hasParam("regen_while_zero", true))
+          {
+            if(request->getParam("regen_while_zero", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              regen_while_zero = true;
+            }
+            else
+            {
+              regen_while_zero = false;
+            }
+          }
+          if(request->hasParam("treat_as_one", true))
+          {
+            if(request->getParam("treat_as_one", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              treat_as_one = true;
+            }
+            else
+            {
+              treat_as_one = false;
+            }
+          }
+          if(request->hasParam("treat_stun_as_one", true))
+          {
+            if(request->getParam("treat_stun_as_one", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              treat_stun_as_one = true;
+            }
+            else
+            {
+              treat_stun_as_one = false;
+            }
+          }
+          if(request->hasParam("ongoing_is_cumulative", true))
+          {
+            if(request->getParam("ongoing_is_cumulative", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ongoing_is_cumulative = true;
+            }
+            else
+            {
+              ongoing_is_cumulative = false;
+            }
+          }
+          if(request->hasParam("ig_non_dot", true))
+          {
+            if(request->getParam("ig_non_dot", true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              ig_non_dot = true;
+            }
+            else
+            {
+              ig_non_dot = false;
+            }
+          }
+          saveSensorConfigurationSoon = millis();
+          request->redirect("/admin");
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          xSemaphoreGive(webserverSemaphore);
+        }
+        else
+        {
+          AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+          response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
+          request->send(response);
+        }
+      #endif
+    });
+        adminWebServer->on(PSTR("/sensorReset"), HTTP_GET, [](AsyncWebServerRequest *request){
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -3252,7 +3624,7 @@
         });
       #endif
       #if defined(SUPPORT_LVGL)
-        adminWebServer->on("/touchscreen", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/touchscreen"), HTTP_GET, [](AsyncWebServerRequest *request){
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -3269,7 +3641,7 @@
             //Top of page buttons
             response->print(startRow);
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+            response->print(backButton);
             response->print(endColumn);
             response->print(endRow);
             response->print(startRow);
@@ -3299,7 +3671,7 @@
         });
       #endif
       #if defined ENABLE_REMOTE_RESTART
-        adminWebServer->on("/restart", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/restart"), HTTP_GET, [](AsyncWebServerRequest *request){
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -3347,7 +3719,7 @@
           }
         #endif
         });
-        adminWebServer->on("/restartConfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/restartConfirmed"), HTTP_GET, [](AsyncWebServerRequest *request){
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -3366,7 +3738,7 @@
             //Top of page buttons
             response->print(startRow);
             response->print(startFourColumns);
-            response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+            response->print(backButton);
             response->print(endColumn);
             response->print(endRow);
             response->print(startRow);
@@ -3390,7 +3762,7 @@
         #endif
         });
       #endif
-      adminWebServer->on("/wipe", HTTP_GET, [](AsyncWebServerRequest *request){
+      adminWebServer->on(PSTR("/wipe"), HTTP_GET, [](AsyncWebServerRequest *request){
       #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -3438,7 +3810,7 @@
         }
       #endif
       });
-      adminWebServer->on("/wipeconfirmed", HTTP_GET, [](AsyncWebServerRequest *request){
+      adminWebServer->on(PSTR("/wipeconfirmed"), HTTP_GET, [](AsyncWebServerRequest *request){
       #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
         if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
         {
@@ -3457,7 +3829,7 @@
           //Top of page buttons
           response->print(startRow);
           response->print(startTwelveColumns);
-          response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+          response->print(backButton);
           response->print(endColumn);
           response->print(endRow);
           response->print(startRow);
@@ -3480,7 +3852,7 @@
         }
       #endif
       });
-      adminWebServer->on("/devices", HTTP_GET, [](AsyncWebServerRequest *request){
+      adminWebServer->on(PSTR("/listDevices"), HTTP_GET, [](AsyncWebServerRequest *request){
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -3496,7 +3868,7 @@
           //Top of page buttons
           response->print(startRow);
           response->print(startFourColumns);
-          response->printf_P(buttonPrintfFormatString, PSTR("admin"), labelBack);
+          response->print(backButton);
           response->print(endColumn);
           #if defined(ACT_AS_TRACKER)
             response->print(startFourColumns);
@@ -3636,7 +4008,7 @@
       #endif
       });
       #if defined(ACT_AS_TRACKER)
-        adminWebServer->on("/nearest", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/nearest"), HTTP_GET, [](AsyncWebServerRequest *request){
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -3667,7 +4039,7 @@
             }
           #endif
         });
-        adminWebServer->on("/furthest", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/furthest"), HTTP_GET, [](AsyncWebServerRequest *request){
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -3698,7 +4070,7 @@
             }
           #endif
         });
-        adminWebServer->on("/track", HTTP_GET, [](AsyncWebServerRequest *request){
+        adminWebServer->on(PSTR("/track"), HTTP_GET, [](AsyncWebServerRequest *request){
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -3748,7 +4120,7 @@
         });
       #endif
       #if defined(SUPPORT_HACKING)
-        adminWebServer->on("/gameConfiguration", HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
+        adminWebServer->on(PSTR("/configureGame"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
           #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
             if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
             {
@@ -3805,47 +4177,47 @@
             }
           #endif
           });
-          adminWebServer->on("/gameConfiguration", HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
-          #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
-            {
-          #endif
-            lastWifiActivity = millis();
-            #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
-              if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
-              {
-                  return request->requestAuthentication();  //Force basic authentication
-              }
-            #endif
-            //Read the submitted configuration
-            if(request->hasParam(string_gameLength, true))
-            {
-              gameLength = request->getParam(string_gameLength, true)->value().toInt();
-            }
-            if(request->hasParam(string_gameRetries, true))
-            {
-              gameRetries = request->getParam(string_gameRetries, true)->value().toInt();
-            }
-            if(request->hasParam(string_gameSpeedup, true))
-            {
-              gameSpeedup = request->getParam(string_gameSpeedup, true)->value().toInt();
-            }
-            saveConfigurationSoon = millis();
-            request->redirect("/admin");
+        adminWebServer->on(PSTR("/configureGame"), HTTP_POST, [](AsyncWebServerRequest *request){ //This lambda function shows the configuration for editing
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
-            xSemaphoreGive(webserverSemaphore);
-          }
-          else
+          if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
-            AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
-            response->addHeader("Retry-After","5"); //Ask it to wait 5s
-            //Send response
-            request->send(response);
-          }
         #endif
-      });
+          lastWifiActivity = millis();
+          #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
+            if(basicAuthEnabled == true && request->authenticate(http_user, http_password) == false)
+            {
+                return request->requestAuthentication();  //Force basic authentication
+            }
+          #endif
+          //Read the submitted configuration
+          if(request->hasParam(string_gameLength, true))
+          {
+            gameLength = request->getParam(string_gameLength, true)->value().toInt();
+          }
+          if(request->hasParam(string_gameRetries, true))
+          {
+            gameRetries = request->getParam(string_gameRetries, true)->value().toInt();
+          }
+          if(request->hasParam(string_gameSpeedup, true))
+          {
+            gameSpeedup = request->getParam(string_gameSpeedup, true)->value().toInt();
+          }
+          saveConfigurationSoon = millis();
+          request->redirect("/admin");
+      #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
+          xSemaphoreGive(webserverSemaphore);
+        }
+        else
+        {
+          AsyncWebServerResponse *response = request->beginResponse(503); //Sends 503 as the server is busy
+          response->addHeader("Retry-After","5"); //Ask it to wait 5s
+          //Send response
+          request->send(response);
+        }
       #endif
-      adminWebServer->on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+    });
+      #endif
+      adminWebServer->on(PSTR("/css/normalize.css"), HTTP_GET, [](AsyncWebServerRequest *request) {
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -3864,7 +4236,7 @@
           }
         #endif
       });
-      adminWebServer->on("/css/skeleton.css", HTTP_GET, [](AsyncWebServerRequest *request) {
+      adminWebServer->on(PSTR("/css/skeleton.css"), HTTP_GET, [](AsyncWebServerRequest *request) {
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
           {
@@ -3880,13 +4252,13 @@
           }
         #endif
       });
-        adminWebServer->on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
-          request->send(404); //There is no favicon!
-        });
-        #if defined(SUPPORT_HACKING) //ESPUI already does a redirect
+      adminWebServer->on(PSTR("/favicon.ico"), HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(404); //There is no favicon!
+      });
+      #if defined(SUPPORT_HACKING) //ESPUI already does a redirect
         if(sensorReset == true)
         {
-        #endif
+      #endif
           adminWebServer->onNotFound([](AsyncWebServerRequest *request){  //This lambda function is a minimal 404 handler
             if(enableCaptivePortal)
             {
@@ -3897,9 +4269,9 @@
               request->send(404, "text/plain", request->url() + " not found");
             }
           });
-        #if defined(SUPPORT_HACKING)
+      #if defined(SUPPORT_HACKING)
         }
-        #endif
+      #endif
       #if defined(ENABLE_LOCAL_WEBSERVER_BASIC_AUTH)
         #if defined(USE_SPIFFS)
           if(basicAuthEnabled == true)

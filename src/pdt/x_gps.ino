@@ -51,7 +51,14 @@
           distanceToCurrentlyTrackedDeviceChanged = false;
           lastDistanceChangeUpdate = millis();
           #if defined(SUPPORT_BEEPER)
-            setBeeperUrgency();
+            #if defined(SUPPORT_DISPLAY)
+              setBeeperUrgency();
+            #elif defined(SUPPORT_LVGL)
+              if(currentLvglUiState == deviceState::tracking)
+              {
+                setBeeperUrgency();
+              }
+            #endif
           #endif
           #if defined(SUPPORT_DISPLAY)
             if(currentDisplayState == displayState::distance && millis() - lastDisplayUpdate > 100)

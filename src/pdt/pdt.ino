@@ -43,7 +43,6 @@
 
 */
 
-
 #define SERIAL_DEBUG
 #define SERIAL_LOG
 
@@ -94,6 +93,7 @@
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3LoRaBeacon
   #define ACT_AS_BEACON
+  #define SUPPORT_WIFI
   #define SUPPORT_BATTERY_METER
   #define SUPPORT_BUTTON
   #define SUPPORT_SOFT_POWER_OFF
@@ -102,20 +102,14 @@
   #define SUPPORT_GPS
   //#define DEBUG_GPS
   //#define DEBUG_TREACLE
-  #define DEBUG_UPDATES
-  #define SUPPORT_WIFI
+  //#define DEBUG_UPDATES
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == CYDTracker
-  #define SUPPORT_BEEPER
   #define ACT_AS_TRACKER
-  #define SUPPORT_GPS
-  //#define DEBUG_GPS
-  #define DEBUG_BEACON_SELECTION
+  #define SUPPORT_BEEPER
   #define SUPPORT_WIFI
-  //#define DEBUG_TREACLE
-  #define DEBUG_UPDATES
+  #define SUPPORT_GPS
   #define SUPPORT_LVGL
-  #define DEBUG_LVGL
   #define LVGL_SUPPORT_HOME_TAB
   #define LVGL_SUPPORT_GPS_TAB
   #define LVGL_SUPPORT_SCAN_INFO_TAB
@@ -125,6 +119,11 @@
   #define SUPPORT_TOUCHSCREEN_BITBANG //Use bitbang code
   #define LVGL_MANAGE_BACKLIGHT
   #define ENABLE_LOCAL_WEBSERVER
+  //#define DEBUG_GPS
+  //#define DEBUG_BEACON_SELECTION
+  //#define DEBUG_TREACLE
+  #define DEBUG_UPDATES
+  //#define DEBUG_LVGL
 #endif
 /*
  * 
@@ -581,7 +580,7 @@ uint32_t validLoRaSignalBandwidth[] = {7800, 10400, 15600, 20800, 31250, 41700, 
   uint32_t lastGPSstateChange = 0;
   uint32_t gpsTimeCheckInterval = 30000;
   uint32_t lastDistanceCalculation = 0;
-  uint16_t distanceCalculationInterval = 10E3;
+  uint16_t distanceCalculationInterval = 2E3;
   uint32_t lastGPSstatus = 0;
   uint32_t gpsChars = 0;
   uint16_t gpsSentences = 0;
