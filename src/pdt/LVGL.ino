@@ -227,14 +227,26 @@
     lv_chart_set_type(chart0, LV_CHART_TYPE_LINE);   /*Show lines and points too*/
     /*Add two data series*/
     lv_chart_set_update_mode(chart0, LV_CHART_UPDATE_MODE_SHIFT);
-    chart0ser0 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
-    lv_chart_set_range(chart0, LV_CHART_AXIS_PRIMARY_Y, 0, 16);
-    chart0ser1 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
-    lv_chart_set_range(chart0, LV_CHART_AXIS_SECONDARY_Y, 0, 16);
+    if(espNowEnabled == true)
+    {
+      chart0ser0 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
+      lv_chart_set_range(chart0, LV_CHART_AXIS_PRIMARY_Y, 0, 16);
+    }
+    if(loRaEnabled == true)
+    {
+      chart0ser1 = lv_chart_add_series(chart0, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
+      lv_chart_set_range(chart0, LV_CHART_AXIS_SECONDARY_Y, 0, 16);
+    }
     uint32_t i;
     for(i = 0; i < chartPoints; i++) {
-      chart0ser0->y_points[i] = 0;
-      chart0ser1->y_points[i] = 0;
+      if(espNowEnabled == true)
+      {
+        chart0ser0->y_points[i] = 0;
+      }
+      if(loRaEnabled == true)
+      {
+        chart0ser1->y_points[i] = 0;
+      }
     }
     lv_chart_refresh(chart0);
     lv_obj_add_flag(chart0, LV_OBJ_FLAG_HIDDEN);
@@ -251,17 +263,26 @@
     lv_chart_set_type(chart1, LV_CHART_TYPE_LINE);   /*Show lines and points too*/
     /*Add two data series*/
     lv_chart_set_update_mode(chart1, LV_CHART_UPDATE_MODE_SHIFT);
-    chart1ser0 = lv_chart_add_series(chart1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
-    lv_chart_set_range(chart1, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
-    chart1ser1 = lv_chart_add_series(chart1, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
-    lv_chart_set_range(chart1, LV_CHART_AXIS_SECONDARY_Y, 0, 100);
+    if(espNowEnabled == true)
+    {
+      chart1ser0 = lv_chart_add_series(chart1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
+      lv_chart_set_range(chart1, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
+    }
+    if(loRaEnabled == true)
+    {
+      chart1ser1 = lv_chart_add_series(chart1, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
+      lv_chart_set_range(chart1, LV_CHART_AXIS_SECONDARY_Y, 0, 100);
+    }
     //uint32_t i;
     for(i = 0; i < chartPoints; i++) {
-        /*Set the next points on 'chart1ser1'*/
-        lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 50));
-  
-        /*Directly set points on 'chart1ser1'*/
-        chart1ser1->y_points[i] = lv_rand(50, 90);
+        if(espNowEnabled == true)
+        {
+          lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 50));
+        }
+        if(loRaEnabled == true)
+        {
+          chart1ser1->y_points[i] = lv_rand(50, 90);
+        }
     }
     lv_chart_refresh(chart1); /*Required after direct set*/
     lv_obj_add_flag(chart1, LV_OBJ_FLAG_HIDDEN); 
@@ -291,6 +312,7 @@
     lv_obj_clear_flag(chart0label0, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(chart1, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
+    metersShowing = true;
   }
   void hideMeters()
   {
@@ -303,17 +325,18 @@
     lv_obj_add_flag(chart0label0, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(chart1, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
+    metersShowing = false;
   }
   void updateHomeTab()
   {
-    if(currentlyTrackedBeacon != maximumNumberOfDevices && currentLvglUiState == deviceState::tracking)
+    if(currentlyTrackedDevice != maximumNumberOfDevices && currentLvglUiState == deviceState::tracking)
     {
-      //Course to tracked beacon
+      //Show course to tracked beacon
       if(device[0].moving == true)
       {
         lv_obj_clear_flag(meter0, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
-        uint16_t courseToIndicate = device[currentlyTrackedBeacon].courseTo - device[0].course;
+        uint16_t courseToIndicate = device[currentlyTrackedDevice].courseTo - device[0].course;
         if(courseToIndicate > 360)
         {
           courseToIndicate -= 360;
@@ -329,9 +352,9 @@
         lv_obj_add_flag(meter0, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
       }
-      if(rangeToIndicate(currentlyTrackedBeacon) < maximumEffectiveRange) //Limit is 100m on dial
+      if(rangeToIndicate(currentlyTrackedDevice) < maximumEffectiveRange) //Limit is 100m on dial
       {
-        lv_meter_set_indicator_value(meter1, needle1, rangeToIndicate(currentlyTrackedBeacon));
+        lv_meter_set_indicator_value(meter1, needle1, rangeToIndicate(currentlyTrackedDevice));
       }
       else
       {
@@ -344,30 +367,50 @@
       //lv_obj_add_flag(needle1, LV_OBJ_FLAG_HIDDEN);
     }
     //Signal graph
-    if(currentlyTrackedBeacon != maximumNumberOfDevices)
+    if(currentlyTrackedDevice != maximumNumberOfDevices)
     {
-      lv_chart_set_next_value(chart0, chart0ser0, countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)));
-      lv_chart_set_next_value(chart0, chart0ser1, countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)));
-      //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id)>>12));
-      //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id)>>12));
-      //lv_chart_set_next_value(chart0, chart0ser0, (treacle.espNowRxReliability(device[currentlyTrackedBeacon].id));
-      //lv_chart_set_next_value(chart0, chart0ser1, (treacle.loRaRxReliability(device[currentlyTrackedBeacon].id));
+      if(espNowEnabled == true)
+      {
+        lv_chart_set_next_value(chart0, chart0ser0, countBits(treacle.espNowRxReliability(device[currentlyTrackedDevice].id)));
+      }
+      if(loRaEnabled == true)
+      {
+        lv_chart_set_next_value(chart0, chart0ser1, countBits(treacle.loRaRxReliability(device[currentlyTrackedDevice].id)));
+      }
     }
     else
     {
-      lv_chart_set_next_value(chart0, chart0ser0, 0);
-      lv_chart_set_next_value(chart0, chart0ser1, 0);
+      if(espNowEnabled == true)
+      {
+        lv_chart_set_next_value(chart0, chart0ser0, 0);
+      }
+      if(loRaEnabled == true)
+      {
+        lv_chart_set_next_value(chart0, chart0ser1, 0);
+      }
     }
     //Random junk
-    if(currentlyTrackedBeacon != maximumNumberOfDevices)
+    if(currentlyTrackedDevice != maximumNumberOfDevices)
     {
-      lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(treacle.espNowRxReliability(device[currentlyTrackedBeacon].id))/16);
-      lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(treacle.loRaRxReliability(device[currentlyTrackedBeacon].id))/16);
+      if(espNowEnabled == true)
+      {
+        lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(treacle.espNowRxReliability(device[currentlyTrackedDevice].id))/16);
+      }
+      if(loRaEnabled == true)
+      {
+        lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(treacle.loRaRxReliability(device[currentlyTrackedDevice].id))/16);
+      }
     }
     else
     {
-      lv_chart_set_next_value(chart1, chart1ser0, 0);
-      lv_chart_set_next_value(chart1, chart1ser1, 0);
+      if(espNowEnabled == true)
+      {
+        lv_chart_set_next_value(chart1, chart1ser0, 0);
+      }
+      if(loRaEnabled == true)
+      {
+        lv_chart_set_next_value(chart1, chart1ser1, 0);
+      }
     }
   }
   #if defined(LVGL_SUPPORT_GPS_TAB)
@@ -666,7 +709,7 @@
       char buf[32];
       lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-        SERIAL_DEBUG_PORT.printf_P(PSTR("Units: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
+        SERIAL_DEBUG_PORT.printf_P(PSTR("GUI Units: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
       #endif
     }
   }
@@ -680,7 +723,7 @@
       char buf[32];
       lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-        SERIAL_DEBUG_PORT.printf_P(PSTR("Date format: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
+        SERIAL_DEBUG_PORT.printf_P(PSTR("GUI Date format: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
       #endif
     }
   }
@@ -694,7 +737,7 @@
       char buf[32];
       lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-        SERIAL_DEBUG_PORT.printf_P(PSTR("Sensitivity: %04x %s\r\n"), sensitivityValues[(int)lv_dropdown_get_selected(obj)], buf);
+        SERIAL_DEBUG_PORT.printf_P(PSTR("GUI Sensitivity: %04x %s\r\n"), sensitivityValues[(int)lv_dropdown_get_selected(obj)], buf);
       #endif
     }
   }
@@ -716,7 +759,7 @@
       char buf[32];
       lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-        SERIAL_DEBUG_PORT.printf_P(PSTR("Priority: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
+        SERIAL_DEBUG_PORT.printf_P(PSTR("GUI Priority: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
       #endif
     }
   }
@@ -730,7 +773,7 @@
       char buf[32];
       lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-        SERIAL_DEBUG_PORT.printf_P(PSTR("Display timeout: %u %s\r\n"), displayTimeouts[(int)lv_dropdown_get_selected(obj)], buf);
+        SERIAL_DEBUG_PORT.printf_P(PSTR("GUI Display timeout: %u %s\r\n"), displayTimeouts[(int)lv_dropdown_get_selected(obj)], buf);
       #endif
     }
   }
@@ -752,7 +795,7 @@
         char buf[32];
         lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-          SERIAL_DEBUG_PORT.printf_P(PSTR("Beeper: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
+          SERIAL_DEBUG_PORT.printf_P(PSTR("GUI Beeper: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
         #endif
       }
     }
@@ -775,7 +818,7 @@
         char buf[32];
         lv_dropdown_get_selected_str(obj, buf, sizeof(buf));
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-          SERIAL_DEBUG_PORT.printf_P(PSTR("Rotation: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
+          SERIAL_DEBUG_PORT.printf_P(PSTR("GUI Rotation: %u %s\r\n"), (int)lv_dropdown_get_selected(obj), buf);
         #endif
       }
     }
@@ -789,7 +832,7 @@
       maximumBrightnessLevel = (uint8_t)lv_slider_get_value(obj);
       saveConfigurationSoon = millis();
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-        SERIAL_DEBUG_PORT.printf_P(PSTR("Display brightness: %u-%u\r\n"),(int)lv_slider_get_left_value(obj), (int)lv_slider_get_value(obj));
+        SERIAL_DEBUG_PORT.printf_P(PSTR("GUI Display brightness: %u-%u\r\n"),(int)lv_slider_get_left_value(obj), (int)lv_slider_get_value(obj));
       #endif
     }
   }
@@ -912,27 +955,21 @@
       {
         if((uint8_t)lv_dropdown_get_selected(obj) < maximumNumberOfDevices)
         {
+          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+            SERIAL_DEBUG_PORT.print(F("GUI "));
+          #endif
           if(currentTrackingMode != trackingMode::fixed)
           {
             currentTrackingMode = trackingMode::fixed;
             #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-              SERIAL_DEBUG_PORT.print(F("Changed to fixed tracking: "));
+              SERIAL_DEBUG_PORT.print(F("changed to fixed tracking "));
             #endif
           }
-          currentlyTrackedBeacon = selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)];
+          currentlyTrackedDevice = selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)];
           #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-            SERIAL_DEBUG_PORT.print(F("Chose: "));
+            SERIAL_DEBUG_PORT.print(F("chose "));
           #endif
-          /*
-          if(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icName != nullptr)
-          {
-            lv_label_set_text(icName_label, device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icName);
-          }
-          else
-          {
-            lv_label_set_text(icName_label, "Unknown");
-          }
-          */
+          //Set the description in the box below
           if(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icDescription != nullptr)
           {
             lv_label_set_text(icDescription_label, device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icDescription);
@@ -940,21 +977,17 @@
           else
           {
             lv_label_set_text(icDescription_label, "No information available");
-            #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-              //SERIAL_DEBUG_PORT.print(F("CALLBACK icDescription == nullptr -> Nothing useful detected"));
-            #endif
           }
-          if(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].name != nullptr)
+          if(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icName != nullptr)
           {
             #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-              SERIAL_DEBUG_PORT.println(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].name);
+              SERIAL_DEBUG_PORT.println(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icName);
             #endif
           }
           else
           {
             #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-              SERIAL_DEBUG_PORT.print(F("device "));
-              SERIAL_DEBUG_PORT.print(selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]);
+              SERIAL_DEBUG_PORT.printf_P(PSTR("deviceId:02x\r\n"), device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].id);
             #endif
           }
         }
@@ -966,7 +999,7 @@
       if(code == LV_EVENT_CLICKED)
       {
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-          SERIAL_DEBUG_PORT.print(F("\"Nearest\" clicked"));
+          SERIAL_DEBUG_PORT.print(F("GUI \"Nearest\" clicked"));
         #endif
         if(currentTrackingMode != trackingMode::nearest)
         {
@@ -989,7 +1022,7 @@
       if(code == LV_EVENT_CLICKED)
       {
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-          SERIAL_DEBUG_PORT.print(F("\"Furthest\" clicked"));
+          SERIAL_DEBUG_PORT.print(F("GUI \"Furthest\" clicked"));
         #endif
         if(currentTrackingMode != trackingMode::furthest)
         {
@@ -1015,7 +1048,7 @@
       {
         if(device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange)
         {
-          if(index == currentlyTrackedBeacon) //Continue tracking after update
+          if(index == currentlyTrackedDevice) //Continue tracking after update
           {
             indexToPickAftewards = numberOfDevicesInDeviceDropdown;
           }
@@ -1040,7 +1073,7 @@
       }
       lv_dropdown_set_options(devices_dd, tempDropdownString.c_str());
       #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-        SERIAL_DEBUG_PORT.print(F("Updated Scan Info Tab, "));
+        SERIAL_DEBUG_PORT.print(F("GUI updated Scan Info Tab, "));
         if(indexToPickAftewards != maximumNumberOfDevices)
         {
           SERIAL_DEBUG_PORT.print(F(" picked device: "));
@@ -1055,9 +1088,9 @@
       {
         lv_dropdown_set_selected(devices_dd, indexToPickAftewards);
         /*
-        if(device[selectDeviceDropdownIndices[currentlyTrackedBeacon]].icName != nullptr)
+        if(device[selectDeviceDropdownIndices[currentlyTrackedDevice]].icName != nullptr)
         {
-          lv_label_set_text(icName_label, device[currentlyTrackedBeacon].icName);
+          lv_label_set_text(icName_label, device[currentlyTrackedDevice].icName);
         }
         else
         {
@@ -1169,14 +1202,17 @@
       }
       else
       {
-        if(currentlyTrackedBeacon != maximumNumberOfDevices)  //Found a beacon
+        if(currentlyTrackedDevice != maximumNumberOfDevices)  //Found a beacon
         {
-          hideStatusSpinner();
-          showMeters();
-          currentLvglUiState = deviceState::tracking;
-          #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-            SERIAL_DEBUG_PORT.println(F("deviceState::tracking"));
-          #endif
+          if(metersShowing == false)
+          {
+            hideStatusSpinner();
+            showMeters();
+            currentLvglUiState = deviceState::tracking;
+            #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
+              SERIAL_DEBUG_PORT.println(F("deviceState::tracking"));
+            #endif
+          }
         }
       }
     }
@@ -1200,18 +1236,24 @@
       }
       if(device[0].hasGpsFix == false)  //Lost location
       {
-        hideMeters();
-        showStatusSpinner();
+        if(metersShowing == true)
+        {
+          hideMeters();
+          showStatusSpinner();
+        }
         lv_label_set_text(status_label, statusLabel_3);
         currentLvglUiState = deviceState::gpsDetected;
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
           SERIAL_DEBUG_PORT.println(F("deviceState::gpsDetected"));
         #endif
       }
-      else if(currentlyTrackedBeacon == maximumNumberOfDevices) //Lost all beacons
+      else if(currentlyTrackedDevice == maximumNumberOfDevices) //Lost all beacons
       {
-        hideMeters();
-        showStatusSpinner();
+        if(metersShowing == true)
+        {
+          hideMeters();
+          showStatusSpinner();
+        }
         currentLvglUiState = deviceState::gpsLocked;
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
           SERIAL_DEBUG_PORT.println(F("deviceState::gpsLocked"));
@@ -1221,7 +1263,7 @@
     #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
       if(enableInfoTab)
       {
-        if(millis() - lastScanInfoTabUpdate > 10E3)// && findableDevicesChanged == true)
+        if(millis() - lastScanInfoTabUpdate > 1E3 && findableDevicesChanged == true)
         {
           lastScanInfoTabUpdate = millis();
           findableDevicesChanged = false;
@@ -1323,4 +1365,16 @@
       }
     #endif
   #endif
+  uint8_t countBits(uint16_t thingToCount)
+  {
+    uint8_t total = 0;
+    for(uint8_t bit = 0; bit < 16; bit++)
+    {
+      if(thingToCount & (uint16_t)(pow(2, bit)))
+      {
+        total++;
+      }
+    }
+    return total;
+  }
 #endif

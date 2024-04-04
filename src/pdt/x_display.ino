@@ -33,9 +33,9 @@
   void manageDisplay()
   {
     #if defined(ACT_AS_TRACKER)
-      if(currentlyTrackedBeaconStateChanged == true)  //Ideally show the status to the tracker, but not if asleep
+      if(currentlyTrackedDeviceStateChanged == true)  //Ideally show the status to the tracker, but not if asleep
       {
-        currentlyTrackedBeaconStateChanged = false;
+        currentlyTrackedDeviceStateChanged = false;
         //if(currentDisplayState == displayState::distance|| currentDisplayState == displayState::status)
         {
           displayStatus();
@@ -105,7 +105,7 @@
     ssd1306_clearScreen8();
     printTopLine((const char*)F("RANGE"));
     printBottomLine((const char*)F("METERS"));
-    if(device[currentlyTrackedBeacon].hasGpsFix == false || rangeToIndicate(currentlyTrackedBeacon) > maximumEffectiveRange || currentlyTrackedBeacon == maximumNumberOfDevices)
+    if(device[currentlyTrackedDevice].hasGpsFix == false || rangeToIndicate(currentlyTrackedDevice) > maximumEffectiveRange || currentlyTrackedDevice == maximumNumberOfDevices)
     {
       if(maximumEffectiveRange > 999)
       {
@@ -144,27 +144,27 @@
         if(waitForBufferSpace(28))
         {
           SERIAL_DEBUG_PORT.print(F("Displaying range:"));
-          SERIAL_DEBUG_PORT.println(distanceToCurrentBeacon);
+          SERIAL_DEBUG_PORT.println(device[currentlyTrackedDevice].distanceTo);
           //SERIAL_DEBUG_PORT.print(F(" cardinal:"));
-          //SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentlyTrackedBeacon].course));
+          //SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentlyTrackedDevice].course));
         }
       #endif
       if(maximumEffectiveRange > 999)
       {
         char displayText[5];
-        sprintf_P(displayText,PSTR("%04u"),distanceToCurrentBeacon);
+        sprintf_P(displayText,PSTR("%04u"),(uint32_t)device[currentlyTrackedDevice].distanceTo);
         printRange(displayText);
       }
       else if(maximumEffectiveRange > 99)
       {
         char displayText[4];
-        sprintf_P(displayText,PSTR("%03u"),distanceToCurrentBeacon);
+        sprintf_P(displayText,PSTR("%03u"),(uint32_t)device[currentlyTrackedDevice].distanceTo);
         printRange(displayText);
       }
       else
       {
         char displayText[3];
-        sprintf_P(displayText,PSTR("%02u"),distanceToCurrentBeacon);
+        sprintf_P(displayText,PSTR("%02u"),(uint32_t)device[currentlyTrackedDevice].distanceTo);
         printRange(displayText);
       }
     }
@@ -183,7 +183,7 @@
     #endif
     ssd1306_clearScreen8();
     printTopLine((const char*)F("DIRECTION"));
-    if(device[currentlyTrackedBeacon].hasGpsFix == false || rangeToIndicate(currentlyTrackedBeacon) > maximumEffectiveRange || currentlyTrackedBeacon == maximumNumberOfDevices)
+    if(device[currentlyTrackedDevice].hasGpsFix == false || rangeToIndicate(currentlyTrackedDevice) > maximumEffectiveRange || currentlyTrackedDevice == maximumNumberOfDevices)
     {
       printMiddleLine((const char*)F("UNKNOWN"));
       #if defined(SERIAL_DEBUG)
@@ -195,13 +195,13 @@
     }
     else
     {
-      if(distanceToCurrentBeacon > 10) //Below 10m direction gets a bit meaningless
+      if(device[currentlyTrackedDevice].distanceTo > 10) //Below 10m direction gets a bit meaningless
       {
-        printMiddleLine(TinyGPSPlus::cardinal(device[currentlyTrackedBeacon].course));
+        printMiddleLine(TinyGPSPlus::cardinal(device[currentlyTrackedDevice].course));
         #if defined(SERIAL_DEBUG)
           if(waitForBufferSpace(20))
           {
-            SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentlyTrackedBeacon].course));
+            SERIAL_DEBUG_PORT.println(TinyGPSPlus::cardinal(device[currentlyTrackedDevice].course));
           }
         #endif
       }
@@ -233,7 +233,7 @@
     ssd1306_clearScreen8();
     printTopLine((const char*)F("DRONE"));
     printBottomLine((const char*)F("STATUS"));
-    if(device[currentlyTrackedBeacon].numberOfStartingStunHits == 0 || device[currentlyTrackedBeacon].numberOfStartingHits == 0 || device[currentlyTrackedBeacon].hasGpsFix == false || drangeToIndicate(currentlyTrackedBeacon) > maximumEffectiveRange || currentlyTrackedBeacon == maximumNumberOfDevices)
+    if(device[currentlyTrackedDevice].numberOfStartingStunHits == 0 || device[currentlyTrackedDevice].numberOfStartingHits == 0 || device[currentlyTrackedDevice].hasGpsFix == false || drangeToIndicate(currentlyTrackedDevice) > maximumEffectiveRange || currentlyTrackedDevice == maximumNumberOfDevices)
     {
       printMiddleLine((const char*)F("UNKNOWN"));
       #if defined(SERIAL_DEBUG)
@@ -245,7 +245,7 @@
     }
     else
     {
-      if(device[currentlyTrackedBeacon].currentNumberOfHits == 0)
+      if(device[currentlyTrackedDevice].currentNumberOfHits == 0)
       {
         printMiddleLine((const char*)F("DESTROYED"));
         #if defined(SERIAL_DEBUG)
@@ -255,7 +255,7 @@
           }
         #endif
       }
-      else if(device[currentlyTrackedBeacon].currentNumberOfStunHits == 0)
+      else if(device[currentlyTrackedDevice].currentNumberOfStunHits == 0)
       {
         printMiddleLine((const char*)F("SHUTDOWN"));
         #if defined(SERIAL_DEBUG)
@@ -265,7 +265,7 @@
           }
         #endif
       }
-      else if(device[currentlyTrackedBeacon].currentNumberOfHits > 0 && device[currentlyTrackedBeacon].currentNumberOfHits == device[currentlyTrackedBeacon].numberOfStartingHits && device[currentlyTrackedBeacon].currentNumberOfStunHits > 0) //Below 10m direction gets a bit meaningless
+      else if(device[currentlyTrackedDevice].currentNumberOfHits > 0 && device[currentlyTrackedDevice].currentNumberOfHits == device[currentlyTrackedDevice].numberOfStartingHits && device[currentlyTrackedDevice].currentNumberOfStunHits > 0) //Below 10m direction gets a bit meaningless
       {
         printMiddleLine((const char*)F("UNDAMAGED"));
         #if defined(SERIAL_DEBUG)
@@ -277,11 +277,11 @@
       }
       else
       {
-        //if(device[currentlyTrackedBeacon].currentNumberOfHits <= device[currentlyTrackedBeacon].currentNumberOfStunHits) //Show damage status
+        //if(device[currentlyTrackedDevice].currentNumberOfHits <= device[currentlyTrackedDevice].currentNumberOfStunHits) //Show damage status
         {
           char displayText[14];
-          //sprintf_P(displayText, PSTR("%02u%% DAMAGE"), (100*(uint16_t)(device[currentlyTrackedBeacon].numberOfStartingHits - device[currentlyTrackedBeacon].currentNumberOfHits))/(uint16_t)device[currentlyTrackedBeacon].numberOfStartingHits);
-          sprintf_P(displayText, PSTR("%02u%% HEALTH"), (100*(uint16_t)device[currentlyTrackedBeacon].currentNumberOfHits)/(uint16_t)device[currentlyTrackedBeacon].numberOfStartingHits);
+          //sprintf_P(displayText, PSTR("%02u%% DAMAGE"), (100*(uint16_t)(device[currentlyTrackedDevice].numberOfStartingHits - device[currentlyTrackedDevice].currentNumberOfHits))/(uint16_t)device[currentlyTrackedDevice].numberOfStartingHits);
+          sprintf_P(displayText, PSTR("%02u%% HEALTH"), (100*(uint16_t)device[currentlyTrackedDevice].currentNumberOfHits)/(uint16_t)device[currentlyTrackedDevice].numberOfStartingHits);
           printMiddleLine(displayText);
           #if defined(SERIAL_DEBUG)
             if(waitForBufferSpace(20))
@@ -294,7 +294,7 @@
         else  //Show stun status
         {
           char displayText[16];
-          sprintf_P(displayText, PSTR("%02u%% DISRUPTED"), (100*(uint16_t)(device[currentlyTrackedBeacon].numberOfStartingStunHits - device[currentlyTrackedBeacon].currentNumberOfStunHits))/(uint16_t)device[currentlyTrackedBeacon].numberOfStartingStunHits);
+          sprintf_P(displayText, PSTR("%02u%% DISRUPTED"), (100*(uint16_t)(device[currentlyTrackedDevice].numberOfStartingStunHits - device[currentlyTrackedDevice].currentNumberOfStunHits))/(uint16_t)device[currentlyTrackedDevice].numberOfStartingStunHits);
           printMiddleLine(displayText);
           #if defined(SERIAL_DEBUG)
             if(waitForBufferSpace(20))
@@ -322,7 +322,7 @@
       }
     #endif
     String temp;
-    if(currentlyTrackedBeacon == maximumNumberOfDevices || device[0].hdop > device[currentlyTrackedBeacon].hdop) //Show the worst HDOP
+    if(currentlyTrackedDevice == maximumNumberOfDevices || device[0].hdop > device[currentlyTrackedDevice].hdop) //Show the worst HDOP
     {
       temp = String(hdopDescription(device[0].hdop));
       temp.toUpperCase();
@@ -330,7 +330,7 @@
     }
     else
     {
-      temp = String(hdopDescription(device[currentlyTrackedBeacon].hdop));
+      temp = String(hdopDescription(device[currentlyTrackedDevice].hdop));
       temp.toUpperCase();
       printMiddleLine(temp.c_str());
     }
@@ -378,20 +378,20 @@
     else if(currentTrackingMode == trackingMode::fixed)
     {
       //ssd1306_setFixedFont(digital_font5x7_AB);
-      if(device[currentlyTrackedBeacon].name != nullptr)
+      if(device[currentlyTrackedDevice].name != nullptr)
       {
-        printMiddleLine(device[currentlyTrackedBeacon].name);
+        printMiddleLine(device[currentlyTrackedDevice].name);
         #if defined(SERIAL_DEBUG)
           if(waitForBufferSpace(80))
           {
-            SERIAL_DEBUG_PORT.println(device[currentlyTrackedBeacon].name);
+            SERIAL_DEBUG_PORT.println(device[currentlyTrackedDevice].name);
           }
         #endif
       }
       else
       {
         char beaconDetail[17];
-        sprintf_P(beaconDetail, PSTR("%02u %02X%02X%02X%02X%02X%02X"), currentlyTrackedBeacon, device[currentlyTrackedBeacon].id[0], device[currentlyTrackedBeacon].id[1], device[currentlyTrackedBeacon].id[2], device[currentlyTrackedBeacon].id[3], device[currentlyTrackedBeacon].id[4], device[currentlyTrackedBeacon].id[5]);
+        sprintf_P(beaconDetail, PSTR("%02u %02X%02X%02X%02X%02X%02X"), currentlyTrackedDevice, device[currentlyTrackedDevice].id[0], device[currentlyTrackedDevice].id[1], device[currentlyTrackedDevice].id[2], device[currentlyTrackedDevice].id[3], device[currentlyTrackedDevice].id[4], device[currentlyTrackedDevice].id[5]);
         printMiddleLine(beaconDetail);
         #if defined(SERIAL_DEBUG)
           if(waitForBufferSpace(80))
@@ -468,7 +468,7 @@
     ssd1306_clearScreen8();
     printTopLine((const char*)F("SIGNAL"));
     printBottomLine((const char*)F("STRENGTH"));
-    if(currentlyTrackedBeacon == maximumNumberOfDevices || device[currentlyTrackedBeacon].hasGpsFix == false || rangeToIndicate(currentlyTrackedBeacon) > maximumEffectiveRange)
+    if(currentlyTrackedDevice == maximumNumberOfDevices || device[currentlyTrackedDevice].hasGpsFix == false || rangeToIndicate(currentlyTrackedDevice) > maximumEffectiveRange)
     {
       #if defined(SERIAL_DEBUG)
       if(waitForBufferSpace(35))
@@ -484,11 +484,11 @@
         if(waitForBufferSpace(35))
         {
           SERIAL_DEBUG_PORT.print(F("Displaying signal strength: "));
-          SERIAL_DEBUG_PORT.println(device[currentlyTrackedBeacon].lastLoRaRssi);
+          SERIAL_DEBUG_PORT.println(device[currentlyTrackedDevice].lastLoRaRssi);
         }
       #endif
       char displayText[11];
-      sprintf_P(displayText,PSTR("%03.1fdbM"),device[currentlyTrackedBeacon].lastLoRaRssi);
+      sprintf_P(displayText,PSTR("%03.1fdbM"),device[currentlyTrackedDevice].lastLoRaRssi);
       printMiddleLine(displayText);
     }
     lastDisplayUpdate = millis();

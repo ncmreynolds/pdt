@@ -39,86 +39,67 @@
         if(millis() - lastDistanceCalculation > distanceCalculationInterval)  //Recalculate distances on a short interval
         {
           lastDistanceCalculation = millis();
+          //distanceCalculationInterval = treacle.suggestedQueueInterval(); //Vary this based on the likely update frequency
+          calculateDistanceToAllDevices();
           #if defined(ACT_AS_TRACKER)
-            selectDeviceToTrack();          //May need to change tracked device due to movement
-          #elif defined(ACT_AS_BEACON)
-            calculateDistanceToTrackers();
+            selectDeviceToTrack();          //May need to change tracked device due to movement and finding/losing signal
           #endif
         }
-        #if defined(SUPPORT_BEEPER)
-          #if defined(ACT_AS_TRACKER)
-            if(currentlyTrackedBeacon != maximumNumberOfDevices && device[currentlyTrackedBeacon].hasGpsFix == true && (distanceToCurrentBeaconChanged == true || millis() - lastDistanceChangeUpdate > 5000))  //Set beeper urgency based on current distance, if it has changed
-            {
-              //distanceToCurrentBeaconChanged 
-              setBeeperUrgency();
-              #ifndef SUPPORT_DISPLAY
-                distanceToCurrentBeaconChanged = false; //If it's beeper only, acknowledge the change
-                lastDistanceChangeUpdate = millis();
-              #endif
-            }
-          #endif
-        #endif
-        #if defined(SUPPORT_LVGL)
-        /*
-        if(currentTrackingMode == trackingMode::furthest)
+        #if defined(ACT_AS_TRACKER)
+        if(currentlyTrackedDevice != maximumNumberOfDevices && device[currentlyTrackedDevice].hasGpsFix == true && (distanceToCurrentlyTrackedDeviceChanged == true || millis() - lastDistanceChangeUpdate > 5000))  //Set beeper urgency based on current distance, if it has changed
         {
-          if(selectFurthestBeacon())
-          {
-            currentTrackingMode = trackingMode::fixed;
-            displayTrackingMode();
-          }
-        }*/
-        #endif
-        #if defined(SUPPORT_DISPLAY)
-          if(currentlyTrackedBeacon != maximumNumberOfDevices && device[currentlyTrackedBeacon].hasGpsFix == true && (distanceToCurrentBeaconChanged == true || millis() - lastDistanceChangeUpdate > 5000)) //Show distance if it changes
-          {
-            distanceToCurrentBeaconChanged = false;
-            lastDistanceChangeUpdate = millis();
+          distanceToCurrentlyTrackedDeviceChanged = false;
+          lastDistanceChangeUpdate = millis();
+          #if defined(SUPPORT_BEEPER)
+            setBeeperUrgency();
+          #endif
+          #if defined(SUPPORT_DISPLAY)
             if(currentDisplayState == displayState::distance && millis() - lastDisplayUpdate > 100)
             {
               displayDistanceToBeacon();
             }
-          }
-          if(currentDisplayState != displayState::blank && millis() - lastDisplayUpdate > displayTimeout) //Time out the display
-          {
-            if(currentDisplayState == displayState::distance)
+            else if(currentDisplayState != displayState::blank && millis() - lastDisplayUpdate > displayTimeout) //Time out the display
             {
-              blankDisplay(); //Blank the display
-            }
-            else if(currentDisplayState == displayState::trackingMode && currentTrackingMode == trackingMode::nearest)  //Find nearest then show user
-            {
-              displayDistanceToBeacon();  //Drop back to the range display
-            }
-            else if(currentDisplayState == displayState::trackingMode && currentTrackingMode == trackingMode::furthest) //Find furthest then show user
-            {
-              if(selectFurthestBeacon())
+              if(currentDisplayState == displayState::distance)
               {
-                currentTrackingMode = trackingMode::fixed;
-                displayTrackingMode();
+                blankDisplay(); //Blank the display
+              }
+              else if(currentDisplayState == displayState::trackingMode && currentTrackingMode == trackingMode::nearest)  //Find nearest then show user
+              {
+                displayDistanceToBeacon();  //Drop back to the range display
+              }
+              else if(currentDisplayState == displayState::trackingMode && currentTrackingMode == trackingMode::furthest) //Find furthest then show user
+              {
+                if(selectFurthestBeacon())
+                {
+                  currentTrackingMode = trackingMode::fixed;
+                  displayTrackingMode();
+                }
+                else
+                {
+                  displayDistanceToBeacon();  //Drop back to the range display
+                }
               }
               else
               {
                 displayDistanceToBeacon();  //Drop back to the range display
               }
             }
-            else
-            {
-              displayDistanceToBeacon();  //Drop back to the range display
-            }
-          }
+          #endif
+        }
         #endif
       }
       #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
-      if(peripheralsEnabled)
-      {
-      #endif
-        if(millis() - lastGpsTimeCheck > gpsTimeCheckInterval)  //Maintain system time using GPS which may be possible even without a full fix
+        if(peripheralsEnabled)
         {
-          lastGpsTimeCheck = millis();
-          updateTimeFromGps();
-        }
+      #endif
+          if(millis() - lastGpsTimeCheck > gpsTimeCheckInterval)  //Maintain system time using GPS which may be possible even without a full fix
+          {
+            lastGpsTimeCheck = millis();
+            updateTimeFromGps();
+          }
       #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)
-      }
+        }
       #endif
       xSemaphoreGive(gpsSemaphore);
     }
@@ -291,254 +272,6 @@
     struct timeval now = { .tv_sec = t };
     settimeofday(&now, NULL);
   }
-  uint8_t countBits(uint16_t thingToCount)
-  {
-    uint8_t total = 0;
-    for(uint8_t bit = 0; bit < 16; bit++)
-    {
-      if(thingToCount & (uint16_t)(pow(2, bit)))
-      {
-        total++;
-      }
-    }
-    return total;
-  }
-  #if defined(ACT_AS_TRACKER)
-    uint8_t numberOfBeacons()
-    {
-      uint8_t count = 0;
-      if(numberOfDevices == 1)
-      {
-        return 0;
-      }
-      for(uint8_t beaconIndex = 1; beaconIndex < numberOfDevices; beaconIndex++)
-      {
-        if((device[beaconIndex].typeOfDevice & 0x01) == 0x00 && device[beaconIndex].hasGpsFix == true)
-        {
-          count++;
-        }
-      }
-      return count;
-    }
-    void calculateDistanceToBeacons()
-    {
-      for(uint8_t beaconIndex = 1; beaconIndex < numberOfDevices; beaconIndex++)
-      {
-        if((device[beaconIndex].typeOfDevice & 0x01) == 0x00 && device[beaconIndex].hasGpsFix == true)
-        {
-          device[beaconIndex].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
-          device[beaconIndex].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[beaconIndex].latitude, device[beaconIndex].longitude);
-          #if defined(SERIAL_DEBUG) && defined(DEBUG_BEACON_SELECTION)
-            SERIAL_DEBUG_PORT.printf_P(PSTR("Beacon %u - distance:%01.1f(m) course:%03.1f(deg)"), beaconIndex, device[beaconIndex].distanceTo, device[beaconIndex].courseTo);
-          #endif
-          if(beaconIndex == currentlyTrackedBeacon)
-          {
-            #if defined(SERIAL_DEBUG) && defined(DEBUG_BEACON_SELECTION)
-              SERIAL_DEBUG_PORT.println(F(" - tracking"));
-            #endif
-            if(distanceToCurrentBeacon != (uint32_t)device[beaconIndex].distanceTo)
-            {
-              distanceToCurrentBeacon = (uint32_t)device[beaconIndex].distanceTo;
-              distanceToCurrentBeaconChanged = true;
-            }
-          }
-          else
-          {
-            #if defined(SERIAL_DEBUG) && defined(DEBUG_BEACON_SELECTION)
-              SERIAL_DEBUG_PORT.println();
-            #endif
-          }
-        }
-      }
-    }
-    void selectDeviceToTrack()
-    {
-      if(numberOfDevices > 1)
-      {
-        calculateDistanceToBeacons();
-        if(currentTrackingMode == trackingMode::nearest)
-        {
-          if(selectNearestBeacon())
-          {
-            #if defined(SERIAL_DEBUG) && (defined(DEBUG_LORA) || defined(DEBUG_ESPNOW))
-              SERIAL_DEBUG_PORT.print(F("Tracking nearest beacon: "));
-              SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
-            #endif
-            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
-              findableDevicesChanged = true;
-            #endif
-          }
-        }
-        else if(currentTrackingMode == trackingMode::furthest)
-        {
-          if(selectFurthestBeacon())
-          {
-            #if defined(SERIAL_DEBUG) && (defined(DEBUG_LORA) || defined(DEBUG_ESPNOW))
-              SERIAL_DEBUG_PORT.print(F("Tracking furthest beacon: "));
-              SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
-            #endif
-            currentTrackingMode = trackingMode::fixed;  //Switch to fixed as 'furthest' needs to fix once chose
-            #if defined(SUPPORT_LVGL) && defined(LVGL_SUPPORT_SCAN_INFO_TAB)
-              findableDevicesChanged = true;
-            #endif
-          }
-        }
-        else if(currentTrackingMode == trackingMode::fixed)
-        {
-          #if defined(SERIAL_DEBUG) && (defined(DEBUG_LORA) || defined(DEBUG_ESPNOW))
-            SERIAL_DEBUG_PORT.print(F("Tracking specific beacon: "));
-            SERIAL_DEBUG_PORT.println(currentlyTrackedBeacon);
-          #endif
-        }
-      }
-    }
-    void updateDistanceToBeacon(const uint8_t index)
-    {
-      if(uint32_t(device[index].distanceTo) != distanceToCurrentBeacon)
-      {
-        distanceToCurrentBeacon = uint32_t(device[index].distanceTo);
-        distanceToCurrentBeaconChanged = true;
-        #if defined(SUPPORT_DISPLAY)
-          if(currentDisplayState == displayState::distance) //Clear distance if showing
-          {
-            displayDistanceToBeacon();
-          }
-        #endif
-      }
-    }
-    bool selectNearestBeacon()  //True only implies it has changed!
-    {
-      if(numberOfDevices == 0)
-      {
-        return false;
-      }
-      if(numberOfDevices == 2 && device[1].hasGpsFix == true && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
-      {
-        if(currentlyTrackedBeacon != 1)  //Only assign this once
-        {
-          currentlyTrackedBeacon = 1;
-          updateDistanceToBeacon(currentlyTrackedBeacon);
-          return true;
-        }
-        updateDistanceToBeacon(currentlyTrackedBeacon);
-        return false;
-      }
-      else
-      {
-        uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
-        for(uint8_t index = 1; index < numberOfDevices; index++)
-        {
-          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && treacle.online(device[index].id) && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
-          {
-            nearestBeacon = index;
-          }
-        }
-        if(nearestBeacon != maximumNumberOfDevices && currentlyTrackedBeacon != nearestBeacon) //Choose a new nearest beacon
-        {
-          currentlyTrackedBeacon = nearestBeacon;
-          updateDistanceToBeacon(currentlyTrackedBeacon);
-          return true;
-        }
-        updateDistanceToBeacon(currentlyTrackedBeacon);
-        return false;
-      }
-      return false;
-    }
-    bool selectFurthestBeacon() //True implies this has changed!
-    {
-      if(numberOfDevices == 1)
-      {
-        return false;
-      }
-      if(numberOfDevices == 2 && device[1].hasGpsFix && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
-      {
-        if(currentlyTrackedBeacon != 1)
-        {
-          currentlyTrackedBeacon = 1;
-          updateDistanceToBeacon(currentlyTrackedBeacon);
-          return true;
-        }
-        updateDistanceToBeacon(currentlyTrackedBeacon);
-        return false;
-      }
-      else
-      {
-        uint8_t furthestBeacon = maximumNumberOfDevices;
-        for(uint8_t index = 1; index < numberOfDevices; index++)
-        {
-          if((device[index].typeOfDevice & 0x01) == 0x00 && treacle.online(device[index].id) && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
-          {
-            furthestBeacon = index;
-          }
-        }
-        if(furthestBeacon != maximumNumberOfDevices && currentlyTrackedBeacon != furthestBeacon)
-        {
-          currentlyTrackedBeacon = furthestBeacon;
-          updateDistanceToBeacon(currentlyTrackedBeacon);
-          return true;
-        }
-        updateDistanceToBeacon(currentlyTrackedBeacon);
-        return false;
-      }
-      return false;
-    }
-    float rangeToIndicate(uint8_t deviceIndex)
-    {
-      if(trackerPriority == 0)
-      {
-        return device[deviceIndex].distanceTo;
-      }
-      else
-      {
-        if(device[deviceIndex].distanceTo > device[deviceIndex].diameter/2)
-        {
-          return device[deviceIndex].distanceTo - device[deviceIndex].diameter/2;
-        }
-        else
-        {
-          return 0;
-        }
-      }
-      return effectivelyUnreachable;
-    }
-  #elif defined(ACT_AS_BEACON)
-    uint8_t numberOfTrackers()
-    {
-      uint8_t count = 0;
-      if(numberOfDevices == 1)
-      {
-        return 0;
-      }
-      for(uint8_t index = 1; index < numberOfDevices; index++)
-      {
-        if((device[index].typeOfDevice & 0x01) == 0x01) //Tracker doesn't need to have a fix
-        {
-          count++;
-        }
-      }
-      return count;
-    }
-    void calculateDistanceToTrackers()
-    {
-      distanceToClosestTracker = effectivelyUnreachable;
-      for(uint8_t index = 1; index < numberOfDevices; index++)
-      {
-        if((device[index].typeOfDevice & 0x01) == 0x01 && device[index].hasGpsFix == true)
-        {
-          device[index].distanceTo = TinyGPSPlus::distanceBetween(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
-          device[index].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
-          if(device[index].distanceTo < distanceToClosestTracker && treacle.online(device[index].id))
-          {
-            distanceToClosestTracker = device[index].distanceTo;
-            closestTracker = index;
-          }
-          #if defined(SERIAL_DEBUG) && defined(DEBUG_GPS)
-            SERIAL_DEBUG_PORT.printf_P(PSTR("Found tracker %u: distance %.1f course %.1f\r\n"), index, device[index].distanceTo, device[index].courseTo);
-          #endif
-        }
-      }
-    }
-  #endif
   char* hdopDescription(float hdop)
   {
     if(hdop < excellentHdopThreshold)

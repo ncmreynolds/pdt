@@ -45,10 +45,10 @@
           }
           else if(currentTrackingMode == trackingMode::fixed)
           {
-            currentlyTrackedBeacon++;
-            if(currentlyTrackedBeacon == numberOfDevices)
+            currentlyTrackedDevice++;
+            if(currentlyTrackedDevice == numberOfDevices)
             {
-              currentlyTrackedBeacon = maximumNumberOfDevices;
+              currentlyTrackedDevice = maximumNumberOfDevices;
               currentTrackingMode = trackingMode::nearest;
             }
             displayTrackingMode();

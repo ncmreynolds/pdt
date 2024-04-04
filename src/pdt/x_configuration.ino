@@ -91,6 +91,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   configuration[string_id] = device[0].id;
   configuration[string_treacleEncryptionEnabled] = treacleEncryptionEnabled;
   configuration[string_espNowEnabled] = espNowEnabled;
+  configuration[string_espNowPhyMode] = espNowPhyMode;
   configuration[string_espNowTickInterval] = espNowTickInterval;
   configuration[string_loRaEnabled] = loRaEnabled;
   configuration[string_loRaTickInterval] = loRaTickInterval;
@@ -245,6 +246,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     device[0].id = configuration[string_id] | 0;
     treacleEncryptionEnabled = configuration[string_treacleEncryptionEnabled] | false;
     espNowEnabled = configuration[string_espNowEnabled] | true;
+    espNowPhyMode = configuration[string_espNowPhyMode] | 0;
     espNowTickInterval = configuration[string_espNowTickInterval] | 10e3;
     loRaTickInterval = configuration[string_loRaTickInterval] | 45e3;
     loRaEnabled = configuration[string_loRaEnabled] | true;
@@ -645,6 +647,7 @@ void printConfiguration()
   localLog(string_id); localLog(string_colonSpace); localLogLn(device[0].id);
   localLog(string_treacleEncryptionEnabled); localLog(string_colonSpace); localLogLn(treacleEncryptionEnabled);
   localLog(string_espNowEnabled); localLog(string_colonSpace); localLogLn(espNowEnabled);
+  localLog(string_espNowPhyMode); localLog(string_colonSpace); localLogLn(espNowPhyMode);
   localLog(string_espNowTickInterval); localLog(string_colonSpace); localLogLn(espNowTickInterval);
   localLog(string_loRaEnabled); localLog(string_colonSpace); localLogLn(loRaEnabled);
   localLog(string_loRaTickInterval); localLog(string_colonSpace); localLogLn(loRaTickInterval);

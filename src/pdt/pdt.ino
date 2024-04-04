@@ -31,8 +31,8 @@
 //#define HARDWARE_VARIANT C3PDTasBeacon
 //#define HARDWARE_VARIANT C3TrackedSensor
 //#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
-//#define HARDWARE_VARIANT C3LoRaBeacon
-#define HARDWARE_VARIANT CYDTracker
+#define HARDWARE_VARIANT C3LoRaBeacon
+//#define HARDWARE_VARIANT CYDTracker
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 5
@@ -64,9 +64,11 @@
 #elif HARDWARE_VARIANT == C3PDTasBeacon
   #define ACT_AS_BEACON
   #define SUPPORT_GPS
-  #define DEBUG_GPS
+  //#define DEBUG_GPS
+  #define DEBUG_BEACON_SELECTION
   #define SUPPORT_WIFI
   //#define DEBUG_TREACLE
+  #define DEBUG_UPDATES
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3TrackedSensor
   #define ACT_AS_BEACON
@@ -92,28 +94,28 @@
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3LoRaBeacon
   #define ACT_AS_BEACON
+  #define SUPPORT_BATTERY_METER
   #define SUPPORT_BUTTON
   #define SUPPORT_SOFT_POWER_OFF
   #define SUPPORT_SOFT_PERIPHERAL_POWER_OFF
-  #define SUPPORT_BUTTON
   #define SUPPORT_LED
   #define SUPPORT_GPS
-  #define DEBUG_GPS
-  #define DEBUG_TREACLE
-  #define SUPPORT_BATTERY_METER
-  //#define SUPPORT_FTM
+  //#define DEBUG_GPS
+  //#define DEBUG_TREACLE
+  #define DEBUG_UPDATES
   #define SUPPORT_WIFI
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == CYDTracker
-  //#define SUPPORT_BEEPER
+  #define SUPPORT_BEEPER
   #define ACT_AS_TRACKER
   #define SUPPORT_GPS
   //#define DEBUG_GPS
-  //#define DEBUG_BEACON_SELECTION
+  #define DEBUG_BEACON_SELECTION
   #define SUPPORT_WIFI
   //#define DEBUG_TREACLE
+  #define DEBUG_UPDATES
   #define SUPPORT_LVGL
-  //#define DEBUG_LVGL
+  #define DEBUG_LVGL
   #define LVGL_SUPPORT_HOME_TAB
   #define LVGL_SUPPORT_GPS_TAB
   #define LVGL_SUPPORT_SCAN_INFO_TAB
@@ -508,13 +510,13 @@ uint8_t localMacAddress[6] = {};
 bool treacleEncryptionEnabled = false;
 const char string_treacleEncryptionEnabled[] PROGMEM = "treacleEncryptionEnabled";
 uint32_t lastTreacleDeviceInfoSendTime = 0;       //Track the last time of updates
-uint32_t lastTreacleLocationSendTime = 0;
-uint32_t treacleDeviceInfoInterval = 60E3;        //Send device info every 60s
-uint32_t treacleLocationInterval = 10E3;          //Send device location every 60s
-uint8_t typeOfLastTreacleUpdate = deviceIcInfoId; //Use to cycle through update types
+uint32_t treacleDeviceInfoInterval = 10E3;        //Send device info every 60s
+uint8_t typeOfLastTreacleUpdate = 0;              //Use to cycle through update types
 //ESP-Now
 bool espNowEnabled =  true;
 const char string_espNowEnabled[] PROGMEM = "espNowEnabled";
+uint8_t espNowPhyMode =  0; //0 = BGN, 1 = B, 2 = LR
+const char string_espNowPhyMode[] PROGMEM = "espNowPhyMode";
 uint32_t espNowTickInterval = 10e3;
 const char string_espNowTickInterval[] PROGMEM = "espNowTickInterval";
 //LoRa
@@ -579,7 +581,7 @@ uint32_t validLoRaSignalBandwidth[] = {7800, 10400, 15600, 20800, 31250, 41700, 
   uint32_t lastGPSstateChange = 0;
   uint32_t gpsTimeCheckInterval = 30000;
   uint32_t lastDistanceCalculation = 0;
-  uint16_t distanceCalculationInterval = 1000;
+  uint16_t distanceCalculationInterval = 10E3;
   uint32_t lastGPSstatus = 0;
   uint32_t gpsChars = 0;
   uint16_t gpsSentences = 0;
@@ -810,7 +812,6 @@ static const uint16_t loggingYieldTime = 100;
   bool deviceUsuallyStatic = false;
   const char string_deviceUsuallyStatic[] PROGMEM = "deviceUsuallyStatic";
   uint8_t numberOfDevices = 0;
-  double effectivelyUnreachable = 1E10;
   #if defined(ACT_AS_TRACKER)
     uint8_t trackingSensitivity = 2;
   #else
@@ -818,29 +819,28 @@ static const uint16_t loggingYieldTime = 100;
   #endif
   const char string_trackingSensitivity[] PROGMEM = "trackingSensitivity";
   uint16_t sensitivityValues[4] = {0x0FFF, 0x00FF, 0x000F, 0x0007};
+  //Control of effective range
+  double effectivelyUnreachable = 1E10;
   #if defined(ACT_AS_TRACKER)
     uint32_t maximumEffectiveRange = 250;
   #else
     uint32_t maximumEffectiveRange = 10000;
   #endif
   const char string_maximumEffectiveRange[] PROGMEM = "maximumEffectiveRange";
+  uint8_t currentlyTrackedDevice = maximumNumberOfDevices;              //maximumNumberOfDevices implies none found
+  uint32_t lastChangeOfTrackedDevice = 0;
+  bool distanceToCurrentlyTrackedDeviceChanged = false;
   #if defined(ACT_AS_TRACKER)
     uint8_t trackerPriority = 0;
     const char string_trackerPriority[] PROGMEM = "trackerPriority";
-    uint32_t distanceToCurrentBeacon = effectivelyUnreachable;
-    bool distanceToCurrentBeaconChanged = false;
     uint32_t lastDistanceChangeUpdate = 0;
-    uint8_t currentlyTrackedBeacon = maximumNumberOfDevices; //max implies none found
-    bool currentlyTrackedBeaconStateChanged = false; //Note when it has been show
-    enum class trackingMode : std::int8_t {
-      nearest,
-      furthest,
-      fixed
+    bool currentlyTrackedDeviceStateChanged = false; //Note when it has been show
+    enum class trackingMode : std::uint8_t {
+      nearest = 0,
+      furthest = 1,
+      fixed = 2
     };
     trackingMode currentTrackingMode = trackingMode::nearest;
-  #elif defined(ACT_AS_BEACON)
-    uint8_t closestTracker = maximumNumberOfDevices;
-    uint16_t distanceToClosestTracker = effectivelyUnreachable;
   #endif
 #endif
 /*
@@ -951,7 +951,8 @@ static const uint16_t loggingYieldTime = 100;
     static const char statusLabel_3[] PROGMEM = "Touchscreen\ncalibration needed\nTouch top left\nthen bottom right.";
     static const char statusLabel_4[] PROGMEM = "Getting location";
     static const char statusLabel_5[] PROGMEM = "Scanning";
-    
+
+    bool metersShowing = false;
     static lv_style_t style_meter;
     static uint8_t meterDiameter = 100;
     static const uint8_t meterSpacing = 8;
@@ -1210,7 +1211,7 @@ static const uint16_t loggingYieldTime = 100;
           {
             saveConfigurationSoon = millis();
             #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
-              SERIAL_DEBUG_PORT.printf_P(PSTR("Touch x(%04u-%04u):%03u y(%04u-%04u):%03u\r\n"), touchScreenMinimumX, touchScreenMaximumX, data->point.x, touchScreenMinimumY, touchScreenMaximumY, data->point.y);
+              SERIAL_DEBUG_PORT.printf_P(PSTR("GUI Touch x(%04u-%04u):%03u y(%04u-%04u):%03u\r\n"), touchScreenMinimumX, touchScreenMaximumX, data->point.x, touchScreenMinimumY, touchScreenMaximumY, data->point.y);
             #endif
           }
         }

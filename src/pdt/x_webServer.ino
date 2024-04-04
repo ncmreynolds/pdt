@@ -426,14 +426,25 @@
             {
               response->printf_P(liIntegerPrintfFormatString, PSTR("Node ID"), treacle.getNodeId());
               response->printf_P(liIntegerPrintfFormatString, PSTR("Number of nodes"), treacle.nodes());
-              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Location updates"), treacleLocationInterval/1000, PSTR("s"));
-              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Info updates"), treacleDeviceInfoInterval/1000, PSTR("s"));
+              response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Location/Info updates"), treacleDeviceInfoInterval/1000, PSTR("s"));
               response->printf_P(liStringPrintfFormatString, PSTR("ESP&#8209;Now radio"), (treacle.espNowEnabled()) ? labelOn : labelOff);
               if(treacle.espNowEnabled() == true)
               {
                 response->print(F("<ul>"));
                 if(treacle.espNowInitialised() == true)
                 {
+                  if(espNowPhyMode == 1)
+                  {
+                    response->printf_P(liStringPrintfFormatString, PSTR("PHY mode"), PSTR("B"));
+                  }
+                  else if(espNowPhyMode == 2)
+                  {
+                    response->printf_P(liStringPrintfFormatString, PSTR("PHY mode"), PSTR("LR"));
+                  }
+                  else
+                  {
+                    response->printf_P(liStringPrintfFormatString, PSTR("PHY mode"), PSTR("BGN"));
+                  }
                   response->printf_P(liIntegerPrintfFormatString, PSTR("Current channel"), treacle.getEspNowChannel());
                   response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Rx"), treacle.getEspNowRxPackets());
                   response->printf_P(liIntegerPrintfFormatString, PSTR("Packets Tx"), treacle.getEspNowTxPackets());
@@ -449,9 +460,9 @@
                 }
                 response->print(F("</ul>"));
               }
+              response->printf_P(liStringPrintfFormatString, PSTR("LoRa radio"), (treacle.loRaEnabled()) ? labelOn : labelOff);
               if(treacle.loRaEnabled() == true)
               {
-                response->printf_P(liStringPrintfFormatString, PSTR("LoRa radio"), (treacle.loRaEnabled()) ? labelOn : labelOff);
                 response->print(F("<ul>"));
                 if(treacle.loRaInitialised() == true)
                 {
@@ -503,35 +514,40 @@
               #endif
               if(device[0].hasGpsFix)
               {
+                response->printf_P(liStringPrintfFormatString, PSTR("Fix"), PSTR("Yes"));
                 response->printf_P(liFloatPrintfFormatString, PSTR("Latitude"), device[0].latitude);
                 response->printf_P(liFloatPrintfFormatString, PSTR("Longitude"), device[0].longitude);
                 response->printf_P(liFloatPrintfFormatString, PSTR("Speed"), device[0].speed);
                 response->printf_P(liFloatPrintfFormatString, PSTR("Speed(smoothed)"), device[0].smoothedSpeed);
                 response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("Movement threshold"), movementThreshold, PSTR("m/s"));
                 response->printf_P(liFloatWithUnitsPrintfFormatString, PSTR("HDOP"), device[0].hdop, hdopDescription(device[0].hdop));
-                response->printf_P(liIntegerPrintfFormatString, PSTR("Chars"), gpsChars);
-                response->printf_P(liIntegerPrintfFormatString, PSTR("Sentences"), gpsSentences);
-                response->printf_P(liIntegerPrintfFormatString, PSTR("Errors"), gpsErrors);
                 #if defined(ACT_AS_TRACKER)
-                  if(currentlyTrackedBeacon < maximumNumberOfDevices)
+                  if(currentlyTrackedDevice < maximumNumberOfDevices)
                   {
-                    if(device[currentlyTrackedBeacon].hasGpsFix)
+                    if(device[currentlyTrackedDevice].hasGpsFix)
                     {
-                      response->printf_P(liFloatPrintfFormatString, PSTR("Distance to tracked beacon"), device[currentlyTrackedBeacon].distanceTo);
-                      response->printf_P(liFloatPrintfFormatString, PSTR("Course to tracked beacon: "), device[currentlyTrackedBeacon].courseTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Distance to tracked beacon"), device[currentlyTrackedDevice].distanceTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Course to tracked beacon: "), device[currentlyTrackedDevice].courseTo);
                     }
                   }
                 #elif defined(ACT_AS_BEACON)
-                  if(closestTracker < maximumNumberOfDevices)
+                  if(currentlyTrackedDevice < maximumNumberOfDevices)
                   {
-                    if(device[closestTracker].hasGpsFix)
+                    if(device[currentlyTrackedDevice].hasGpsFix)
                     {
-                      response->printf_P(liFloatPrintfFormatString, PSTR("Distance to nearest tracker"), device[closestTracker].distanceTo);
-                      response->printf_P(liFloatPrintfFormatString, PSTR("Course to nearest tracker"), device[closestTracker].courseTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Distance to nearest tracker"), device[currentlyTrackedDevice].distanceTo);
+                      response->printf_P(liFloatPrintfFormatString, PSTR("Course to nearest tracker"), device[currentlyTrackedDevice].courseTo);
                     }
                   }
                 #endif
               }
+              else
+              {
+                response->printf_P(liStringPrintfFormatString, PSTR("Fix"), PSTR("No"));
+              }
+              response->printf_P(liIntegerPrintfFormatString, PSTR("Chars"), gpsChars);
+              response->printf_P(liIntegerPrintfFormatString, PSTR("Sentences"), gpsSentences);
+              response->printf_P(liIntegerPrintfFormatString, PSTR("Errors"), gpsErrors);
               response->print(ulEndRow);
             #endif
             #if defined(ACT_AS_SENSOR)
@@ -1716,6 +1732,17 @@
             response->print(endSelect);
             response->print(endColumn);
             response->print(endRow);
+            //LR mode
+            response->print(startRow);
+            response->print(startTwelveColumns);
+            response->printf_P(labelForPrintfFormatString, string_espNowPhyMode, PSTR("ESP&#8209;Now PHY"));
+            response->printf_P(selectPrintfFormatString, string_espNowPhyMode, string_espNowPhyMode);
+            response->print(F("<option value=\"0\""));response->print(espNowPhyMode == 0 ? selectValueSelected:selectValueNotSelected);response->print(F("BGN(default)</option>"));
+            response->print(F("<option value=\"1\""));response->print(espNowPhyMode == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("B</option>"));
+            response->print(F("<option value=\"2\""));response->print(espNowPhyMode == 2 ? selectValueSelected:selectValueNotSelected);response->print(F("LR(long range)</option>"));
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(endRow);
             //ESP-Now tick interval
             response->print(startRow);
             response->print(startTwelveColumns);
@@ -1865,6 +1892,14 @@
                 espNowEnabled = false;
                 treacleConfigurationChanged = true;
               }
+            }
+          }
+          if(request->hasParam(string_espNowPhyMode, true))
+          {
+            if(espNowPhyMode != request->getParam(string_espNowPhyMode, true)->value().toInt())
+            {
+              espNowPhyMode = request->getParam(string_espNowPhyMode, true)->value().toInt();
+              treacleConfigurationChanged = true;
             }
           }
           if(request->hasParam(string_espNowTickInterval, true))
@@ -3488,16 +3523,16 @@
             }
             if(currentTrackingMode == trackingMode::nearest || currentTrackingMode == trackingMode::fixed)
             {
-              if(currentlyTrackedBeacon != maximumNumberOfDevices)
+              if(currentlyTrackedDevice != maximumNumberOfDevices)
               {
-                if(device[currentlyTrackedBeacon].name != nullptr)
+                if(device[currentlyTrackedDevice].name != nullptr)
                 {
                   response->print(F(" - "));
-                  response->print(device[currentlyTrackedBeacon].name);
+                  response->print(device[currentlyTrackedDevice].name);
                 }
                 else
                 {
-                  response->printf_P(PSTR(" - device %u"),currentlyTrackedBeacon);
+                  response->printf_P(PSTR(" - device %u"),currentlyTrackedDevice);
                 }
               }
             }
@@ -3558,7 +3593,7 @@
               );
             }
               #if defined(ACT_AS_TRACKER)
-                if(index == currentlyTrackedBeacon)
+                if(index == currentlyTrackedDevice)
                 {
                   response->print(F("Tracked "));
                 }
@@ -3571,7 +3606,7 @@
                   response->printf_P(PSTR("<a href =\"/track?index=%u\"><input class=\"button-primary\" type=\"button\" value=\"Track\" style=\"width: 100%;\"></a>"),index);
                 }
               #else
-                if(index == closestTracker)
+                if(index == currentlyTrackedDevice)
                 {
                   response->print(F("Closest tracker"));
                 }
@@ -3679,12 +3714,12 @@
                 uint8_t selectedBeacon = request->getParam("index")->value().toInt();;
                 if(selectedBeacon > 0 && selectedBeacon < maximumNumberOfDevices)
                 {
-                  currentlyTrackedBeacon = selectedBeacon;
+                  currentlyTrackedDevice = selectedBeacon;
                   currentTrackingMode = trackingMode::fixed;
                   #if defined(SERIAL_DEBUG)
                     if(waitForBufferSpace(75))
                     {
-                      SERIAL_DEBUG_PORT.printf_P(PSTR("Web UI chose device %u to track\r\n"),currentlyTrackedBeacon);
+                      SERIAL_DEBUG_PORT.printf_P(PSTR("Web UI chose device %u to track\r\n"),currentlyTrackedDevice);
                     }
                   #endif
                 }

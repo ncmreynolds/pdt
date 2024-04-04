@@ -8,7 +8,7 @@
       pinMode(beeperPin, INPUT);
       digitalWrite(beeperPin, HIGH);
     #endif
-    //localLog(F("Configuring beeper: "));
+    localLog(F("Configuring beeper: "));
     //Use a semaphore to control access to global variables
     beeperSemaphore = xSemaphoreCreateBinary();
     ledcSetup(beeperChannel, beeperButtonTone, 8);  //Set up eight bit resolution
@@ -16,7 +16,7 @@
     ledcAttachPin(beeperPin, beeperChannel);
     xSemaphoreGive(beeperSemaphore);
     xTaskCreate(manageBeeper, "manageBeeper", 768, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
-    //localLogLn(F("OK"));
+    localLogLn(F("OK"));
   }
   void makeAsingleBeep(uint16_t frequency, uint16_t duration) //A single beep can override a repeating one
   {
@@ -130,40 +130,44 @@
   #if defined(ACT_AS_TRACKER)
     void setBeeperUrgency()
     {
-      if(currentlyTrackedBeacon != maximumNumberOfDevices && distanceToCurrentBeacon < maximumEffectiveRange)
+      //if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
       {
-        if(distanceToCurrentBeacon < 5) 
+        if(currentlyTrackedDevice != maximumNumberOfDevices && device[currentlyTrackedDevice].distanceTo < maximumEffectiveRange)
+        {
+          if(device[currentlyTrackedDevice].distanceTo < 5) 
+          {
+            #if defined(SUPPORT_LED)
+              ledOffTime = 100;
+            #endif
+            repeatingBeepOffTime = repeatingBeepOnTime + 50;  //Fastest beep offtime
+          }
+          else
+          {
+            #if defined(SUPPORT_LED)
+              ledOffTime = device[currentlyTrackedDevice].distanceTo * 100;
+            #endif
+            repeatingBeepOffTime = repeatingBeepOnTime + 50 + pow(device[currentlyTrackedDevice].distanceTo,2); //Change urgency, ie. off time between beeps
+          }
+        }
+        else
         {
           #if defined(SUPPORT_LED)
             ledOffTime = 100;
           #endif
-          repeatingBeepOffTime = repeatingBeepOnTime + 50;  //Fastest beep offtime
+          repeatingBeepOffTime = 0;  //Stop beeping after this one finishes
         }
-        else
-        {
-          #if defined(SUPPORT_LED)
-            ledOffTime = distanceToCurrentBeacon * 100;
-          #endif
-          repeatingBeepOffTime = repeatingBeepOnTime + 50 + pow(distanceToCurrentBeacon,2); //Change urgency, ie. off time between beeps
-        }
-      }
-      else
-      {
-        #if defined(SUPPORT_LED)
-          ledOffTime = 100;
+        #if defined(SERIAL_DEBUG) && defined(DEBUG_BEEPER)
+          if(repeatingBeepOffTime > 0)
+          {
+            SERIAL_DEBUG_PORT.printf_P(PSTR("Beeper off time: %ums\r\n"),repeatingBeepOffTime);
+          }
+          else
+          {
+            SERIAL_DEBUG_PORT.println(F("Beeper off"));
+          }
         #endif
-        repeatingBeepOffTime = 0;  //Stop beeping after this one finishes
+        //xSemaphoreGive(beeperSemaphore);
       }
-      #if defined(SERIAL_DEBUG) && defined(DEBUG_BEEPER)
-        if(repeatingBeepOffTime > 0)
-        {
-          SERIAL_DEBUG_PORT.printf_P(PSTR("Beeper off time: %ums\r\n"),repeatingBeepOffTime);
-        }
-        else
-        {
-          SERIAL_DEBUG_PORT.println(F("Beeper off"));
-        }
-      #endif
     }
   #endif
 #endif
