@@ -39,8 +39,20 @@
         if(millis() - lastDistanceCalculation > distanceCalculationInterval)  //Recalculate distances on a short interval
         {
           lastDistanceCalculation = millis();
-          //distanceCalculationInterval = treacle.suggestedQueueInterval(); //Vary this based on the likely update frequency
           calculateDistanceToAllDevices();
+          #if defined(SUPPORT_BEEPER)
+            #if defined(SUPPORT_DISPLAY)
+              if(beeperEnabled)
+              {
+                setBeeperUrgency();
+              }
+            #elif defined(SUPPORT_LVGL)
+              if(beeperEnabled && currentLvglUiState == deviceState::tracking)
+              {
+                setBeeperUrgency();
+              }
+            #endif
+          #endif
           #if defined(ACT_AS_TRACKER)
             selectDeviceToTrack();          //May need to change tracked device due to movement and finding/losing signal
           #endif
@@ -50,16 +62,6 @@
         {
           distanceToCurrentlyTrackedDeviceChanged = false;
           lastDistanceChangeUpdate = millis();
-          #if defined(SUPPORT_BEEPER)
-            #if defined(SUPPORT_DISPLAY)
-              setBeeperUrgency();
-            #elif defined(SUPPORT_LVGL)
-              if(currentLvglUiState == deviceState::tracking)
-              {
-                setBeeperUrgency();
-              }
-            #endif
-          #endif
           #if defined(SUPPORT_DISPLAY)
             if(currentDisplayState == displayState::distance && millis() - lastDisplayUpdate > 100)
             {

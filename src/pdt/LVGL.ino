@@ -786,11 +786,12 @@
         if(code == LV_EVENT_VALUE_CHANGED) {
           if((uint8_t)lv_dropdown_get_selected(obj) == 0)
           {
-            beeperEnabled = false;
+            disableBeeper();
+            endRepeatingBeep();
           }
           else
           {
-            beeperEnabled = true;
+            enableBeeper();
           }
           saveConfigurationSoon = millis();
           char buf[32];

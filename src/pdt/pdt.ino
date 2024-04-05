@@ -31,12 +31,12 @@
 //#define HARDWARE_VARIANT C3PDTasBeacon
 //#define HARDWARE_VARIANT C3TrackedSensor
 //#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
-#define HARDWARE_VARIANT C3LoRaBeacon
-//#define HARDWARE_VARIANT CYDTracker
+//#define HARDWARE_VARIANT C3LoRaBeacon
+#define HARDWARE_VARIANT CYDTracker
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 5
-#define PDT_PATCH_VERSION 2
+#define PDT_PATCH_VERSION 3
 /*
 
    Various nominally optional features that can be switched off during testing/development

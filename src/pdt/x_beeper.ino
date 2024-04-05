@@ -12,10 +12,11 @@
     //Use a semaphore to control access to global variables
     beeperSemaphore = xSemaphoreCreateBinary();
     ledcSetup(beeperChannel, beeperButtonTone, 8);  //Set up eight bit resolution
-    ledcWriteTone(beeperChannel, 0);  //Set an initial tone of nothing
     ledcAttachPin(beeperPin, beeperChannel);
+    ledcWriteTone(beeperChannel, 0);  //Set an initial tone of nothing
+    ledcDetachPin(beeperPin);
     xSemaphoreGive(beeperSemaphore);
-    xTaskCreate(manageBeeper, "manageBeeper", 768, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
+    xTaskCreate(manageBeeper, "manageBeeper", 1024, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
     localLogLn(F("OK"));
   }
   void makeAsingleBeep(uint16_t frequency, uint16_t duration) //A single beep can override a repeating one
@@ -24,20 +25,20 @@
     {
       if(beeperState == false)
       {
-        //ledcAttachPin(beeperPin, beeperChannel);
+        ledcAttachPin(beeperPin, beeperChannel);
+        ledcWriteTone(beeperChannel, frequency);
+        singleBeepOnTime = duration; //0 means continuous
+        singleBeepLastStateChange = millis();
+        beeperState = true;
       }
-      ledcWriteTone(beeperChannel, frequency);
-      singleBeepOnTime = duration; //0 means continuous
-      singleBeepLastStateChange = millis();
-      beeperState = true;
       xSemaphoreGive(beeperSemaphore);
     }
   }
   void makeArepeatingBeep(uint16_t frequency, uint32_t ontime, uint32_t offtime = 0) //0 ontime means continuous, 0 offtime means don't repeat
   {
-    if(beeperState == false)
+    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
     {
-      if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
+      if(beeperState == false)
       {
         ledcAttachPin(beeperPin, beeperChannel);
         ledcWriteTone(beeperChannel, frequency);
@@ -45,21 +46,23 @@
         repeatingBeepOnTime = ontime;
         repeatingBeepOffTime = offtime;
         repeatingBeepLastStateChange = millis();
-        beeperState = true;
-        xSemaphoreGive(beeperSemaphore);
       }
+      beeperState = true;
+      xSemaphoreGive(beeperSemaphore);
     }
   }
   void stopSingleBeep()
   {
     if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
     {
-      ledcWriteTone(beeperChannel, 0);  //Write no tone
-      //ledcDetachPin(beeperPin); //Detach because beeper is active low
-      //digitalWrite(beeperPin, HIGH);  //Write high because beeper is active low
+      if(beeperState == true)
+      {
+        ledcWriteTone(beeperChannel, 0);  //Write no tone
+        ledcDetachPin(beeperPin);
+        singleBeepLastStateChange = millis(); //Update the state change time
+        singleBeepOnTime = 0; //Mark the single beep as done
+      }
       beeperState = false;
-      singleBeepLastStateChange = millis(); //Update the state change time
-      singleBeepOnTime = 0; //Mark the single beep as done
       xSemaphoreGive(beeperSemaphore);
     }
   }
@@ -67,11 +70,13 @@
   {
     if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
     {
-      ledcWriteTone(beeperChannel, 0);  //Write no tone
-      //ledcDetachPin(beeperPin); //Detach because beeper is active low
-      //digitalWrite(beeperPin, HIGH);  //Write high because beeper is active low
-      beeperState = false;
-      repeatingBeepLastStateChange = millis();
+      if(beeperState == true)
+      {
+        ledcWriteTone(beeperChannel, 0);  //Write no tone
+        ledcDetachPin(beeperPin);
+        repeatingBeepLastStateChange = millis();
+        beeperState = false;
+      }
       xSemaphoreGive(beeperSemaphore);
     }
   }
@@ -80,11 +85,29 @@
     if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
     {
       repeatingBeepOffTime = 0;
-      ledcWriteTone(beeperChannel, 0);  //Write no tone
-      //ledcDetachPin(beeperPin); //Detach because beeper is active low
-      //digitalWrite(beeperPin, HIGH);  //Write high because beeper is active low
-      beeperState = false;
-      repeatingBeepLastStateChange = millis();
+      if(beeperState == true)
+      {
+        ledcWriteTone(beeperChannel, 0);  //Write no tone
+        ledcDetachPin(beeperPin);
+        repeatingBeepLastStateChange = millis();
+        beeperState = false;
+      }
+      xSemaphoreGive(beeperSemaphore);
+    }
+  }
+  void enableBeeper()
+  {
+    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
+    {
+      beeperEnabled = true;
+      xSemaphoreGive(beeperSemaphore);
+    }
+  }
+  void disableBeeper()
+  {
+    if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
+    {
+      beeperEnabled = false;
       xSemaphoreGive(beeperSemaphore);
     }
   }
@@ -96,31 +119,28 @@
     while(true)
     #endif
     {
-      if(beeperEnabled == true)
+      if(beeperState == true)
       {
-        if(beeperState == true)
+        if(singleBeepOnTime > 0)  //Single beep is playing out
         {
-          if(singleBeepOnTime > 0)  //Single beep is playing out
+          if(millis() - singleBeepLastStateChange > singleBeepOnTime) //There's an expiring single beep
           {
-            if(millis() - singleBeepLastStateChange > singleBeepOnTime) //There's an expiring single beep
-            {
-              stopSingleBeep(); //Turn off the beeper
-            }
-          }
-          else if(repeatingBeepOnTime > 0)  //Repeating beep is playing out
-          {
-            if(millis() - repeatingBeepLastStateChange > repeatingBeepOnTime)  //There's an expiring repeating beep
-            {
-              pauseRepeatingBeep(); //Turn off the beeper until next time
-            }
+            stopSingleBeep(); //Turn off the beeper
           }
         }
-        else
+        else if(repeatingBeepOnTime > 0)  //Repeating beep is playing out
         {
-          if(repeatingBeepOffTime != 0 && millis() - repeatingBeepLastStateChange > repeatingBeepOffTime)  //A repeating beep needs to happen again
+          if(millis() - repeatingBeepLastStateChange > repeatingBeepOnTime)  //There's an expiring repeating beep
           {
-            makeArepeatingBeep(beeperTone, repeatingBeepOnTime, repeatingBeepOffTime); //Do the next repeating beep
+            pauseRepeatingBeep(); //Turn off the beeper until next time
           }
+        }
+      }
+      else
+      {
+        if(repeatingBeepOffTime != 0 && millis() - repeatingBeepLastStateChange > repeatingBeepOffTime)  //A repeating beep needs to happen again
+        {
+          makeArepeatingBeep(beeperTone, repeatingBeepOnTime, repeatingBeepOffTime); //Do the next repeating beep
         }
       }
       vTaskDelay(beeperYieldTime / portTICK_PERIOD_MS);
@@ -130,44 +150,40 @@
   #if defined(ACT_AS_TRACKER)
     void setBeeperUrgency()
     {
-      //if(xSemaphoreTake(beeperSemaphore, beeperSemaphoreTimeout) == pdTRUE)
+      if(currentlyTrackedDevice != maximumNumberOfDevices && device[currentlyTrackedDevice].distanceTo < maximumEffectiveRange)
       {
-        if(currentlyTrackedDevice != maximumNumberOfDevices && device[currentlyTrackedDevice].distanceTo < maximumEffectiveRange)
-        {
-          if(device[currentlyTrackedDevice].distanceTo < 5) 
-          {
-            #if defined(SUPPORT_LED)
-              ledOffTime = 100;
-            #endif
-            repeatingBeepOffTime = repeatingBeepOnTime + 50;  //Fastest beep offtime
-          }
-          else
-          {
-            #if defined(SUPPORT_LED)
-              ledOffTime = device[currentlyTrackedDevice].distanceTo * 100;
-            #endif
-            repeatingBeepOffTime = repeatingBeepOnTime + 50 + pow(device[currentlyTrackedDevice].distanceTo,2); //Change urgency, ie. off time between beeps
-          }
-        }
-        else
+        if(device[currentlyTrackedDevice].distanceTo < 5) 
         {
           #if defined(SUPPORT_LED)
             ledOffTime = 100;
           #endif
-          repeatingBeepOffTime = 0;  //Stop beeping after this one finishes
+          repeatingBeepOffTime = repeatingBeepOnTime + 50;  //Fastest beep offtime
         }
-        #if defined(SERIAL_DEBUG) && defined(DEBUG_BEEPER)
-          if(repeatingBeepOffTime > 0)
-          {
-            SERIAL_DEBUG_PORT.printf_P(PSTR("Beeper off time: %ums\r\n"),repeatingBeepOffTime);
-          }
-          else
-          {
-            SERIAL_DEBUG_PORT.println(F("Beeper off"));
-          }
-        #endif
-        //xSemaphoreGive(beeperSemaphore);
+        else
+        {
+          #if defined(SUPPORT_LED)
+            ledOffTime = device[currentlyTrackedDevice].distanceTo * 100;
+          #endif
+          repeatingBeepOffTime = repeatingBeepOnTime + 50 + pow(device[currentlyTrackedDevice].distanceTo,2); //Change urgency, ie. off time between beeps
+        }
       }
+      else
+      {
+        #if defined(SUPPORT_LED)
+          ledOffTime = 100;
+        #endif
+        repeatingBeepOffTime = 0;  //Stop beeping after this one finishes
+      }
+      #if defined(SERIAL_DEBUG) && defined(DEBUG_BEEPER)
+        if(repeatingBeepOffTime > 0)
+        {
+          SERIAL_DEBUG_PORT.printf_P(PSTR("Beeper off time: %ums\r\n"),repeatingBeepOffTime);
+        }
+        else
+        {
+          SERIAL_DEBUG_PORT.println(F("Beeper off"));
+        }
+      #endif
     }
   #endif
 #endif

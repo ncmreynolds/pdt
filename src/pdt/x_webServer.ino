@@ -1381,11 +1381,12 @@
               {
                 if(request->getParam(string_beeperEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
                 {
-                  beeperEnabled = true;
+                  enableBeeper();
                 }
                 else
                 {
-                  beeperEnabled = false;
+                  disableBeeper();
+                  endRepeatingBeep();
                 }
               }
               #if defined(SUPPORT_BUTTON)
