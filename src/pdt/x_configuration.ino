@@ -255,15 +255,15 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
     #endif
     device[0].id = configuration[string_id] | 0;
     treacleEncryptionEnabled = configuration[string_treacleEncryptionEnabled] | false;
-    espNowEnabled = configuration[string_espNowEnabled] | false;
+    espNowEnabled = configuration[string_espNowEnabled] | true;
     espNowPhyMode = configuration[string_espNowPhyMode] | 0;
     espNowTickInterval = configuration[string_espNowTickInterval] | 10e3;
-    loRaTickInterval = configuration[string_loRaTickInterval] | 45e3;
-    loRaEnabled = configuration[string_loRaEnabled] | false;
+    loRaTickInterval = configuration[string_loRaTickInterval] | 30e3;
+    loRaEnabled = configuration[string_loRaEnabled] | true;
     loRaFrequency = configuration[string_loRaFrequency] | 868E6;
     loRaTxPower = configuration[string_loRaTxPower] | 17;
     loRaRxGain = configuration[string_loRaRxGain] | 0;
-    loRaSpreadingFactor = configuration[string_loRaSpreadingFactor] | 9;
+    loRaSpreadingFactor = configuration[string_loRaSpreadingFactor] | 7;
     loRaSignalBandwidth = configuration[string_loRaSignalBandwidth] | 62.5E3;
     #if defined(SUPPORT_BATTERY_METER)
       enableBatteryMonitor = configuration[string_enableBatteryMonitor] | true;
@@ -417,13 +417,13 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
         enableHomeTab = configuration[string_enableHomeTab] | true;
       #endif
       #if defined(LVGL_SUPPORT_MAP_TAB)
-        enableMapTab = configuration[string_enableMapTab] | true;
+        enableMapTab = configuration[string_enableMapTab] | false;
       #endif
       #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
         enableInfoTab = configuration[string_enableInfoTab] | true;
       #endif
       #if defined(LVGL_SUPPORT_GPS_TAB)
-        enableGpsTab = configuration[string_enableGpsTab] | true;
+        enableGpsTab = configuration[string_enableGpsTab] | false;
       #endif
       #if defined(LVGL_SUPPORT_SETTINGS_TAB)
         enableSettingsTab = configuration[string_enableSettingsTab] | true;

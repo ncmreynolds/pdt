@@ -28,11 +28,11 @@
 #define CYDTracker 6
 
 //#define HARDWARE_VARIANT C3PDT
-//#define HARDWARE_VARIANT C3PDTasBeacon
+#define HARDWARE_VARIANT C3PDTasBeacon
 //#define HARDWARE_VARIANT C3TrackedSensor
 //#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
 //#define HARDWARE_VARIANT C3LoRaBeacon
-#define HARDWARE_VARIANT CYDTracker
+//#define HARDWARE_VARIANT CYDTracker
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 5
@@ -513,7 +513,7 @@ uint32_t lastTreacleDeviceInfoSendTime = 0;       //Track the last time of updat
 uint32_t treacleDeviceInfoInterval = 10E3;        //Send device info every 60s
 uint8_t typeOfLastTreacleUpdate = 0;              //Use to cycle through update types
 //ESP-Now
-bool espNowEnabled =  false;
+bool espNowEnabled =  true;
 const char string_espNowEnabled[] PROGMEM = "espNowEnabled";
 uint8_t espNowPhyMode =  0; //0 = BGN, 1 = B, 2 = LR
 const char string_espNowPhyMode[] PROGMEM = "espNowPhyMode";
@@ -521,9 +521,9 @@ uint32_t espNowTickInterval = 10e3;
 const char string_espNowTickInterval[] PROGMEM = "espNowTickInterval";
 bool espNowInitialised =  false;
 //LoRa
-bool loRaEnabled  = false;
+bool loRaEnabled  = true;
 const char string_loRaEnabled[] PROGMEM = "loRaEnabled";
-uint32_t loRaTickInterval = 45e3;
+uint32_t loRaTickInterval = 30e3;
 const char string_loRaTickInterval[] PROGMEM = "loRaTickInterval";
 uint32_t loRaFrequency = 868E6;
 const char string_loRaFrequency[] PROGMEM = "loRaFrequency";
@@ -531,7 +531,7 @@ uint8_t loRaTxPower = 17;
 const char string_loRaTxPower[] PROGMEM = "loRaTxPower";
 uint8_t loRaRxGain = 0;
 const char string_loRaRxGain[] PROGMEM = "loRaRxGain";
-uint8_t loRaSpreadingFactor = 9;
+uint8_t loRaSpreadingFactor = 7;
 const char string_loRaSpreadingFactor[] PROGMEM = "loRaSpreadingFactor";
 uint32_t loRaSignalBandwidth = 62.5E3;
 const char string_loRaSignalBandwidth[] PROGMEM = "loRaSignalBandwidth";
@@ -992,7 +992,7 @@ static const uint16_t loggingYieldTime = 100;
   #endif
   //GPS tab
   #if defined(LVGL_SUPPORT_GPS_TAB)
-    bool enableGpsTab = true;
+    bool enableGpsTab = false;
     bool gpsTabInitialised = false;
     const char string_enableGpsTab[] PROGMEM = "enableGpsTab";
     lv_obj_t * gpsTab = nullptr;
@@ -1028,7 +1028,7 @@ static const uint16_t loggingYieldTime = 100;
     bool findableDevicesChanged = true;
   #endif
   #if defined(LVGL_SUPPORT_MAP_TAB)
-    bool enableMapTab = true;
+    bool enableMapTab = false;
     const char string_enableMapTab[] PROGMEM = "enableMapTab";
     static const char mapTabLabel[] = "Map";
     lv_obj_t* mapTab = nullptr;
