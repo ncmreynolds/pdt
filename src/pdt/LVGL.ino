@@ -1010,6 +1010,7 @@
             SERIAL_DEBUG_PORT.println(F(", changing mode"));
           #endif
           currentTrackingMode = trackingMode::nearest;
+          currentlyTrackedDevice = maximumNumberOfDevices;
         }
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
         else
@@ -1033,6 +1034,7 @@
             SERIAL_DEBUG_PORT.println(F(", changing mode"));
           #endif
           currentTrackingMode = trackingMode::furthest;
+          currentlyTrackedDevice = maximumNumberOfDevices;
         }
         #if defined(SERIAL_DEBUG) && defined(DEBUG_LVGL)
         else

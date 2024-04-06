@@ -121,7 +121,7 @@
         currentlyTrackedDevice = maximumNumberOfDevices;
         return false;
       }
-      if(numberOfDevices == 2 && device[1].hasGpsFix == true && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
+      if(numberOfDevices == 2 && deviceIsSensibleToTrack(1))
       {
         if(currentlyTrackedDevice != 1)  //Only assign this once
         {
@@ -137,7 +137,7 @@
         uint8_t nearestBeacon = maximumNumberOfDevices; //Determine this anew every time
         for(uint8_t index = 1; index < numberOfDevices; index++)
         {
-          if((device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix && treacle.online(device[index].id) && rangeToIndicate(index) < maximumEffectiveRange && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
+          if(deviceIsSensibleToTrack(index) && (nearestBeacon == maximumNumberOfDevices || device[index].distanceTo < device[nearestBeacon].distanceTo))
           {
             nearestBeacon = index;
           }
@@ -145,10 +145,8 @@
         if(nearestBeacon != maximumNumberOfDevices && currentlyTrackedDevice != nearestBeacon) //Choose a new nearest beacon
         {
           currentlyTrackedDevice = nearestBeacon;
-          //updateDistanceToBeacon(currentlyTrackedDevice);
           return true;
         }
-        //updateDistanceToBeacon(currentlyTrackedDevice);
         return false;
       }
       return false;
@@ -159,15 +157,13 @@
       {
         return false;
       }
-      if(numberOfDevices == 2 && device[1].hasGpsFix && treacle.online(device[1].id) && rangeToIndicate(1) < maximumEffectiveRange)
+      if(numberOfDevices == 2 && deviceIsSensibleToTrack(1))
       {
         if(currentlyTrackedDevice != 1)
         {
           currentlyTrackedDevice = 1;
-          //updateDistanceToBeacon(currentlyTrackedDevice);
           return true;
         }
-        //updateDistanceToBeacon(currentlyTrackedDevice);
         return false;
       }
       else
@@ -175,7 +171,7 @@
         uint8_t furthestBeacon = maximumNumberOfDevices;
         for(uint8_t index = 1; index < numberOfDevices; index++)
         {
-          if((device[index].typeOfDevice & 0x01) == 0x00 && treacle.online(device[index].id) && device[index].hasGpsFix && rangeToIndicate(index) < maximumEffectiveRange && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
+          if(deviceIsSensibleToTrack(index) && (furthestBeacon == maximumNumberOfDevices || device[index].distanceTo > device[furthestBeacon].distanceTo))
           {
             furthestBeacon = index;
           }
@@ -183,10 +179,8 @@
         if(furthestBeacon != maximumNumberOfDevices && currentlyTrackedDevice != furthestBeacon)
         {
           currentlyTrackedDevice = furthestBeacon;
-          //updateDistanceToBeacon(currentlyTrackedDevice);
           return true;
         }
-        //updateDistanceToBeacon(currentlyTrackedDevice);
         return false;
       }
       return false;
@@ -209,6 +203,10 @@
         }
       }
       return effectivelyUnreachable;
+    }
+    bool deviceIsSensibleToTrack(uint8_t index)
+    {
+       return (device[index].typeOfDevice & 0x01) == 0 && device[index].hasGpsFix == true && treacle.online(device[index].id) && rangeToIndicate(index) < maximumEffectiveRange;
     }
   #endif
   /*

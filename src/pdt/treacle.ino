@@ -143,6 +143,7 @@ bool shareLocation()
 {
   MsgPack::Packer packer;
   packer.pack(locationUpdateId);
+  packer.pack(device[0].typeOfDevice);
   packer.pack(device[0].hasGpsFix);
   packer.pack(device[0].latitude);
   packer.pack(device[0].longitude);
@@ -243,6 +244,7 @@ bool shareIcInfo()
   {
     MsgPack::Packer packer;
     packer.pack(deviceIcInfoId);
+    packer.pack(device[0].typeOfDevice);
     packer.pack(device[0].diameter);
     packer.pack(device[0].height);
     packer.pack(device[0].icName);
@@ -333,6 +335,7 @@ void processTreacleMessage(uint32_t messageSize)
     if(messagetype == locationUpdateId)
     {
       bool hasFix = false;
+      unpacker.unpack(device[deviceIndex].typeOfDevice);
       unpacker.unpack(hasFix);
       unpacker.unpack(device[deviceIndex].latitude);
       unpacker.unpack(device[deviceIndex].longitude);
@@ -497,6 +500,7 @@ void processTreacleMessage(uint32_t messageSize)
     }
     else if(messagetype == deviceIcInfoId)
     {
+      unpacker.unpack(device[deviceIndex].typeOfDevice);
       unpacker.unpack(device[deviceIndex].diameter);
       unpacker.unpack(device[deviceIndex].height);
       String receivedIcName = String(unpacker.unpackString());
@@ -508,9 +512,10 @@ void processTreacleMessage(uint32_t messageSize)
       else if(receivedIcName.equals(String(device[deviceIndex].icName)) == false) //Check the name hasn't changed
       {
         delete[] device[deviceIndex].icName;
+        device[deviceIndex].icName = nullptr;
         storeReceivedIcName = true;
       }
-      if(storeReceivedIcName == true)
+      if(storeReceivedIcName == true && receivedIcName.length() > 0)
       {
         device[deviceIndex].icName = new char[receivedIcName.length() + 1];
         receivedIcName.toCharArray(device[deviceIndex].icName, receivedIcName.length() + 1);
@@ -524,9 +529,10 @@ void processTreacleMessage(uint32_t messageSize)
       else if(receivedIcDescription.equals(String(device[deviceIndex].icDescription)) == false) //Check the name hasn't changed
       {
         delete[] device[deviceIndex].icDescription;
+        device[deviceIndex].icDescription = nullptr;
         storeReceivedIcDescription = true;
       }
-      if(storeReceivedIcDescription == true)
+      if(storeReceivedIcDescription == true && receivedIcDescription.length() > 0)
       {
         device[deviceIndex].icDescription = new char[receivedIcDescription.length() + 1];
         receivedIcDescription.toCharArray(device[deviceIndex].icDescription, receivedIcDescription.length() + 1);
