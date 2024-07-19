@@ -27,8 +27,8 @@
 
 #define CYDTracker 6
 
-//#define HARDWARE_VARIANT C3PDT
-#define HARDWARE_VARIANT C3PDTasBeacon
+#define HARDWARE_VARIANT C3PDT
+//#define HARDWARE_VARIANT C3PDTasBeacon
 //#define HARDWARE_VARIANT C3TrackedSensor
 //#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
 //#define HARDWARE_VARIANT C3LoRaBeacon
@@ -80,9 +80,11 @@
   #define SUPPORT_GPS
   #define DEBUG_GPS
   #define SUPPORT_WIFI
-  //#define DEBUG_TREACLE
+  #define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
-  //#define SUPPORT_HACKING
+  #define SUPPORT_HACKING
+  #define ALLOW_DOWNLOAD_FILES
+  //#define ENABLE_HACKING_TESTING
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3TrackedSensorAsBeacon
   #define ACT_AS_BEACON
@@ -125,6 +127,12 @@
   #define DEBUG_TREACLE
   #define DEBUG_UPDATES
   //#define DEBUG_LVGL
+#endif
+
+#if HARDWARE_VARIANT == C3TrackedSensor
+  #if defined(SUPPORT_HACKING)
+    #undef ENABLE_LOCAL_WEBSERVER
+  #endif
 #endif
 /*
  * 
@@ -330,7 +338,7 @@
  */
 #if defined(SUPPORT_WIFI)
   #include <espBoilerplate.h>
-  #if defined(ENABLE_LOCAL_WEBSERVER)
+  #if defined(ENABLE_LOCAL_WEBSERVER) || defined(SUPPORT_HACKING)
     #include <DNSServer.h>
   #endif
   #if defined(ENABLE_OTA_UPDATE)
@@ -415,11 +423,7 @@
   #endif
   #include <ESPAsyncWebServer.h>
   AsyncWebServer* adminWebServer;
-  #if defined(SUPPORT_HACKING) //ESPUI owns the main webserver on port 80
-    //AsyncWebServer adminWebServer(8080);  //Web server instance
-  #else
-    //AsyncWebServer adminWebServer(80);  //Web server instance
-  #endif
+  uint16_t adminWebServerPort = 80;
   char normalize[] PROGMEM =
 #include "css/normalizecss.h"
     ;
@@ -692,7 +696,7 @@ uint32_t wipeTimer = 0;  //Used to schedule a wipe
   const char string_startWiFiClientOnBoot[] PROGMEM = "startWiFiClientOnBoot";
   bool startWiFiApOnBoot = true;
   const char string_startWiFiApOnBoot[] PROGMEM = "startWiFiApOnBoot";
-  #if defined(ENABLE_LOCAL_WEBSERVER)
+  #if defined(ENABLE_LOCAL_WEBSERVER) || defined(SUPPORT_HACKING)
     bool enableCaptivePortal = true;
     const char string_enableCaptivePortal[] PROGMEM = "enableCaptivePortal";
     DNSServer* dnsServer = nullptr; //May not be used so don't create the object unless it is enabled
@@ -961,9 +965,14 @@ static const uint16_t loggingYieldTime = 100;
     static const char statusLabel_5[] PROGMEM = "Scanning";
 
     bool metersShowing = false;
+
+    static lv_obj_t * trackedItemLabel;
+    static const uint8_t trackedItemLabelSpacing = 100;
+
     static lv_style_t style_meter;
     static uint8_t meterDiameter = 100;
-    static const uint8_t meterSpacing = 8;
+    static const uint8_t meterXspacing = 8;
+    static const int8_t meterYspacing = -50;
     
     static lv_obj_t * meter0;
     static lv_obj_t * meter0withoutNeedle;
@@ -981,14 +990,19 @@ static const uint16_t loggingYieldTime = 100;
     static lv_chart_series_t * chart0ser0;
     static lv_chart_series_t * chart0ser1;
     static lv_obj_t * chart0label0;
-    
-    static lv_obj_t * chart1;
-    static lv_chart_series_t * chart1ser0;
-    static lv_chart_series_t * chart1ser1;
-    static lv_obj_t * chart1label0;
+    static const uint8_t chart0Spacing = 8;
+
+    #if defined(LVGL_INCLUDE_CHART1)
+      static lv_obj_t * chart1;
+      static lv_chart_series_t * chart1ser0;
+      static lv_chart_series_t * chart1ser1;
+      static lv_obj_t * chart1label0;
+    #endif
   
     static const uint16_t chartX = 220, chartY = 50;
-    static const uint8_t chartSpacing = 18, chartLabelSpacing = 2, chartPoints = 16;
+    static const uint8_t chartSpacing = 76;
+    static const uint8_t chartLabelSpacing = 22;
+    static const uint8_t chartPoints = 16;
   #endif
   //GPS tab
   #if defined(LVGL_SUPPORT_GPS_TAB)
@@ -1013,7 +1027,7 @@ static const uint16_t loggingYieldTime = 100;
   #if defined(LVGL_SUPPORT_SCAN_INFO_TAB)
     bool enableInfoTab = true;
     const char string_enableInfoTab[] PROGMEM = "enableInfoTab";
-    static const char infoTabLabel[] = "Info";
+    static const char infoTabLabel[] = "Search";
     lv_obj_t * scanInfoTab = nullptr;
     lv_obj_t * button0 = nullptr; //Nearest
     static const char button0Label[] PROGMEM = "Nearest";
@@ -1342,8 +1356,30 @@ static const uint16_t loggingYieldTime = 100;
   uint32_t gameSpeedup = 500;
   const char string_gameSpeedup[] PROGMEM = "gameSpeedup";
   ESPUIgames::gameType gametype = ESPUIgames::gameType::simon;
-  bool filesTabVisible = false;
-  uint16_t filesTabID = 0;
+  #if defined(ALLOW_VIEW_FILES) || defined(ALLOW_DOWNLOAD_FILES)
+    #include <FS.h>
+    #include <LittleFS.h>
+    uint16_t numberOfFiles = 0;
+    char fileLabelTemplate[] PROGMEM = "%s%s";
+    char **fileLabel;
+    #if defined(ALLOW_VIEW_FILES)
+      uint16_t *viewControlID = nullptr;
+      char **fileViewLink;
+      char fileViewLinkTemplate[] PROGMEM = "<a href=\"%s%s\" target=\"_blank\">View</a>";
+    #endif
+    #if defined(ALLOW_DOWNLOAD_FILES)
+      uint16_t *downloadControlID = nullptr;
+      char **fileDownloadLink;
+      char fileDownloadLinkTemplate[] PROGMEM = "<a href=\"%s%s\" target=\"_blank\" download>Download</a>";
+    #endif
+    const char* filesTabTitle PROGMEM = "File storage";
+    char filesRoot[] = "/files/";
+    bool filesTabVisible = false;
+    bool filesVisible = false;
+    bool hackComplete = false;
+    uint32_t turnOffWifiSoon = 0;
+    uint16_t filesTabID = 0;
+  #endif
   uint16_t controlsTabID = 0;
   uint16_t shutdownButtonID = 0;
   uint16_t selfDestructButtonID = 0;
@@ -1352,46 +1388,6 @@ static const uint16_t loggingYieldTime = 100;
   //uint8_t shutdownCountdown = 255;
   uint32_t selfDestructNow = 0;
   uint8_t selfDestructCountdown = 255;
-  /*
-  void shutdownButtonCallback(Control* sender, int value)
-  {
-    #ifdef ESP8266
-    { //HeapSelectIram doAllocationsInIRAM;
-    #endif
-      switch (value)
-      {
-      case B_DOWN:
-        if(shutdownNow == 0)
-        {
-          //buttonPushed = buttonIndexFromId(sender->id);
-          ESPUI.updateControlValue(statusWidgetID, "Shutdown down in 10s, hold to confirm");
-          ESPUI.getControl(statusWidgetID)->color = ControlColor::Carrot;
-          ESPUI.updateControl(statusWidgetID);
-          shutdownNow = millis();
-        }
-        break;
-  
-      case B_UP:
-        if(millis() - shutdownNow > 10000)
-        {
-          ESPUI.updateControlValue(statusWidgetID, "Shutdown");
-          ESPUI.getControl(statusWidgetID)->color = ControlColor::Alizarin;
-          ESPUI.updateControl(statusWidgetID);
-        }
-        else
-        {
-          ESPUI.updateControlValue(statusWidgetID, "Active" );
-          ESPUI.getControl(statusWidgetID)->color = ControlColor::Emerald;
-          ESPUI.updateControl(statusWidgetID);
-          shutdownNow = 0;
-        }
-        break;
-      }
-    #ifdef ESP8266
-    } // HeapSelectIram
-    #endif
-  }
-  */
   void selfDestructButtonCallback(Control* sender, int value)
   {
     #ifdef ESP8266
