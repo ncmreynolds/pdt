@@ -233,7 +233,7 @@
     ssd1306_clearScreen8();
     printTopLine((const char*)F("DRONE"));
     printBottomLine((const char*)F("STATUS"));
-    if(device[currentlyTrackedDevice].numberOfStartingStunHits == 0 || device[currentlyTrackedDevice].numberOfStartingHits == 0 || device[currentlyTrackedDevice].hasGpsFix == false || drangeToIndicate(currentlyTrackedDevice) > maximumEffectiveRange || currentlyTrackedDevice == maximumNumberOfDevices)
+    if(device[currentlyTrackedDevice].numberOfStartingStunHits == 0 || device[currentlyTrackedDevice].numberOfStartingHits == 0 || device[currentlyTrackedDevice].hasGpsFix == false || rangeToIndicate(currentlyTrackedDevice) > maximumEffectiveRange || currentlyTrackedDevice == maximumNumberOfDevices)
     {
       printMiddleLine((const char*)F("UNKNOWN"));
       #if defined(SERIAL_DEBUG)
@@ -390,8 +390,16 @@
       }
       else
       {
-        char beaconDetail[17];
-        sprintf_P(beaconDetail, PSTR("%02u %02X%02X%02X%02X%02X%02X"), currentlyTrackedDevice, device[currentlyTrackedDevice].id[0], device[currentlyTrackedDevice].id[1], device[currentlyTrackedDevice].id[2], device[currentlyTrackedDevice].id[3], device[currentlyTrackedDevice].id[4], device[currentlyTrackedDevice].id[5]);
+        uint8_t beaconDetailLength = (device[currentlyTrackedDevice].name == nullptr?14:10+strlen(device[currentlyTrackedDevice].name));
+        char beaconDetail[beaconDetailLength];
+        if(device[currentlyTrackedDevice].name == nullptr)
+        {
+          sprintf_P(beaconDetail, PSTR("%02u Unknown"), currentlyTrackedDevice);
+        }
+        else
+        {
+          sprintf_P(beaconDetail, PSTR("%02u %s"), currentlyTrackedDevice, device[currentlyTrackedDevice].name);
+        }
         printMiddleLine(beaconDetail);
         #if defined(SERIAL_DEBUG)
           if(waitForBufferSpace(80))
@@ -484,11 +492,11 @@
         if(waitForBufferSpace(35))
         {
           SERIAL_DEBUG_PORT.print(F("Displaying signal strength: "));
-          SERIAL_DEBUG_PORT.println(device[currentlyTrackedDevice].lastLoRaRssi);
+          SERIAL_DEBUG_PORT.println(treacle.loRaRSSI(device[currentlyTrackedDevice].id));
         }
       #endif
       char displayText[11];
-      sprintf_P(displayText,PSTR("%03.1fdbM"),device[currentlyTrackedDevice].lastLoRaRssi);
+      sprintf_P(displayText,PSTR("%03.1fdbM"),treacle.loRaRSSI(device[currentlyTrackedDevice].id));
       printMiddleLine(displayText);
     }
     lastDisplayUpdate = millis();
