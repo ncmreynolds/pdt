@@ -114,6 +114,12 @@
       }
       lv_obj_set_style_text_align(status_label, LV_TEXT_ALIGN_CENTER, 0);
       lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 0 );
+
+      //Tracked object label
+      trackedItemLabel = lv_label_create(homeTab);
+      lv_obj_align(trackedItemLabel, LV_ALIGN_CENTER, 0, -trackedItemLabelSpacing);
+      lv_label_set_text(trackedItemLabel, "");
+      lv_obj_add_flag(trackedItemLabel, LV_OBJ_FLAG_HIDDEN);
       
       //Create meter style
       lv_style_init(&style_meter);
@@ -137,9 +143,9 @@
       //lv_obj_set_size(meter3, meterDiameter, meterDiameter);
       
       //Lay out the meters
-      lv_obj_align(meter0, LV_ALIGN_CENTER, -meterDiameter/2-meterSpacing, -meterDiameter/2-meterSpacing);
-      lv_obj_align(meter0withoutNeedle, LV_ALIGN_CENTER, -meterDiameter/2-meterSpacing, -meterDiameter/2-meterSpacing);
-      lv_obj_align(meter1, LV_ALIGN_CENTER, meterDiameter/2+meterSpacing, -meterDiameter/2-meterSpacing);
+      lv_obj_align(meter0, LV_ALIGN_CENTER, -meterDiameter/2-meterXspacing, -meterDiameter/2-meterYspacing);
+      lv_obj_align(meter0withoutNeedle, LV_ALIGN_CENTER, -meterDiameter/2-meterXspacing, -meterDiameter/2-meterYspacing);
+      lv_obj_align(meter1, LV_ALIGN_CENTER, meterDiameter/2+meterXspacing, -meterDiameter/2-meterYspacing);
     
       //Assign style to all meters
       lv_obj_add_style(meter0, &style_meter, 0); //Default style for meters
@@ -205,12 +211,12 @@
     
       //Meter 0 label
       meter0label0 = lv_label_create(homeTab);
-      lv_obj_align(meter0label0, LV_ALIGN_CENTER, -meterDiameter/2-meterSpacing, -meterDiameter-meterSpacing-14);
+      lv_obj_align(meter0label0, LV_ALIGN_CENTER, -meterDiameter/2-meterXspacing, -meterDiameter-meterYspacing-14);
       lv_label_set_text(meter0label0, "Direction");
       lv_obj_add_flag(meter0label0, LV_OBJ_FLAG_HIDDEN);
       //Meter 0 label
       meter1label0 = lv_label_create(homeTab);
-      lv_obj_align(meter1label0, LV_ALIGN_CENTER, meterDiameter/2+meterSpacing, -meterDiameter-meterSpacing-14);
+      lv_obj_align(meter1label0, LV_ALIGN_CENTER, meterDiameter/2+meterXspacing, -meterDiameter-meterYspacing-14);
       if(trackerPriority == 0)
       {
         lv_label_set_text(meter1label0, meter1text0);
@@ -258,42 +264,44 @@
       lv_obj_align(chart0label0, LV_ALIGN_CENTER, 0, chartLabelSpacing*3);
       lv_label_set_text(chart0label0, "Signal integrity");
       lv_obj_add_flag(chart0label0, LV_OBJ_FLAG_HIDDEN);
-    
-      chart1 = lv_chart_create(homeTab);
-      lv_obj_set_size(chart1, chartX, chartY);
-      lv_chart_set_point_count(chart1, chartPoints);
-      lv_obj_align(chart1, LV_ALIGN_CENTER, 0, chartY+chartY/2+chartSpacing*2);
-      lv_chart_set_type(chart1, LV_CHART_TYPE_LINE);   /*Show lines and points too*/
-      /*Add two data series*/
-      lv_chart_set_update_mode(chart1, LV_CHART_UPDATE_MODE_SHIFT);
-      if(espNowInitialised == true)
-      {
-        chart1ser0 = lv_chart_add_series(chart1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
-        lv_chart_set_range(chart1, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
-      }
-      if(loRaInitialised == true)
-      {
-        chart1ser1 = lv_chart_add_series(chart1, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
-        lv_chart_set_range(chart1, LV_CHART_AXIS_SECONDARY_Y, 0, 100);
-      }
-      //uint32_t i;
-      for(i = 0; i < chartPoints; i++) {
-          if(espNowInitialised == true)
-          {
-            lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 50));
-          }
-          if(loRaInitialised == true)
-          {
-            chart1ser1->y_points[i] = lv_rand(50, 90);
-          }
-      }
-      lv_chart_refresh(chart1); /*Required after direct set*/
-      lv_obj_add_flag(chart1, LV_OBJ_FLAG_HIDDEN); 
-    
-      chart1label0 = lv_label_create(homeTab);
-      lv_obj_align(chart1label0, LV_ALIGN_CENTER, 0, chartY + chartY/2 + chartLabelSpacing);
-      lv_label_set_text(chart1label0, "Interference level");
-      lv_obj_add_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
+
+      #if defined(LVGL_INCLUDE_CHART1)
+        chart1 = lv_chart_create(homeTab);
+        lv_obj_set_size(chart1, chartX, chartY);
+        lv_chart_set_point_count(chart1, chartPoints);
+        lv_obj_align(chart1, LV_ALIGN_CENTER, 0, chartY+chartY/2+chartSpacing*2);
+        lv_chart_set_type(chart1, LV_CHART_TYPE_LINE);   /*Show lines and points too*/
+        /*Add two data series*/
+        lv_chart_set_update_mode(chart1, LV_CHART_UPDATE_MODE_SHIFT);
+        if(espNowInitialised == true)
+        {
+          chart1ser0 = lv_chart_add_series(chart1, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);
+          lv_chart_set_range(chart1, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
+        }
+        if(loRaInitialised == true)
+        {
+          chart1ser1 = lv_chart_add_series(chart1, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_SECONDARY_Y);
+          lv_chart_set_range(chart1, LV_CHART_AXIS_SECONDARY_Y, 0, 100);
+        }
+        //uint32_t i;
+        for(i = 0; i < chartPoints; i++) {
+            if(espNowInitialised == true)
+            {
+              lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 50));
+            }
+            if(loRaInitialised == true)
+            {
+              chart1ser1->y_points[i] = lv_rand(50, 90);
+            }
+        }
+        lv_chart_refresh(chart1); /*Required after direct set*/
+        lv_obj_add_flag(chart1, LV_OBJ_FLAG_HIDDEN); 
+      
+        chart1label0 = lv_label_create(homeTab);
+        lv_obj_align(chart1label0, LV_ALIGN_CENTER, 0, chartY + chartY/2 + chartLabelSpacing);
+        lv_label_set_text(chart1label0, "Interference level");
+        lv_obj_add_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
+      #endif
     }
     void showStatusSpinner()
     {
@@ -307,18 +315,22 @@
     }
     void showMeters()
     {
+      lv_obj_clear_flag(trackedItemLabel, LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(meter0label0, LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(meter1, LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(meter1label0, LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(chart0, LV_OBJ_FLAG_HIDDEN);
       lv_obj_clear_flag(chart0label0, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_clear_flag(chart1, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_clear_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
+      #if defined(LVGL_INCLUDE_CHART1)
+        lv_obj_clear_flag(chart1, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
+      #endif
       metersShowing = true;
     }
     void hideMeters()
     {
+      lv_obj_add_flag(trackedItemLabel, LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(meter0, LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(meter0withoutNeedle, LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(meter0label0, LV_OBJ_FLAG_HIDDEN);
@@ -326,8 +338,10 @@
       lv_obj_add_flag(meter1label0, LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(chart0, LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(chart0label0, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_add_flag(chart1, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_add_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
+      #if defined(LVGL_INCLUDE_CHART1)
+        lv_obj_add_flag(chart1, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(chart1label0, LV_OBJ_FLAG_HIDDEN);
+      #endif
       metersShowing = false;
     }
     void updateHomeTab()
@@ -363,6 +377,14 @@
         {
           lv_meter_set_indicator_value(meter1, needle1, maximumEffectiveRange);
         }
+        if(device[currentlyTrackedDevice].icName != nullptr)
+        {
+          lv_label_set_text(trackedItemLabel, device[currentlyTrackedDevice].icName);
+        }
+        else
+        {
+          lv_label_set_text(trackedItemLabel, "<Unknown>");
+        }
       }
       //Signal graph
       if(currentlyTrackedDevice != maximumNumberOfDevices)
@@ -387,29 +409,31 @@
           lv_chart_set_next_value(chart0, chart0ser1, 0);
         }
       }
-      //Random junk
-      if(currentlyTrackedDevice != maximumNumberOfDevices)
-      {
-        if(espNowInitialised == true)
+      #if defined(LVGL_INCLUDE_CHART1)
+        //Random junk
+        if(currentlyTrackedDevice != maximumNumberOfDevices)
         {
-          lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(treacle.espNowRxReliability(device[currentlyTrackedDevice].id))/16);
+          if(espNowInitialised == true)
+          {
+            lv_chart_set_next_value(chart1, chart1ser0, lv_rand(10, 100) * countBits(treacle.espNowRxReliability(device[currentlyTrackedDevice].id))/16);
+          }
+          if(loRaInitialised == true)
+          {
+            lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(treacle.loRaRxReliability(device[currentlyTrackedDevice].id))/16);
+          }
         }
-        if(loRaInitialised == true)
+        else
         {
-          lv_chart_set_next_value(chart1, chart1ser1, lv_rand(10, 100) * countBits(treacle.loRaRxReliability(device[currentlyTrackedDevice].id))/16);
+          if(espNowInitialised == true)
+          {
+            lv_chart_set_next_value(chart1, chart1ser0, 0);
+          }
+          if(loRaInitialised == true)
+          {
+            lv_chart_set_next_value(chart1, chart1ser1, 0);
+          }
         }
-      }
-      else
-      {
-        if(espNowInitialised == true)
-        {
-          lv_chart_set_next_value(chart1, chart1ser0, 0);
-        }
-        if(loRaInitialised == true)
-        {
-          lv_chart_set_next_value(chart1, chart1ser1, 0);
-        }
-      }
+      #endif
     }
   #endif
   #if defined(LVGL_SUPPORT_GPS_TAB)
@@ -881,7 +905,6 @@
       lv_label_set_text(label, button0Label);
       lv_obj_center(label);
       //This button can be toggled to always find the nearest
-      //lv_obj_add_flag(button0, LV_OBJ_FLAG_CHECKABLE);
       lv_obj_add_event_cb(button0, button0_event_handler, LV_EVENT_ALL, NULL);
 
       //Furthest button
@@ -975,7 +998,8 @@
           //Set the description in the box below
           if(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icDescription != nullptr)
           {
-            lv_label_set_text(icDescription_label, device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icDescription);
+            String tempDeviceDescription = String(device[selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]].icDescription) + "\n\n" + String(int(rangeToIndicate(selectDeviceDropdownIndices[(uint8_t)lv_dropdown_get_selected(obj)]))) + "m away";
+            lv_label_set_text(icDescription_label, tempDeviceDescription.c_str());
           }
           else
           {
@@ -1070,9 +1094,6 @@
           {
             tempDropdownString += "Unknown";
           }
-          tempDropdownString += " - ";
-          tempDropdownString += String(int(rangeToIndicate(index)));
-          tempDropdownString += "m away";
           numberOfDevicesInDeviceDropdown++;
         }
       }
@@ -1104,7 +1125,8 @@
         */
         if(device[selectDeviceDropdownIndices[indexToPickAftewards]].icDescription != nullptr)
         {
-          lv_label_set_text(icDescription_label, device[selectDeviceDropdownIndices[indexToPickAftewards]].icDescription);
+          String tempDeviceDescription = String(device[selectDeviceDropdownIndices[indexToPickAftewards]].icDescription) + "\n\n" + String(int(rangeToIndicate(indexToPickAftewards))) + "m away";
+          lv_label_set_text(icDescription_label, tempDeviceDescription.c_str());
         }
         else
         {
