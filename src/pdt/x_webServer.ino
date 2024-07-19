@@ -97,20 +97,30 @@
         xSemaphoreGive(webserverSemaphore);
       #endif
       #if defined(SUPPORT_HACKING)
-        if(sensorReset == false)
+        if(adminWebServerPort == 80)
         {
-          //Re-use the ESPUI object
-          adminWebServer = ESPUI.server;
+          if(sensorReset == false)
+          {
+            //Re-use the ESPUI object
+            adminWebServer = ESPUI.server;
+          }
+          else
+          {
+            adminWebServer = new AsyncWebServer(adminWebServerPort);
+          }
         }
         else
         {
-          adminWebServer = new AsyncWebServer(80);
+          //Create the web server object
+          adminWebServer = new AsyncWebServer(adminWebServerPort);
         }
       #else
         //Create the web server object
-        adminWebServer = new AsyncWebServer(80);
+        adminWebServer = new AsyncWebServer(adminWebServerPort);
       #endif
-      localLog(F("Configuring web server callbacks: "));
+      localLog(F("Configuring web server on port "));
+      localLog(adminWebServerPort);
+      localLog(F(": "));
       adminWebServer->on(PSTR("/admin"), HTTP_GET, [](AsyncWebServerRequest *request){ //This lambda function is a mimimal default response that shows some info and lists the log files
         #if defined(ENABLE_LOCAL_WEBSERVER_SEMAPHORE)
           if(xSemaphoreTake(webserverSemaphore, webserverSemaphoreTimeout) == pdTRUE)
@@ -872,14 +882,11 @@
               AsyncResponseStream *response = request->beginResponseStream("text/html");
               addPageHeader(response, 0, nullptr);
               response->printf_P(h2printfEightColumnsFormatString, PSTR("Sensor"));
+              response->print(startFourColumns);
               response->printf_P(buttonPrintfFormatString, PSTR("configureSensor"), labelConfigure);
               response->print(endColumn);
               response->print(endRow);
-              response->print(startRow);
-              response->print(startFourColumns);
-              response->printf_P(buttonPrintfFormatString, PSTR("sensorReset"), PSTR("Reset sensor"));
-              response->print(endColumn);
-              response->print(endRow);
+              response->print(ulStart);
               response->printf_P(PSTR("<li>Current hits: <b>%u/%u</b> stun: <b>%u/%u</b></li>"), device[0].currentNumberOfHits, device[0].numberOfStartingHits, device[0].currentNumberOfStunHits, device[0].numberOfStartingStunHits);
               if(armourValue > 0)
               {
@@ -921,7 +928,11 @@
               {
                 response->print(F("<li>Ignore non-DOT: <b>true</b></li>"));
               }
-              response->print(ulEndRow);
+              response->print(ulEnd);
+              response->print(startFourColumns);
+              response->printf_P(buttonPrintfFormatString, PSTR("sensorReset"), PSTR("Reset sensor"));
+              response->print(endColumn);
+              response->print(endRow);
               addPageFooter(response);
               //Send response
               request->send(response);
@@ -3361,19 +3372,19 @@
               //Starting hits
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_numberOfStartingHits, PSTR("Starting hits"));
+              response->printf_P(labelForPrintfFormatString, PSTR("numberOfStartingHits"), PSTR("Starting hits"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingHits\" name=\"numberOfStartingHits\">"), device[0].numberOfStartingHits);
               response->print(endColumn);
               response->print(endRow);
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_numberOfStartingStunHits, PSTR("Starting stun hits"));
+              response->printf_P(labelForPrintfFormatString, PSTR("numberOfStartingStunHits"), PSTR("Starting stun hits"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"1\" max=\"99\" step=\"1\" value=\"%u\" id=\"numberOfStartingStunHits\" name=\"numberOfStartingStunHits\">"), device[0].numberOfStartingStunHits);
               response->print(endColumn);
               response->print(endRow);
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_armourValue, PSTR("Armour value"));
+              response->printf_P(labelForPrintfFormatString, PSTR("armourValue"), PSTR("Armour value"));
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"99\" step=\"1\" value=\"%u\" id=\"armourValue\" name=\"armourValue\">"), armourValue);
               response->print(endColumn);
               response->print(endRow);
@@ -3382,8 +3393,8 @@
               //Require EP
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_EP_flag, PSTR("Require EP to hit"));
-              response->printf_P(selectPrintfFormatString, string_EP_flag, string_EP_flag);
+              response->printf_P(labelForPrintfFormatString, PSTR("EP_flag"), PSTR("Require EP to hit"));
+              response->printf_P(selectPrintfFormatString, PSTR("EP_flag"), PSTR("EP_flag"));
               response->print(selectValueTrue);response->print(EP_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(EP_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3392,8 +3403,8 @@
               //Ignore healing
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_ig_healing_flag, PSTR("Ignore healing"));
-              response->printf_P(selectPrintfFormatString, string_ig_healing_flag, string_ig_healing_flag);
+              response->printf_P(labelForPrintfFormatString, PSTR("ig_healing_flag"), PSTR("Ignore healing"));
+              response->printf_P(selectPrintfFormatString, PSTR("ig_healing_flag"), PSTR("ig_healing_flag"));
               response->print(selectValueTrue);response->print(ig_healing_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ig_healing_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3402,8 +3413,8 @@
               //Ignore stun
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_ig_stun_flag, PSTR("Ignore stun"));
-              response->printf_P(selectPrintfFormatString, string_ig_stun_flag, string_ig_stun_flag);
+              response->printf_P(labelForPrintfFormatString, PSTR("ig_stun_flag"), PSTR("Ignore stun"));
+              response->printf_P(selectPrintfFormatString, PSTR("ig_stun_flag"), PSTR("ig_stun_flag"));
               response->print(selectValueTrue);response->print(ig_stun_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ig_stun_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3412,8 +3423,8 @@
               //Ignore ongoing
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_ig_ongoing_flag, PSTR("Ignore ongoing"));
-              response->printf_P(selectPrintfFormatString, string_ig_ongoing_flag, string_ig_ongoing_flag);
+              response->printf_P(labelForPrintfFormatString, PSTR("ig_ongoing_flag"), PSTR("Ignore ongoing"));
+              response->printf_P(selectPrintfFormatString, PSTR("ig_ongoing_flag"), PSTR("ig_ongoing_flag"));
               response->print(selectValueTrue);response->print(ig_ongoing_flag == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ig_ongoing_flag == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3422,8 +3433,8 @@
               //Regen while zero
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_regen_while_zero, PSTR("Regen while zero"));
-              response->printf_P(selectPrintfFormatString, string_regen_while_zero, string_regen_while_zero);
+              response->printf_P(labelForPrintfFormatString, PSTR("regen_while_zero"), PSTR("Regen while zero"));
+              response->printf_P(selectPrintfFormatString, PSTR("regen_while_zero"), PSTR("regen_while_zero"));
               response->print(selectValueTrue);response->print(regen_while_zero == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(regen_while_zero == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3432,8 +3443,8 @@
               //Treat damage as one
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_treat_as_one, PSTR("Treat damage as one hit"));
-              response->printf_P(selectPrintfFormatString, string_treat_as_one, string_treat_as_one);
+              response->printf_P(labelForPrintfFormatString, PSTR("treat_as_one"), PSTR("Treat damage as one hit"));
+              response->printf_P(selectPrintfFormatString, PSTR("treat_as_one"), PSTR("treat_as_one"));
               response->print(selectValueTrue);response->print(treat_as_one == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(treat_as_one == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3442,8 +3453,8 @@
               //Treat stun damage as one
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_treat_stun_as_one, PSTR("Treat stun as one hit"));
-              response->printf_P(selectPrintfFormatString, string_treat_stun_as_one, string_treat_stun_as_one);
+              response->printf_P(labelForPrintfFormatString, PSTR("treat_stun_as_one"), PSTR("Treat stun as one hit"));
+              response->printf_P(selectPrintfFormatString, PSTR("treat_stun_as_one"), PSTR("treat_stun_as_one"));
               response->print(selectValueTrue);response->print(treat_stun_as_one == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(treat_stun_as_one == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3452,8 +3463,8 @@
               //Ongoing is cumulative
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_ongoing_is_cumulative, PSTR("Ongoing is cumulative"));
-              response->printf_P(selectPrintfFormatString, string_ongoing_is_cumulative, string_ongoing_is_cumulative);
+              response->printf_P(labelForPrintfFormatString, PSTR("ongoing_is_cumulative"), PSTR("Ongoing is cumulative"));
+              response->printf_P(selectPrintfFormatString, PSTR("ongoing_is_cumulative"), PSTR("ongoing_is_cumulative"));
               response->print(selectValueTrue);response->print(ongoing_is_cumulative == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ongoing_is_cumulative == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -3462,8 +3473,8 @@
               //Ignore non-DOT
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_ig_non_dot, PSTR("Ignore non-DOT signals"));
-              response->printf_P(selectPrintfFormatString, string_ig_non_dot, string_ig_non_dot);
+              response->printf_P(labelForPrintfFormatString, PSTR("ig_non_dot"), PSTR("Ignore non-DOT signals"));
+              response->printf_P(selectPrintfFormatString, PSTR("ig_non_dot"), PSTR("ig_non_dot"));
               response->print(selectValueTrue);response->print(ig_non_dot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
               response->print(selectValueFalse);response->print(ig_non_dot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
               response->print(endSelect);
@@ -4354,7 +4365,14 @@
         #endif
       #endif
       #if defined(SUPPORT_HACKING)
-        if(sensorReset == true)
+        if(adminWebServerPort == 80)
+        {
+          if(sensorReset == true)
+          {
+            adminWebServer->begin();
+          }
+        }
+        else
         {
           adminWebServer->begin();
         }
