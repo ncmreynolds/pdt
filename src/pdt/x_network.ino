@@ -60,16 +60,29 @@
       #endif
       #if defined(ENABLE_LOCAL_WEBSERVER)
         #if defined(ACT_AS_SENSOR)
-          if(sensorReset == true && (wifiApStarted == true || wifiClientConnected == true))
-          {
-            setupWebServer();
-            #if defined(SUPPORT_OTA)
-              if(otaEnabled == true)
-              {
-                  configureOTA();
-              }
-            #endif
-          }
+          #if defined(SUPPORT_HACKING)
+            if(sensorReset == true && (wifiApStarted == true || wifiClientConnected == true))
+            {
+              setupWebServer();
+              #if defined(SUPPORT_OTA)
+                if(otaEnabled == true)
+                {
+                    configureOTA();
+                }
+              #endif
+            }
+          #else
+            if(wifiApStarted == true || wifiClientConnected == true)
+            {
+              setupWebServer();
+              #if defined(SUPPORT_OTA)
+                if(otaEnabled == true)
+                {
+                    configureOTA();
+                }
+              #endif
+            }
+          #endif
         #else
           if(wifiApStarted == true || wifiClientConnected == true)
           {
@@ -92,7 +105,7 @@
   }
   void manageNetwork()
   {
-    #if defined ENABLE_LOCAL_WEBSERVER || defined SUPPORT_HACKING
+    #if defined(ENABLE_LOCAL_WEBSERVER) || defined(SUPPORT_HACKING)
       if(enableCaptivePortal == true && dnsServer != nullptr) //Must process inbound DNS requests
       {
         dnsServer->processNextRequest();
