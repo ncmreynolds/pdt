@@ -113,25 +113,28 @@ void manageTreacle()
     }
     if(treacleIntialised)
     {
-      if(typeOfLastTreacleUpdate%6 == 0)       //Every 6th update
-      {
-        if(shareDeviceInfo())
-        {
-          typeOfLastTreacleUpdate++;
-        }
-      }
-      else if(typeOfLastTreacleUpdate%3 == 0)  //Every 3rd update
-      {
-        if(shareIcInfo())
-        {
-          typeOfLastTreacleUpdate++;
-        }
-      }
-      else                                     //All other updates
+      if(typeOfLastTreacleUpdate%2 == 1)            //Every odd update, send location
       {
         if(shareLocation())
         {
           typeOfLastTreacleUpdate++;
+        }
+      }
+      else
+      {
+        if((typeOfLastTreacleUpdate/2)%2 == 0)       //Alternate every other non-location update
+        {
+          if(shareDeviceInfo())
+          {
+            typeOfLastTreacleUpdate++;
+          }
+        }
+        else
+        {
+          if(shareIcInfo())
+          {
+            typeOfLastTreacleUpdate++;
+          }
         }
       }
     }
