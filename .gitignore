@@ -33,3 +33,4 @@
 src/pdt/credentials.h
 src/pdt/pdt.ino.esp32c3.bin
 *.tmp
+src/pdt/data/files/Project_Waterfall_Dossier.pdf
