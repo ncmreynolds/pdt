@@ -81,7 +81,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   configuration[string_icName] = device[0].icName;
   configuration[string_icDescription] = device[0].icDescription;
   configuration[string_diameter] = device[0].diameter;
-  configuration[string_diameter] = device[0].height;
+  configuration[string_height] = device[0].height;
   #if defined(SUPPORT_FTM)
     configuration["ftmEnabled"] = ftmEnabled;
     configuration["ftmSSID"] = ftmSSID;
@@ -553,7 +553,8 @@ void printConfiguration()
     localLog(string_APPSK); localLog(string_colonSpace);
     if(APPSK != nullptr)
     {
-      localLogLn(string_ltSetGt);
+      //localLogLn(string_ltSetGt);
+      localLogLn(APPSK);
     }
     else
     {
