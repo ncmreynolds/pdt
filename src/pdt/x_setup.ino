@@ -33,7 +33,24 @@ void setup() {
       }
     #endif
   #endif
-  WiFi.macAddress(localMacAddress); //Copy in local MAC address
+  //Get the local MAC address
+  #if ESP_IDF_VERSION_MAJOR > 2
+    /*
+    if(esp_wifi_get_mac(WIFI_IF_STA, localMacAddress) == ESP_OK)
+    {
+      
+    }
+    */
+    if(esp_wifi_get_mac(WIFI_IF_STA, localMacAddress) != ESP_OK)
+    {
+      //Temporary random MAC until WiFi is up
+      for(uint8_t index =0; index < 6; index++) {
+        localMacAddress[index] = random(0,256);
+      }
+    }
+  #else
+    WiFi.macAddress(localMacAddress); //Copy in local MAC address
+  #endif
   #if defined(ACT_AS_TRACKER)
     device[0].typeOfDevice = device[0].typeOfDevice | 0x01;  //Mark it as a tracker
   #endif
@@ -77,6 +94,9 @@ void setup() {
   #endif
   #if defined(SUPPORT_WIFI)
     setupNetwork();
+    #if ESP_IDF_VERSION_MAJOR > 2
+      esp_wifi_get_mac(WIFI_IF_STA, localMacAddress); //Now get the actual MAC address
+    #endif
   #endif
   #if defined(SUPPORT_DISPLAY)
     setupTreacle();

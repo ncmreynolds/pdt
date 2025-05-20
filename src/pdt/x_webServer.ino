@@ -3995,7 +3995,7 @@
               treacle.loRaTxReliability(device[index].id),
               treacle.loRaRSSI(device[index].id),
               treacle.loRaSNR(device[index].id),
-              printableDuration(treacle.rxAge(device[index].id)/1000.0).c_str()
+              printableDuration((millis()-treacle.nodeLastSeen(device[index].id))/1000.0).c_str()
               );
             }
             else

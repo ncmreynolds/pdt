@@ -12,12 +12,12 @@ void setupLogging()
     #if defined(ARDUINO_ESP32C3_DEV)
       SERIAL_DEBUG_PORT.begin();
       debugPortStartingBufferSize = SERIAL_DEBUG_PORT.availableForWrite();
-      SERIAL_DEBUG_PORT.println(F("Online?"));  //Try to send something
+      SERIAL_DEBUG_PORT.println(F("CDC Online?"));  //Try to send something
       delay(100); //Wait for it to send
       debugPortAvailable = SERIAL_DEBUG_PORT.availableForWrite() == debugPortStartingBufferSize; //Check if USB port is connected by seeing if it has been able to send stuff
       //if(debugPortAvailable)
       {
-          delay(5000);  //Allow time for the serial console to be opened by a person
+          //delay(5000);  //Allow time for the serial console to be opened by a person
       }
     #else
       SERIAL_DEBUG_PORT.begin(115200);

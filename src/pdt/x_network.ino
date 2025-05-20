@@ -17,6 +17,8 @@
         espBoilerplate.enableFtm();
       }
     #endif
+    //Get the local MAC address
+    //esp_err_t ret = esp_wifi_get_mac(WIFI_IF_STA, baseMac);
     if(startWiFiClientOnBoot == true || startWiFiApOnBoot == true)
     {
       if(startWiFiClientOnBoot == true)

@@ -11,10 +11,7 @@
     localLog(F("Configuring beeper: "));
     //Use a semaphore to control access to global variables
     beeperSemaphore = xSemaphoreCreateBinary();
-    ledcSetup(beeperChannel, beeperButtonTone, 8);  //Set up eight bit resolution
-    ledcAttachPin(beeperPin, beeperChannel);
-    ledcWriteTone(beeperChannel, 0);  //Set an initial tone of nothing
-    ledcDetachPin(beeperPin);
+    stopBeep();
     xSemaphoreGive(beeperSemaphore);
     xTaskCreate(manageBeeper, "manageBeeper", 1024, NULL, configMAX_PRIORITIES - 2 , &beeperManagementTask); //configMAX_PRIORITIES - 2
     localLogLn(F("OK"));
@@ -25,8 +22,13 @@
     {
       if(beeperState == false)
       {
-        ledcAttachPin(beeperPin, beeperChannel);
-        ledcWriteTone(beeperChannel, frequency);
+        #if ESP_IDF_VERSION_MAJOR > 3
+          ledcAttach(beeperPin, frequency, 8);
+          ledcWriteTone(beeperPin, frequency);
+        #else
+          ledcAttachPin(beeperPin, beeperChannel);
+          ledcWriteTone(beeperChannel, frequency);
+        #endif
         singleBeepOnTime = duration; //0 means continuous
         singleBeepLastStateChange = millis();
         beeperState = true;
@@ -40,8 +42,13 @@
     {
       if(beeperState == false)
       {
-        ledcAttachPin(beeperPin, beeperChannel);
-        ledcWriteTone(beeperChannel, frequency);
+        #if ESP_IDF_VERSION_MAJOR > 3
+          ledcAttach(beeperPin, frequency, 8);
+          ledcWriteTone(beeperPin, frequency);
+        #else
+          ledcAttachPin(beeperPin, beeperChannel);
+          ledcWriteTone(beeperChannel, frequency);
+        #endif
         beeperTone = frequency;
         repeatingBeepOnTime = ontime;
         repeatingBeepOffTime = offtime;
@@ -57,8 +64,7 @@
     {
       if(beeperState == true)
       {
-        ledcWriteTone(beeperChannel, 0);  //Write no tone
-        ledcDetachPin(beeperPin);
+        stopBeep();
         singleBeepLastStateChange = millis(); //Update the state change time
         singleBeepOnTime = 0; //Mark the single beep as done
       }
@@ -72,8 +78,7 @@
     {
       if(beeperState == true)
       {
-        ledcWriteTone(beeperChannel, 0);  //Write no tone
-        ledcDetachPin(beeperPin);
+        stopBeep();
         repeatingBeepLastStateChange = millis();
         beeperState = false;
       }
@@ -87,8 +92,7 @@
       repeatingBeepOffTime = 0;
       if(beeperState == true)
       {
-        ledcWriteTone(beeperChannel, 0);  //Write no tone
-        ledcDetachPin(beeperPin);
+        stopBeep();
         repeatingBeepLastStateChange = millis();
         beeperState = false;
       }
@@ -147,6 +151,23 @@
     }
     vTaskDelete(NULL);  //Kill this task
   }
+  void stopBeep()
+  {
+    #if ESP_IDF_VERSION_MAJOR > 3
+      ledcWriteTone(beeperPin, 0);  //Write no tone
+      ledcDetach(beeperPin);
+      #if HARDWARE_VARIANT == CYDTracker
+        digitalWrite(beeperPin, LOW);
+      #else
+        digitalWrite(beeperPin, HIGH);
+      #endif
+    #else
+      ledcSetup(beeperChannel, beeperButtonTone, 8);  //Set up eight bit resolution
+      ledcAttachPin(beeperPin, beeperChannel);
+      ledcWriteTone(beeperChannel, 0);  //Set an initial tone of nothing
+      ledcDetachPin(beeperPin);
+    #endif
+  }
   #if defined(ACT_AS_TRACKER)
     void setBeeperUrgency()
     {
@@ -181,7 +202,7 @@
         }
         else
         {
-          SERIAL_DEBUG_PORT.println(F("Beeper off"));
+          //SERIAL_DEBUG_PORT.println(F("Beeper off"));
         }
       #endif
     }

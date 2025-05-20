@@ -36,7 +36,7 @@
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 5
-#define PDT_PATCH_VERSION 4
+#define PDT_PATCH_VERSION 5
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -59,6 +59,7 @@
   #define SUPPORT_GPS
   #define SUPPORT_WIFI
   //#define DEBUG_TREACLE
+  //#define SUPPORT_SIGNAL_STRENGTH
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3PDTasBeacon
@@ -558,7 +559,17 @@ bool loRaInitialised = false;
   #else
     #if defined(ARDUINO_ESP32C3_DEV)
       #pragma message "Configuring USB CDC for debug messages"
-      #define SERIAL_DEBUG_PORT USBSerial
+      #if ESP_IDF_VERSION_MAJOR > 3
+        #include "USB.h"
+        #if ARDUINO_USB_CDC_ON_BOOT
+          #define SERIAL_DEBUG_PORT Serial
+        #else
+          USBCDC USBSerial;
+          #define SERIAL_DEBUG_PORT USBSerial
+        #endif
+      #else
+        #define SERIAL_DEBUG_PORT USBSerial
+      #endif
     #else
       #pragma message "Configuring Hardware UART for debug messages"
       #define SERIAL_DEBUG_PORT Serial
@@ -1270,7 +1281,7 @@ static const uint16_t loggingYieldTime = 100;
   bool beeperState = false;
   uint16_t beeperTone = 1400;
   static const uint16_t beeperButtonTone = 900;  //Button push tone
-  static const uint16_t beeperButtonOnTime = 25; //Button push on time
+  static const uint16_t beeperButtonOnTime = 10; //Button push on time
   bool beeperEnabled = false;
   const char string_beeperEnabled[] PROGMEM = "beeperEnabled";
 #endif

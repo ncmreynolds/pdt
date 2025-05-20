@@ -96,6 +96,13 @@
             }
           #endif
         }
+        else if(currentlyTrackedDevice == maximumNumberOfDevices) //Nothing being tracked
+        {
+          if(currentDisplayState != displayState::blank && millis() - lastDisplayUpdate > displayTimeout) //Time out the display
+          {
+            blankDisplay(); //Blank the display
+          }
+        }
         #endif
       }
       #if defined(SUPPORT_SOFT_PERIPHERAL_POWER_OFF)

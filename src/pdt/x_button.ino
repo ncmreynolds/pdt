@@ -123,18 +123,24 @@
                   makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
                 }
               #endif
-              displaySignalStrengthFromBeacon();
-            }
-            else if(currentDisplayState == displayState::signal)
-            {
-              #if defined(SUPPORT_BEEPER)
-                if(beeperEnabled == true && beepOnPress == true)
-                {
-                  makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
-                }
+              #if defined SUPPORT_SIGNAL_STRENGTH
+                displaySignalStrengthFromBeacon();
+              #else
+                displayBatteryPercentage();
               #endif
-              displayBatteryPercentage();
             }
+            #if defined SUPPORT_SIGNAL_STRENGTH
+              else if(currentDisplayState == displayState::signal)
+              {
+                #if defined(SUPPORT_BEEPER)
+                  if(beeperEnabled == true && beepOnPress == true)
+                  {
+                    makeAsingleBeep(beeperButtonTone,beeperButtonOnTime);
+                  }
+                #endif
+                displayBatteryPercentage();
+              }
+            #endif
             else if(currentDisplayState == displayState::battery)
             {
               #if defined(SUPPORT_BEEPER)
