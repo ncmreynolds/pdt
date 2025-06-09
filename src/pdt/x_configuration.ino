@@ -29,6 +29,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration[string_softApChannel] = softApChannel;
     #if defined(ENABLE_LOCAL_WEBSERVER)
       configuration[string_enableCaptivePortal] = enableCaptivePortal;
+      configuration[string_alwaysStartAdminInterface] = alwaysStartAdminInterface;
     #endif
     configuration[string_wiFiClientInactivityTimer]  = wiFiClientInactivityTimer;
     configuration[string_wifiClientTimeout]  = wifiClientTimeout;
@@ -65,7 +66,7 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
   #endif
   #if defined(SUPPORT_BEEPER)
     configuration[string_beeperEnabled] = beeperEnabled;
-    #if defined(SUPPORT_BUTTON)
+    #if defined(SUPPORT_BUTTON) && defined(ACT_AS_TRACKER)
       configuration[string_beepOnPress] = beepOnPress;
     #endif
   #endif
@@ -254,7 +255,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       }
     #endif
     device[0].id = configuration[string_id] | 0;
-    treacleEncryptionEnabled = configuration[string_treacleEncryptionEnabled] | false;
+    treacleEncryptionEnabled = configuration[string_treacleEncryptionEnabled] | true;
     espNowEnabled = configuration[string_espNowEnabled] | true;
     espNowPhyMode = configuration[string_espNowPhyMode] | 0;
     espNowTickInterval = configuration[string_espNowTickInterval] | 10e3;
@@ -391,8 +392,8 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       strlcpy(timeZone,default_timeZone,strlen(default_timeZone) + 1);
     }
     #if defined(SUPPORT_BEEPER)
-      beeperEnabled = configuration[string_beeperEnabled] | false;
-      #if defined(SUPPORT_BUTTON)
+      beeperEnabled = configuration[string_beeperEnabled] | true;
+      #if defined(SUPPORT_BUTTON) && defined(ACT_AS_TRACKER)
         beepOnPress = configuration[string_beepOnPress] | true;
       #endif
     #endif
@@ -430,7 +431,7 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       #endif
     #endif
     #if defined(SUPPORT_HACKING)
-      gameLength = configuration[string_gameLength] | 10 ;
+      gameLength = configuration[string_gameLength] | 3 ;
       gameRetries = configuration[string_gameRetries] | 0;
       gameSpeedup = configuration[string_gameSpeedup] | 500;
     #endif
@@ -469,6 +470,8 @@ bool loadDefaultConfiguration()
     strlcpy(APSSID,device[0].name,strlen(device[0].name) + 1);
     APPSK = new char[strlen(default_AP_PSK) + 1];
     strlcpy(APPSK,default_AP_PSK,strlen(default_AP_PSK) + 1);
+  #endif
+  #if defined(SUPPORT_BEEPER)
   #endif
   timeServer = new char[strlen(default_timeServer) + 1];
   strlcpy(timeServer,default_timeServer,strlen(default_timeServer) + 1);
@@ -563,6 +566,15 @@ void printConfiguration()
     #if defined(ENABLE_LOCAL_WEBSERVER)
       localLog(string_enableCaptivePortal); localLog(string_colonSpace);
       if(enableCaptivePortal)
+      {
+        localLogLn(string_enabled);
+      }
+      else
+      {
+        localLogLn(string_disabled);
+      }
+      localLog(string_alwaysStartAdminInterface); localLog(string_colonSpace);
+      if(alwaysStartAdminInterface)
       {
         localLogLn(string_enabled);
       }
@@ -684,7 +696,7 @@ void printConfiguration()
   #endif
   #if defined(SUPPORT_BEEPER)
     localLog(string_beeperEnabled); localLog(string_colonSpace); localLogLn(beeperEnabled);
-    #if defined(SUPPORT_BUTTON)
+    #if defined(SUPPORT_BUTTON) && defined(ACT_AS_TRACKER)
       localLog(string_beepOnPress); localLog(string_colonSpace); localLogLn(beepOnPress);
     #endif
   #endif

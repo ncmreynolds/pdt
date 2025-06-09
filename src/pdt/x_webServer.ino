@@ -13,6 +13,7 @@
   const char ulEnd[] PROGMEM =                                "</ul></div>";
   const char ulEndRow[] PROGMEM =                             "</ul></div></div>";
   const char liIntegerPrintfFormatString[] PROGMEM =          "<li>%s: <b>%u</b></li>";
+  const char liHexIntegerPrintfFormatString[] PROGMEM =       "<li>%s: <b>0x%02x</b></li>";
   const char liIntegerWithUnitsPrintfFormatString[] PROGMEM = "<li>%s: <b>%u%s</b></li>";
   const char liFloatPrintfFormatString[] PROGMEM =            "<li>%s: <b>%.2f</b></li>";
   const char liFloatWithUnitsPrintfFormatString[] PROGMEM =   "<li>%s: <b>%.2f%s</b></li>";
@@ -671,8 +672,35 @@
             response->print(ulStart);
             if(treacleIntialised == true)
             {
-              response->printf_P(liIntegerPrintfFormatString, PSTR("Node ID"), treacle.getNodeId());
-              response->printf_P(liIntegerPrintfFormatString, PSTR("Number of nodes"), treacle.nodes());
+              response->printf_P(liHexIntegerPrintfFormatString, PSTR("Node ID"), treacle.getNodeId());
+              response->printf_P(liStringPrintfFormatString, PSTR("Encryption: "), (treacleEncryptionEnabled) ? labelOn : labelOff);
+              if(treacleEncryptionEnabled == true)
+              {
+                response->print(startRow);
+                response->print(startTwelveColumns);
+                response->print(F("<li>Encryption key: <b>"));
+                for(uint8_t index = 0; index < 16; index++)
+                {
+                  response->print(F("0x"));
+                  if(treacleEncryptionKey[index] < 0x10)
+                  {
+                    response->print('0');
+                  }
+                  response->print(treacleEncryptionKey[index],HEX);
+                  response->print(' ');
+                }
+                response->print(F("</b></li>"));
+              }
+              response->printf_P(liIntegerPrintfFormatString, PSTR("Number of other nodes"), treacle.nodes());
+              if(treacle.nodes() > 0)
+              {
+                response->print(F("<ul>"));
+                for(uint8_t index = 0; index < treacle.nodes(); index++)
+                {
+                  response->printf_P(liHexIntegerPrintfFormatString, PSTR("Node ID"), treacle.getNodeId(index));
+                }
+                response->print(F("</ul>"));
+              }
               response->printf_P(liIntegerWithUnitsPrintfFormatString, PSTR("Location/Info updates"), treacleDeviceInfoInterval/1000, PSTR("s"));
               response->printf_P(liStringPrintfFormatString, PSTR("ESP&#8209;Now radio"), (treacle.espNowEnabled()) ? labelOn : labelOff);
               if(treacle.espNowEnabled() == true)
@@ -891,6 +919,15 @@
               if(armourValue > 0)
               {
                 response->printf_P(PSTR("<li>Armour value: <b>%u</b></li>"), armourValue);
+              }
+              response->print(F("<li>Bleedout time: <b>"));
+              if(bleedOutTime == 0)
+              {
+                response->print(F("never</b></li>"));
+              }
+              else
+              {
+                response->printf_P(PSTR("%u minutes</b></li>"), bleedOutTime);
               }
               if(EP_flag == true)
               {
@@ -1530,21 +1567,28 @@
             response->print(endRow);
             //WiFi AP        
             response->print(startRow);
-            response->print(startFourColumns);
+            response->print(startThreeColumns);
             response->printf_P(labelForPrintfFormatString, string_startWiFiApOnBoot, PSTR("Enable Wi-Fi AP on boot"));
             response->printf_P(selectPrintfFormatString, string_startWiFiApOnBoot, string_startWiFiApOnBoot);
             response->print(selectValueTrue);response->print(startWiFiApOnBoot == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
             response->print(selectValueFalse);response->print(startWiFiApOnBoot == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
             response->print(endSelect);
             response->print(endColumn);
-            response->print(startFourColumns);
+            response->print(startThreeColumns);
             response->printf_P(labelForPrintfFormatString, string_enableCaptivePortal, PSTR("Enable captive portal"));
             response->printf_P(selectPrintfFormatString, string_enableCaptivePortal, string_enableCaptivePortal);
             response->print(selectValueTrue);response->print(enableCaptivePortal == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
             response->print(selectValueFalse);response->print(enableCaptivePortal == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
             response->print(endSelect);
             response->print(endColumn);
-            response->print(startFourColumns);
+            response->print(startThreeColumns);
+            response->printf_P(labelForPrintfFormatString, string_enableCaptivePortal, PSTR("Always enable admin interface"));
+            response->printf_P(selectPrintfFormatString, string_alwaysStartAdminInterface, string_alwaysStartAdminInterface);
+            response->print(selectValueTrue);response->print(alwaysStartAdminInterface == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+            response->print(selectValueFalse);response->print(alwaysStartAdminInterface == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+            response->print(endSelect);
+            response->print(endColumn);
+            response->print(startThreeColumns);
             response->printf_P(labelForPrintfFormatString, string_softApChannel, PSTR("Preferred channel"));
             response->printf_P(selectPrintfFormatString, string_softApChannel, string_softApChannel);
             response->print(F("<option value=\"1\""));response->print(softApChannel == 1 ? selectValueSelected:selectValueNotSelected);response->print(F("1</option>"));
@@ -1717,6 +1761,17 @@
               else
               {
                 enableCaptivePortal = false;
+              }
+            }
+            if(request->hasParam(string_alwaysStartAdminInterface, true))
+            {
+              if(request->getParam(string_alwaysStartAdminInterface, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+              {
+                alwaysStartAdminInterface = true;
+              }
+              else
+              {
+                alwaysStartAdminInterface = false;
               }
             }
             if(request->hasParam(string_softApChannel, true))
@@ -2263,6 +2318,25 @@
           #endif
           //Read the submitted configuration
           bool treacleConfigurationChanged = false;
+          if(request->hasParam(string_treacleEncryptionEnabled, true))
+          {
+            if(request->getParam(string_treacleEncryptionEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+            {
+              if(treacleEncryptionEnabled == false)
+              {
+                treacleEncryptionEnabled = true;
+                treacleConfigurationChanged = true;
+              }
+            }
+            else
+            {
+              if(treacleEncryptionEnabled == true)
+              {
+                treacleEncryptionEnabled = false;
+                treacleConfigurationChanged = true;
+              }
+            }
+          }
           if(request->hasParam(string_espNowEnabled, true))
           {
             if(request->getParam(string_espNowEnabled, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
@@ -3388,6 +3462,12 @@
               response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"99\" step=\"1\" value=\"%u\" id=\"armourValue\" name=\"armourValue\">"), armourValue);
               response->print(endColumn);
               response->print(endRow);
+              response->print(startRow);
+              response->print(startSixColumns);
+              response->printf_P(labelForPrintfFormatString, PSTR("bleedOutTime"), PSTR("Bleed out time (minutes, 0=never)"));
+              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" min=\"0\" max=\"30\" step=\"1\" value=\"%u\" id=\"bleedOutTime\" name=\"bleedOutTime\">"), bleedOutTime);
+              response->print(endColumn);
+              response->print(endRow);
               //Flags
               response->printf_P(h3printfFormatString, PSTR("Sensor flags"));
               //Require EP
@@ -3523,6 +3603,10 @@
           if(request->hasParam("armourValue", true))
           {
             armourValue = request->getParam("armourValue", true)->value().toInt();
+          }
+          if(request->hasParam("bleedOutTime", true))
+          {
+            bleedOutTime = request->getParam("bleedOutTime", true)->value().toInt();
           }
           //Sensor flags
           if(request->hasParam("EP_flag", true))
@@ -3975,7 +4059,7 @@
           {
             if(index > 0)
             {
-              response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%s</td><td>Fix:%s Lat:%.3f Lon:%.3f Distance:%.1f Course:%.1f Speed:%s</td><td>RX&#8209;%04x TX&#8209;%04x</td><td>RX&#8209;%04x TX&#8209;%04x RSSI&nbsp;%idBm SNR&nbsp;%.2fdB</td><td>%s&nbsp;ago</td><td>"),
+              response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>0x%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%s</td><td>Fix:%s Lat:%.3f Lon:%.3f Distance:%.1f Course:%.1f Speed:%s</td><td>RX&#8209;%04x TX&#8209;%04x</td><td>RX&#8209;%04x TX&#8209;%04x RSSI&nbsp;%idBm SNR&nbsp;%.2fdB</td><td>%s&nbsp;ago</td><td>"),
               (device[index].name == nullptr) ? "n/a" : device[index].name,
               (device[index].icName == nullptr) ? "" : device[index].icName,
               device[index].id,
@@ -4000,7 +4084,7 @@
             }
             else
             {
-              response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%s</td><td>Fix:%s Lat:%.3f Lon:%.3f Speed:%s</td><td></td><td></td><td></td><td>This device"),
+              response->printf_P(PSTR("<tr><td>%s</td><td>%s</td><td>0x%02x</td><td>%s</td><td>v%u.%u.%u</td><td>%s</td><td>%s</td><td>Fix:%s Lat:%.3f Lon:%.3f Speed:%s</td><td></td><td></td><td></td><td>This device"),
               (device[index].name == nullptr) ? "n/a" : device[index].name,
               (device[index].icName == nullptr) ? "" : device[index].icName,
               device[index].id,
