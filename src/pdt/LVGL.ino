@@ -1327,8 +1327,11 @@
     void setupBacklight()
     {
       pinMode(ldrPin, INPUT);
-      ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_12_BIT);
-      ledcAttachPin(lcdBacklightPin, LEDC_CHANNEL_0);
+      #if ESP_IDF_VERSION_MAJOR > 3
+      #else
+        ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_12_BIT);
+        ledcAttachPin(lcdBacklightPin, LEDC_CHANNEL_0);
+      #endif
     }
     void manageBacklight()
     {
@@ -1349,11 +1352,19 @@
         }
         if(uiActive == true)
         {
-          ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * currentBrightnessLevel);
+          #if ESP_IDF_VERSION_MAJOR > 3
+            analogWrite(lcdBacklightPin, currentBrightnessLevel);
+          #else
+            ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * currentBrightnessLevel);
+          #endif
         }
         else
         {
-          ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * uiInactiveBrightnessLevel);
+          #if ESP_IDF_VERSION_MAJOR > 3
+            analogWrite(lcdBacklightPin, uiInactiveBrightnessLevel);
+          #else
+            ledcWrite(LEDC_CHANNEL_0, (4095 / absoluteMaximumBrightnessLevel) * uiInactiveBrightnessLevel);
+          #endif
         }
       }
     }
