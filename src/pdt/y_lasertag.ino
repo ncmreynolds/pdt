@@ -207,24 +207,6 @@
     }
     else if(currentSensorState == sensorState::dead)
     {
-      /*
-      if(millis() - lastSensorStateChange > 10000)
-      {
-        lastSensorStateChange = millis();
-        currentSensorState = sensorState::starting;
-        localLogLn(F("Sensor: starting"));
-        sensor.resume();
-      }
-      */
-      /*
-      if(millis() - lastSensorStateChange > 30000)
-      {
-        lastSensorStateChange = millis();
-        currentSensorState = sensorState::starting;
-        localLogLn(F("Sensor: starting"));
-        sensor.resume();
-      }
-      */
     }
     else if(currentSensorState == sensorState::bleedOut)
     {
@@ -233,7 +215,7 @@
         lastSensorStateChange = millis();
         bleedOutCounter++;
         sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
-        if(bleedOutCounter >= bleedOutTime)
+        if(bleedOutTime !=0 && bleedOutCounter >= bleedOutTime)
         {
           currentSensorState = sensorState::dead;
           lastSensorStateChange = millis();
@@ -255,7 +237,10 @@
             localLogLn(F(" minute"));
           }
           #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
-            xTaskCreate(playCountOutMinutesAnimation, "playCountOutMinutesAnimation", 1000, (void*)&bleedOutCounter, 2, NULL);
+            if(bleedOutTime !=0)
+            {
+              xTaskCreate(playCountOutMinutesAnimation, "playCountOutMinutesAnimation", 1000, (void*)&bleedOutCounter, 2, NULL);
+            }
           #endif
         }
       }
@@ -273,6 +258,7 @@
     device[0].currentNumberOfHits = sensorPersitentData.getUChar(currentHitsKey, defaultNumberOfStartingHits);
     device[0].numberOfStartingStunHits = sensorPersitentData.getUChar(startingStunKey, defaultNumberOfStartingStunHits);
     device[0].currentNumberOfStunHits = sensorPersitentData.getUChar(currentStunKey, defaultNumberOfStartingStunHits);
+    armourValue = sensorPersitentData.getUChar(armourValueKey, 0);
     EP_flag = sensorPersitentData.getBool(EP_flag_key, false); //Sensor requires EP set in signal to be hit
     ig_healing_flag = sensorPersitentData.getBool(ig_healing_flag_key, false); //Sensor ignores healing
     ig_stun_flag = sensorPersitentData.getBool(ig_stun_flag_key, false); //Sensor ignores stun hits
@@ -282,7 +268,8 @@
     treat_stun_as_one = sensorPersitentData.getBool(stun_as_one_key, false); //Sensor treats all stun as one
     ongoing_is_cumulative = sensorPersitentData.getBool(ongoing_adds_key, false); //Sensor adds ongoing damage to current ongoing value
     ig_non_dot = sensorPersitentData.getBool(ig_non_dot_key, false); //Sensor ignores non-DOT signals
-    bleedOutCounter = sensorPersitentData.getUChar(bleedOutCounterKey, 0);
+    device[0].numberOfStartingHits = sensorPersitentData.getUChar(startingHitsKey, defaultNumberOfStartingHits);
+    bleedOutTime = sensorPersitentData.getUChar(bleedOutTimeKey, 0);
   }
   void saveSensorConfiguration()
   {
@@ -318,6 +305,15 @@
     if(sensorPersitentData.putUChar(currentStunKey, device[0].currentNumberOfStunHits) == 0)
     {
       localLog(currentStunKey);
+      localLog(F("-failed "));
+    }
+    else
+    {
+      items_saved++;
+    }
+    if(sensorPersitentData.putUChar(armourValueKey, armourValue) == 0)
+    {
+      localLog(armourValueKey);
       localLog(F("-failed "));
     }
     else
@@ -405,6 +401,15 @@
     {
       items_saved++;
     }
+    if(sensorPersitentData.putUChar(bleedOutTimeKey, bleedOutTime) == 0)
+    {
+      localLog(bleedOutTimeKey);
+      localLog(F("-failed "));
+    }
+    else
+    {
+      items_saved++;
+    }
     if(items_saved == 13)
     {
       localLogLn(F("OK"));
@@ -447,13 +452,18 @@
     for(uint8_t i = 0; i < numberOfMinutes; i++)
     {
       #if defined(SUPPORT_BEEPER)
-        if(beeperEnabled == true)
+        if(beeperEnabled == true && currentSensorState == sensorState::bleedOut)
         {
           makeAsingleBeep(300, 250);
         }
       #endif
       #if defined(SUPPORT_LED)
-        ledOn(125, 0);
+        /*
+        if(currentSensorState == sensorState::dead)
+        {
+          ledOn(125, 0);
+        }
+        */
       #endif
       vTaskDelay(500 / portTICK_PERIOD_MS);
     }
@@ -537,10 +547,10 @@
   }
   void playDeadAnimation(void * parameter)
   {
-    while(currentSensorState == sensorState::dead)
+    while(currentSensorState == sensorState::dead || currentSensorState == sensorState::bleedOut)
     {
       #if defined(SUPPORT_BEEPER)
-        if(beeperEnabled == true)
+        if(beeperEnabled == true && currentSensorState == sensorState::dead)
         {
           makeAsingleBeep(1000, 199);
         }
