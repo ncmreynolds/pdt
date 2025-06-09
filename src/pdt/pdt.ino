@@ -27,9 +27,9 @@
 
 #define CYDTracker 6
 
-#define HARDWARE_VARIANT C3PDT
+//#define HARDWARE_VARIANT C3PDT
 //#define HARDWARE_VARIANT C3PDTasBeacon
-//#define HARDWARE_VARIANT C3TrackedSensor
+#define HARDWARE_VARIANT C3TrackedSensor
 //#define HARDWARE_VARIANT C3TrackedSensorAsBeacon
 //#define HARDWARE_VARIANT C3LoRaBeacon
 //#define HARDWARE_VARIANT CYDTracker
@@ -43,11 +43,15 @@
 
 */
 
-#define SERIAL_DEBUG
-#define SERIAL_LOG
+//#define SERIAL_DEBUG
+//#define SERIAL_LOG
 
 #define USE_LITTLEFS
+//#define DEBUG_GPS
 #define TREACLE_SEND_FAST
+//#define DEBUG_TREACLE
+//#define DEBUG_LOCATION_UPDATES
+//#define DEBUG_BEACON_SELECTION
 
 #if HARDWARE_VARIANT == C3PDT
   #define ACT_AS_TRACKER
@@ -58,41 +62,33 @@
   #define USE_SSD1331
   #define SUPPORT_GPS
   #define SUPPORT_WIFI
-  //#define DEBUG_TREACLE
   //#define SUPPORT_SIGNAL_STRENGTH
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3PDTasBeacon
   #define ACT_AS_BEACON
   #define SUPPORT_GPS
-  //#define DEBUG_GPS
-  #define DEBUG_BEACON_SELECTION
   #define SUPPORT_WIFI
-  //#define DEBUG_TREACLE
-  #define DEBUG_UPDATES
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3TrackedSensor
   #define ACT_AS_BEACON
   #define ACT_AS_SENSOR
   #define SUPPORT_BUTTON
   #define SUPPORT_BEEPER
-  #define SUPPORT_VIBRATION
+  //#define SUPPORT_VIBRATION
   #define SUPPORT_LED
   #define SUPPORT_GPS
-  #define DEBUG_GPS
   #define SUPPORT_WIFI
-  #define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
   #define SUPPORT_HACKING
-  #define ALLOW_DOWNLOAD_FILES
+  //#define HACK_TO_SELF_DESTRUCT
+  //#define ALLOW_DOWNLOAD_FILES
   //#define ENABLE_HACKING_TESTING
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3TrackedSensorAsBeacon
   #define ACT_AS_BEACON
   #define SUPPORT_GPS
-  #define DEBUG_GPS
   #define SUPPORT_WIFI
-  //#define DEBUG_TREACLE
   #define SUPPORT_BATTERY_METER
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == C3LoRaBeacon
@@ -104,9 +100,6 @@
   #define SUPPORT_SOFT_PERIPHERAL_POWER_OFF
   #define SUPPORT_LED
   #define SUPPORT_GPS
-  //#define DEBUG_GPS
-  //#define DEBUG_TREACLE
-  //#define DEBUG_UPDATES
   #define ENABLE_LOCAL_WEBSERVER
 #elif HARDWARE_VARIANT == CYDTracker
   #define ACT_AS_TRACKER
@@ -123,16 +116,12 @@
   #define SUPPORT_TOUCHSCREEN
   #define SUPPORT_TOUCHSCREEN_BITBANG //Use bitbang code
   #define ENABLE_LOCAL_WEBSERVER
-  //#define DEBUG_GPS
-  #define DEBUG_BEACON_SELECTION
-  #define DEBUG_TREACLE
-  #define DEBUG_UPDATES
   //#define DEBUG_LVGL
 #endif
 
 #if HARDWARE_VARIANT == C3TrackedSensor
   #if defined(SUPPORT_HACKING)
-    #undef ENABLE_LOCAL_WEBSERVER
+    //#undef ENABLE_LOCAL_WEBSERVER
   #endif
 #endif
 /*
@@ -396,8 +385,10 @@
   uint32_t sensorToneOffTimes[4] = {0, 250, 500, 1};
   const char* startingHitsKey = "startHits";
   const char* currentHitsKey =  "currHits";
+  const char* bleedOutTimeKey =  "bleedOut";
   const char* startingStunKey = "startStun";
   const char* currentStunKey =  "currStun";
+  const char* armourValueKey =  "armour";
   const char* EP_flag_key = "EP_flag";
   const char* ig_healing_flag_key = "ig_healing_flag";
   const char* ig_stun_flag_key = "ig_stun_flag";
@@ -512,8 +503,11 @@ static const uint8_t deviceIcInfoId = 0x11;             //LoRa packet contains I
 const char string_id[] PROGMEM = "id";
 bool treacleIntialised = false;
 uint8_t localMacAddress[6] = {};
-bool treacleEncryptionEnabled = false;
+//Encryption
+bool treacleEncryptionEnabled = true;
 const char string_treacleEncryptionEnabled[] PROGMEM = "treacleEncryptionEnabled";
+uint8_t treacleEncryptionKey[16] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+const char string_treacleEncryptionKey[] PROGMEM = "treacleEncryptionKey";
 uint32_t lastTreacleDeviceInfoSendTime = 0;       //Track the last time of updates
 uint32_t treacleDeviceInfoInterval = 10E3;        //Send device info every 60s
 uint8_t typeOfLastTreacleUpdate = 0;              //Use to cycle through update types
@@ -640,7 +634,11 @@ bool loRaInitialised = false;
  * 
  */
 #if defined(ACT_AS_BEACON)
-  const char* default_deviceName = "PDT beacon";
+  #if HARDWARE_VARIANT == C3TrackedSensor
+    const char* default_deviceName = "Drone";
+  #else
+    const char* default_deviceName = "PDT beacon";
+  #endif
 #else
   #if HARDWARE_VARIANT == CYDTracker
     const char* default_deviceName = "CYD tracker";
@@ -710,6 +708,8 @@ uint32_t wipeTimer = 0;  //Used to schedule a wipe
   #if defined(ENABLE_LOCAL_WEBSERVER) || defined(SUPPORT_HACKING)
     bool enableCaptivePortal = true;
     const char string_enableCaptivePortal[] PROGMEM = "enableCaptivePortal";
+    bool alwaysStartAdminInterface = true;
+    const char string_alwaysStartAdminInterface[] PROGMEM = "alwaysStartAdminInterface";
     DNSServer* dnsServer = nullptr; //May not be used so don't create the object unless it is enabled
   #endif
   uint32_t wiFiClientInactivityTimer = 0;
@@ -721,7 +721,11 @@ uint32_t wipeTimer = 0;  //Used to schedule a wipe
   const char string_SSID[] PROGMEM = "SSID";
   char* PSK = nullptr;
   const char string_PSK[] PROGMEM = "PSK";
-  const char* default_AP_PSK = "12345678";
+  #if defined(ACT_AS_BEACON) && HARDWARE_VARIANT == C3TrackedSensor
+    const char* default_AP_PSK = "marionette";
+  #else
+    const char* default_AP_PSK = "12345678";
+  #endif
   char* APSSID = nullptr;
   const char string_APSSID[] PROGMEM = "APSSID";
   char* APPSK = nullptr;
@@ -1282,7 +1286,7 @@ static const uint16_t loggingYieldTime = 100;
   uint16_t beeperTone = 1400;
   static const uint16_t beeperButtonTone = 900;  //Button push tone
   static const uint16_t beeperButtonOnTime = 10; //Button push on time
-  bool beeperEnabled = false;
+  bool beeperEnabled = true;
   const char string_beeperEnabled[] PROGMEM = "beeperEnabled";
 #endif
 /*
@@ -1367,6 +1371,8 @@ static const uint16_t loggingYieldTime = 100;
   uint32_t gameSpeedup = 500;
   const char string_gameSpeedup[] PROGMEM = "gameSpeedup";
   ESPUIgames::gameType gametype = ESPUIgames::gameType::simon;
+  bool hackComplete = false;
+  uint32_t turnOffWifiSoon = 0;
   #if defined(ALLOW_VIEW_FILES) || defined(ALLOW_DOWNLOAD_FILES)
     #include <FS.h>
     #include <LittleFS.h>
@@ -1387,11 +1393,10 @@ static const uint16_t loggingYieldTime = 100;
     char filesRoot[] = "/files/";
     bool filesTabVisible = false;
     bool filesVisible = false;
-    bool hackComplete = false;
-    uint32_t turnOffWifiSoon = 0;
     uint16_t filesTabID = 0;
   #endif
   uint16_t controlsTabID = 0;
+  bool controlsVisible = false;
   uint16_t shutdownButtonID = 0;
   uint16_t selfDestructButtonID = 0;
   uint16_t statusWidgetID = 0;
@@ -1409,7 +1414,11 @@ static const uint16_t loggingYieldTime = 100;
       case B_DOWN:
           if(selfDestructNow == 0)
           {
-            ESPUI.updateControlValue(statusWidgetID, "Self destruct down in 10s, hold to confirm");
+            #if defined(HACK_TO_SELF_DESTRUCT)
+              ESPUI.updateControlValue(statusWidgetID, "Self destruct in 10s, hold to confirm");
+            #else
+              ESPUI.updateControlValue(statusWidgetID, "Shutdown in 10s, hold to confirm");
+            #endif
             ESPUI.getControl(statusWidgetID)->color = ControlColor::Carrot;
             ESPUI.updateControl(statusWidgetID);
             selfDestructNow = millis();
