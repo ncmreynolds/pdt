@@ -264,6 +264,71 @@ void localLogLn(typeToLog message) //Add to the local log, starting with a times
   }
 }
 template<typename typeToLog>
+void localLogLn(typeToLog message, uint8_t base) //Add to the local log, starting with a timestamp
+{
+  if(loggingSemaphore != NULL)
+  {
+    if(xSemaphoreTake(loggingSemaphore, loggingSemaphoreTimeout) == pdTRUE)
+    {
+      if(logfileYear == 0)  //If a log file is not chose, try and choose one
+      {
+        setLogFilename();
+      }
+      else if(logRolloverOccured() == true && startOfLogLine == true)  //Check for log rollover, which only occurs after a new line. It is done here so it is rolled at the time of logging, not the time of the log flush
+      {
+        if(loggingBuffer.length() > 0)
+        {
+          flushLog();
+        }
+        setLogFilename(); //Try to choose a next log file
+      }
+      if(startOfLogLine == true)
+      {
+        startOfLogLine = false;
+        if(loggingBuffer.length() > logFlushThreshold)  //Check for the need to flush a buffer that's about to get too large (which is not fatal)
+        {
+          if(autoFlush == true)
+          {
+            #if defined(SERIAL_LOG) && defined(DEBUG_LOGGING)
+              if(waitForBufferSpace(25))
+              {
+                SERIAL_DEBUG_PORT.println(F("THRESHOLD HIT FOR LOG FLUSH"));
+              }
+            #endif
+            logLastFlushed = millis();
+            flushLog();
+          }
+          else
+          {
+            flushLogNow = true;
+          }
+        }
+        updateTimestamp();
+        /*
+        #if defined(SERIAL_LOG)
+          if(waitForBufferSpace(21))
+          {
+            SERIAL_DEBUG_PORT.print(timestamp);
+            SERIAL_DEBUG_PORT.print(' ');
+          }
+        #endif
+        */
+        logToFile(timestamp);
+        logToFile(' ');
+      }
+      #if defined(SERIAL_LOG)
+        if(waitForBufferSpace(String(message).length() + 1))
+        {
+          SERIAL_DEBUG_PORT.println(message, base);
+        }
+      #endif
+      logToFileLn(message);
+      startOfLogLine = true;
+      xSemaphoreGive(loggingSemaphore);
+    }
+  }
+}
+template<typename typeToLog>
 void logToFile(typeToLog message)
 {
     loggingBuffer+=message;
