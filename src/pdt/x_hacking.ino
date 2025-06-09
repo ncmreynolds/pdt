@@ -2,7 +2,7 @@
   void setupHacking()
   {
     localLogLn(F("Starting hacking game"));
-    game.debug(Serial);
+    //game.debug(Serial);
     game.type(ESPUIgames::gameType::whackamole);
     game.setLength(gameLength);
     game.setMaximumAttempts(gameRetries);
@@ -11,22 +11,32 @@
     game.setTitle(device[0].name);
     game.setTabTitle("Onboard firewall");
     game.enableStartSwitch("Hack!");
-    game.setWinContent("Security breached!","Check the files and controls in the new tabs."); //Setting this makes a widget pop up if you win, not setting it relies on colours alone to show it
+    #if defined(ALLOW_VIEW_FILES) || defined(ALLOW_DOWNLOAD_FILES)
+      game.setWinContent("Security breached!","Check the files and controls in the new tabs."); //Setting this makes a widget pop up if you win, not setting it relies on colours alone to show it
+    #else
+      game.setWinContent("Security breached!","Check the controls in the new tab."); //Setting this makes a widget pop up if you win, not setting it relies on colours alone to show it
+    #endif
     game.setLoseContent("Hack failed!","Flick the switch to try again","No further hack attempts possible"); //Setting this makes a widget pop up if you lose, not setting it relies on colours alone to show it
     game.addPlayButton("Core Operating system", "Hack", ControlColor::Peterriver);
-    game.addPlayButton("Secure storage", "Hack", ControlColor::Sunflower);
-    game.addPlayButton("System bus", "Hack", ControlColor::Turquoise);
-    game.addPlayButton("Watchdog Daemon", "Hack", ControlColor::Carrot);
+    game.addPlayButton("Motion control system", "Hack", ControlColor::Sunflower);
+    game.addPlayButton("Teleoperation bus", "Hack", ControlColor::Turquoise);
+    game.addPlayButton("Target discriminator", "Hack", ControlColor::Carrot);
     game.addGameTab(); //Builds all the game controls
     //Our own control tab
-    SERIAL_DEBUG_PORT.println(F("Adding files tab"));
+    #if defined(SERIAL_DEBUG)
+      SERIAL_DEBUG_PORT.println(F("Adding files tab"));
+    #endif
     controlsTabID = ESPUI.addControl(ControlType::Tab, "Drone control", "Drone control");
     statusWidgetID = ESPUI.addControl( ControlType::Label, "System status", "Running", ControlColor::Emerald, controlsTabID);
     //Shutdown
     //shutdownButtonID = ESPUI.addControl(ControlType::Button, "Shutdown", "Shutdown", ControlColor::Emerald, controlsTabID, &shutdownButtonCallback);
     //ESPUI.setPanelWide(shutdownButtonID, true);
     //Self destruct
-    selfDestructButtonID = ESPUI.addControl(ControlType::Button, "Self Destruct", "Destruct", ControlColor::Carrot, controlsTabID, &selfDestructButtonCallback);
+    #if defined(HACK_TO_SELF_DESTRUCT)
+      selfDestructButtonID = ESPUI.addControl(ControlType::Button, "Self Destruct", "Destruct", ControlColor::Carrot, controlsTabID, &selfDestructButtonCallback);
+    #else
+      selfDestructButtonID = ESPUI.addControl(ControlType::Button, "Shutdown - Press and hold to confirm", "Shutdown", ControlColor::Carrot, controlsTabID, &selfDestructButtonCallback);
+    #endif
     ESPUI.setPanelWide(selfDestructButtonID, true);
     ESPUI.setPanelWide(statusWidgetID, true);
     ESPUI.updateVisibility(controlsTabID, false);
@@ -59,13 +69,17 @@
     game.runFsm();  //Run the game finite state machine
     if(game.won())
     {
+      if(controlsVisible == false)
+      {
+        ESPUI.updateVisibility(controlsTabID, true);
+        controlsVisible = true;
+      }
       #if defined(ALLOW_VIEW_FILES) || defined(ALLOW_DOWNLOAD_FILES)
       if(filesVisible == false)
       {
         hackComplete = true;
         filesVisible = true;
         ESPUI.updateVisibility(filesTabID, true);
-        ESPUI.updateVisibility(controlsTabID, true);
       }
       #endif
     }
@@ -74,9 +88,9 @@
       hackComplete = false;
       turnOffWifiSoon = millis();
       #if defined(ALLOW_VIEW_FILES) || defined(ALLOW_DOWNLOAD_FILES)
-      Serial.println(F("Hack complete, hiding files again"));
-      ESPUI.updateVisibility(filesTabID, false);
-      ESPUI.updateVisibility(controlsTabID, false);
+        Serial.println(F("Hack complete, hiding files again"));
+        ESPUI.updateVisibility(filesTabID, false);
+        ESPUI.updateVisibility(controlsTabID, false);
       #endif
     }
     if(turnOffWifiSoon !=0 && millis() - turnOffWifiSoon > 3e3)
@@ -123,7 +137,11 @@
         sensorPersitentData.putUChar(currentHitsKey, device[0].currentNumberOfHits);
         sensorPersitentData.putUChar(bleedOutCounterKey, bleedOutCounter);
         lastSensorStateChange = millis();
-        localLogLn(F("Drone destroyed by hacker"));
+        #if defined(HACK_TO_SELF_DESTRUCT)
+          localLogLn(F("Drone destroyed by hacker"));
+        #else
+          localLogLn(F("Drone shut down by hacker"));
+        #endif
         sensor.pause();
         #if defined(SUPPORT_BEEPER) || defined(SUPPORT_LED)
           xTaskCreate(playDeadAnimation, "playDeadAnimation", 512, NULL, 2, NULL);
@@ -133,7 +151,11 @@
       else if((millis() - selfDestructNow)/1000 != selfDestructCountdown)
       {
         selfDestructCountdown = (millis() - selfDestructNow)/1000;
-        ESPUI.updateControlValue(statusWidgetID, "Self Destruct in " + String(10-selfDestructCountdown) + "s");
+        #if defined(HACK_TO_SELF_DESTRUCT)
+          ESPUI.updateControlValue(statusWidgetID, "Self Destruct in " + String(10-selfDestructCountdown) + "s");
+        #else
+          ESPUI.updateControlValue(statusWidgetID, "Shutdown in " + String(10-selfDestructCountdown) + "s");
+        #endif
         ESPUI.updateControl( statusWidgetID );
       }
     }
@@ -157,6 +179,7 @@
     }
     return count;
   }
+  #if defined(ALLOW_DOWNLOAD_FILES)
   void addFilesTab()
   {
     localLog(F("Adding files tab with "));
@@ -222,4 +245,5 @@
       file = root.openNextFile();
     }
   }
+  #endif
 #endif
