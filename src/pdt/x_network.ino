@@ -37,7 +37,7 @@
           wifiApStarted = espBoilerplate.beginAp(APSSID, APPSK);
         }
       }
-      #if defined(ENABLE_LOCAL_WEBSERVER)
+      #if defined(ENABLE_LOCAL_WEBSERVER) || defined(SUPPORT_HACKING)
         if(wifiApStarted == true && enableCaptivePortal == true)
         {
           localLog(F("Starting captive portal DNS server: "));
@@ -63,7 +63,7 @@
       #if defined(ENABLE_LOCAL_WEBSERVER)
         #if defined(ACT_AS_SENSOR)
           #if defined(SUPPORT_HACKING)
-            if(sensorReset == true && (wifiApStarted == true || wifiClientConnected == true))
+            if((sensorReset == true || alwaysStartAdminInterface == true) && (wifiApStarted == true || wifiClientConnected == true))
             {
               setupWebServer();
               #if defined(SUPPORT_OTA)
@@ -123,7 +123,7 @@
         wifiClientConnected = false;
       }
       #if defined(ACT_AS_SENSOR)
-        if(sensorReset == true && restartTimer == 0 && millis() - lastWifiActivity > 60000) //Admin mode timeout
+        if(sensorReset == true && alwaysStartAdminInterface == false && restartTimer == 0 && millis() - lastWifiActivity > 60000) //Admin mode timeout
         {
           localLogLn(F("Admin web portal idle, restarting!"));
           restartTimer = millis();
