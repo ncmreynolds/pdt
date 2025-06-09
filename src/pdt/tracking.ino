@@ -14,7 +14,7 @@
           device[index].distanceTo = newDistance;
           device[index].courseTo = TinyGPSPlus::courseTo(device[0].latitude, device[0].longitude, device[index].latitude, device[index].longitude);
           #if defined(SERIAL_DEBUG) && defined(DEBUG_BEACON_SELECTION)
-            SERIAL_DEBUG_PORT.printf_P(PSTR("NodeId:%02x - distance:%01.1f(m) course:%03.1f(deg) %04x"), device[index].id, device[index].distanceTo, device[index].courseTo, treacle.rxReliability(device[index].id));
+            SERIAL_DEBUG_PORT.printf_P(PSTR("NodeId:%02x - distance:%01.1f(m) course:%03.1f(deg) %04x"), device[index].id, device[index].distanceTo, device[index].courseTo, treacle.nodeRxReliability(device[index].id));
           #endif
           if(index == currentlyTrackedDevice)
           {
