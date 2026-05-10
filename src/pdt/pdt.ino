@@ -36,7 +36,7 @@
 
 #define PDT_MAJOR_VERSION 0
 #define PDT_MINOR_VERSION 5
-#define PDT_PATCH_VERSION 5
+#define PDT_PATCH_VERSION 6
 /*
 
    Various nominally optional features that can be switched off during testing/development
@@ -44,7 +44,7 @@
 */
 
 //#define SERIAL_DEBUG
-//#define SERIAL_LOG
+#define SERIAL_LOG
 
 #define USE_LITTLEFS
 //#define DEBUG_GPS
@@ -607,10 +607,15 @@ bool loRaInitialised = false;
  */
 #if defined(SUPPORT_BATTERY_METER)
   bool enableBatteryMonitor = true;
+  bool autoAdjustBatteryConstant = false;
+  float chargingVoltage = 4.19;
+  float batteryConstant = 1.0;
+  uint32_t autoAdjustBatterySoon = 0;
   const char string_enableBatteryMonitor[] PROGMEM = "enableBatteryMonitor";
+  const char string_autoAdjustBatteryConstant[] PROGMEM = "autoAdjustBatteryConstant";
   const char string_topLadderResistor[] PROGMEM = "topLadderResistor";
   const char string_bottomLadderResistor[] PROGMEM = "bottomLadderResistor";
-  float chargingVoltage = 4.19;
+  const char string_batteryConstant[] PROGMEM = "batteryConstant";
 #endif
 /*
  * 

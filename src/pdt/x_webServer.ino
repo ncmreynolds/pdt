@@ -1269,6 +1269,7 @@
             //Battery
             #if defined(SUPPORT_BATTERY_METER)
               response->printf_P(h3printfFormatString, PSTR("Battery monitor"));
+              //Enabled?
               response->print(startRow);
               response->print(startSixColumns);
               response->printf_P(labelForPrintfFormatString, string_enableBatteryMonitor, PSTR("Enable battery monitor"));
@@ -1281,16 +1282,32 @@
               response->print(F("Defaults 330/104kOhm"));
               response->print(endColumn);
               response->print(endRow);
+              //Auto setting?
               response->print(startRow);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_topLadderResistor, PSTR("Top ladder resistor (Kohms)"));
-              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"topLadderResistor\" name=\"topLadderResistor\">"), topLadderResistor);
+              response->printf_P(labelForPrintfFormatString, string_autoAdjustBatteryConstant, PSTR("Auto calibrate battery monitor"));
+              response->printf_P(selectPrintfFormatString, string_autoAdjustBatteryConstant, string_autoAdjustBatteryConstant);
+              response->print(selectValueTrue);response->print(autoAdjustBatteryConstant == true ? selectValueSelected:selectValueNotSelected);response->print(selectValueEnabled);
+              response->print(selectValueFalse);response->print(autoAdjustBatteryConstant == false ? selectValueSelected:selectValueNotSelected);response->print(selectValueDisabled);
+              response->print(endSelect);
               response->print(endColumn);
               response->print(startSixColumns);
-              response->printf_P(labelForPrintfFormatString, string_bottomLadderResistor, PSTR("Bottom ladder resistor (Kohms)"));
-              response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\">"), bottomLadderResistor);
+              response->print(F("Automatically adjust battery monitor"));
               response->print(endColumn);
               response->print(endRow);
+              if(autoAdjustBatteryConstant == false)
+              {
+                response->print(startRow);
+                response->print(startSixColumns);
+                response->printf_P(labelForPrintfFormatString, string_topLadderResistor, PSTR("Top ladder resistor (Kohms)"));
+                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"topLadderResistor\" name=\"topLadderResistor\">"), topLadderResistor);
+                response->print(endColumn);
+                response->print(startSixColumns);
+                response->printf_P(labelForPrintfFormatString, string_bottomLadderResistor, PSTR("Bottom ladder resistor (Kohms)"));
+                response->printf_P(PSTR("<input class=\"u-full-width\" type=\"number\" step=\"0.1\" value=\"%.1f\" id=\"bottomLadderResistor\" name=\"bottomLadderResistor\">"), bottomLadderResistor);
+                response->print(endColumn);
+                response->print(endRow);
+              }
             #endif
             #if defined(SUPPORT_BEEPER)
               #if defined(ACT_AS_TRACKER)
@@ -1422,6 +1439,22 @@
               if(request->hasParam(string_bottomLadderResistor, true))
               {
                 bottomLadderResistor = request->getParam(string_bottomLadderResistor, true)->value().toFloat();
+              }
+              if(request->hasParam(string_autoAdjustBatteryConstant, true))
+              {
+                if(request->getParam(string_autoAdjustBatteryConstant, true)->value().length() == 4) //Length 4 implies 'true' rather than 'false'
+                {
+                  if(autoAdjustBatteryConstant == false)
+                  {
+                    autoAdjustBatterySoon = millis(); //Set the battery constant soon
+                    lastBatteryStatus = millis(); //Avoid reading the battery level straight away
+                  }
+                  autoAdjustBatteryConstant = true;
+                }
+                else
+                {
+                  autoAdjustBatteryConstant = false;
+                }
               }
             #endif
             #if defined(SUPPORT_BEEPER)
@@ -4005,6 +4038,7 @@
           response->print(endColumn);
           */
           #if defined(ACT_AS_TRACKER)
+            response->print(startRow);
             response->print(startFourColumns);
             response->print(F("<a href =\"/nearest\"><input class=\"button-primary\" type=\"button\" value=\"Track nearest\" style=\"width: 100%;\"></a>"));
             response->print(endColumn);
@@ -4045,7 +4079,7 @@
             response->print(endColumn);
             response->print(endRow);
           #else
-            response->print(divEnd);
+            //response->print(divEnd);
           #endif
           if(numberOfDevices == maximumNumberOfDevices)
           {

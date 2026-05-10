@@ -63,6 +63,8 @@ bool saveConfiguration(const char* filename)  //Saves the configuration
     configuration[string_enableBatteryMonitor] = enableBatteryMonitor;
     configuration[string_topLadderResistor] = topLadderResistor;
     configuration[string_bottomLadderResistor] = bottomLadderResistor;
+    configuration[string_autoAdjustBatteryConstant] = autoAdjustBatteryConstant;
+    configuration[string_batteryConstant] = batteryConstant;
   #endif
   #if defined(SUPPORT_BEEPER)
     configuration[string_beeperEnabled] = beeperEnabled;
@@ -270,6 +272,8 @@ bool loadConfiguration(const char* filename)  //Loads configuration from the def
       enableBatteryMonitor = configuration[string_enableBatteryMonitor] | true;
       topLadderResistor = configuration[string_topLadderResistor] | 330;
       bottomLadderResistor = configuration[string_bottomLadderResistor] | 90;
+      autoAdjustBatteryConstant = configuration[string_autoAdjustBatteryConstant] | false;
+      batteryConstant = configuration[string_batteryConstant] | 1.0;
     #endif
     loggingBufferSize = configuration[string_loggingBufferSize] | 2048;
     logFlushThreshold = configuration[string_logFlushThreshold] | 2000;
