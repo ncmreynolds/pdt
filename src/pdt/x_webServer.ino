@@ -1153,7 +1153,7 @@
               #endif
               if(request->hasParam("file"))
               {
-                AsyncWebParameter* file = request->getParam("file");
+                const AsyncWebParameter* file = request->getParam("file");
                 AsyncResponseStream *response = request->beginResponseStream("text/html");
                 addPageHeader(response, 0, nullptr);
                 response->printf_P(h2printfFormatString, PSTR("Delete log file confirmation"));
@@ -1192,7 +1192,7 @@
               #endif
               if(request->hasParam("file"))
               {
-                AsyncWebParameter* file = request->getParam("file");
+                const AsyncWebParameter* file = request->getParam("file");
                 #if defined(USE_LITTLEFS)
                   String fileToRemove = "/" + file->value(); //LittleFS insists on a leading /
                 #endif
